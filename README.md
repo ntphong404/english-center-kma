@@ -32,8 +32,14 @@ English Center là hệ thống quản lý trung tâm Anh ngữ toàn diện, đ
 
 ## Yêu Cầu Hệ Thống
 
+### Backend
+- Java 17 trở lên
+- Spring Boot 3.x
+- Maven hoặc Gradle
+- MySQL 8.0 trở lên
+
+### Frontend
 - Node.js (v18 trở lên)
-- MongoDB (v6 trở lên)
 - npm hoặc yarn
 
 ## Cài Đặt
@@ -50,7 +56,11 @@ cd english-center
 #### Backend (Server)
 ```bash
 cd server
-npm install
+# Nếu sử dụng Maven
+mvn clean install
+
+# Hoặc nếu sử dụng Gradle
+./gradlew build
 ```
 
 #### Frontend (Client)
@@ -62,17 +72,31 @@ npm install
 ### 3. Cấu Hình Môi Trường
 
 #### Backend
-Tạo file `.env` trong thư mục `server`:
-```env
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/english-center
-JWT_SECRET=your_jwt_secret
+Tạo file `application.properties` hoặc `application.yml` trong thư mục `server/src/main/resources`:
+```properties
+# Server Configuration
+server.port=8080
+
+# Database Configuration
+spring.datasource.url=jdbc:mysql://localhost:3306/english_center
+spring.datasource.username=root
+spring.datasource.password=your_password
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+# JWT Configuration
+jwt.secret=your_jwt_secret
+jwt.expiration=86400000
+
+# File Upload Configuration
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
 ```
 
 #### Frontend
 Tạo file `.env` trong thư mục `client`:
 ```env
-VITE_API_URL=http://localhost:5000
+VITE_API_URL=http://localhost:3000
 ```
 
 ### 4. Chạy Ứng Dụng
@@ -80,7 +104,11 @@ VITE_API_URL=http://localhost:5000
 #### Backend
 ```bash
 cd server
-npm run dev
+# Nếu sử dụng Maven
+mvn spring-boot:run
+
+# Hoặc nếu sử dụng Gradle
+./gradlew bootRun
 ```
 
 #### Frontend
@@ -90,8 +118,8 @@ npm run dev
 ```
 
 Ứng dụng sẽ chạy tại:
-- Frontend: http://localhost:5173
-- Backend: http://localhost:5000
+- Frontend: http://localhost:3000
+- Backend: http://localhost:8080
 
 ## Cấu Trúc Dự Án
 
@@ -106,19 +134,25 @@ english-center/
 │   │   └── utils/        # Utility functions
 │   └── public/           # Static files
 │
-└── server/                # Backend (Node.js + Express)
+└── server/                # Backend (Spring Boot)
     ├── src/
-    │   ├── controllers/  # Route controllers
-    │   ├── models/       # Database models
-    │   ├── routes/       # API routes
-    │   ├── schemas/      # Validation schemas
-    │   └── utils/        # Utility functions
-    └── uploads/          # Uploaded files
+    │   ├── main/
+    │   │   ├── java/
+    │   │   │   ├── controllers/  # REST controllers
+    │   │   │   ├── models/       # Entity classes
+    │   │   │   ├── repositories/ # JPA repositories
+    │   │   │   ├── services/     # Business logic
+    │   │   │   ├── dto/          # Data transfer objects
+    │   │   │   ├── config/       # Configuration classes
+    │   │   │   └── utils/        # Utility classes
+    │   │   └── resources/        # Application properties
+    │   └── test/                 # Test classes
+    └── uploads/                  # Uploaded files
 ```
 
 ## API Documentation
 
-API documentation có thể được truy cập tại: http://localhost:5000/api-docs
+API documentation có thể được truy cập tại: http://localhost:8080/swagger-ui.html
 
 ## Tài Khoản Mặc Định
 
@@ -137,6 +171,27 @@ API documentation có thể được truy cập tại: http://localhost:5000/api
 ### Phụ Huynh
 - Username: parent
 - Password: parent123
+
+## Công Nghệ Sử Dụng
+
+### Backend
+- Java 17
+- Spring Boot 3.x
+- Spring Security
+- Spring Data JPA
+- MySQL
+- JWT Authentication
+- Maven/Gradle
+- Swagger/OpenAPI
+
+### Frontend
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS
+- React Router
+- Axios
+- React Query
 
 ## Đóng Góp
 
