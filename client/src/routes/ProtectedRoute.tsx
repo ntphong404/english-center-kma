@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
+import { getUser, getUserRole } from '@/store/userStore';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -17,12 +18,12 @@ export const ProtectedRoute = ({
 
     useEffect(() => {
         const checkAuth = () => {
-            const userData = localStorage.getItem('user');
+            const userData = getUser();
+            const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
 
             if (userData) {
-                const user = JSON.parse(userData);
-                setIsAuthenticated(user.isLoggedIn);
-                setUserRole(user.role);
+                setIsAuthenticated(isAuthenticated);
+                setUserRole(getUserRole());
             } else {
                 setIsAuthenticated(false);
                 setUserRole(null);
