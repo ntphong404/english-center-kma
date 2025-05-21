@@ -1,4 +1,4 @@
-import { User } from '@/types/User';
+import { User } from '@/types/user';
 
 // Lưu thông tin user
 export const setUser = (user: User) => {

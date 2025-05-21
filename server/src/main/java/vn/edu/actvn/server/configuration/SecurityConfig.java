@@ -20,10 +20,7 @@ public class SecurityConfig {
 
     private final String[] PUBLIC_ENDPOINTS = {
         "/users",
-        "/auth/login",
-        "/auth/introspect",
-        "/auth/logout",
-        "/auth/refresh",
+        "/auth/**",
         "/swagger-ui/**",
         "/swagger-ui.html",
         "/v3/api-docs/**"
@@ -34,15 +31,19 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
-        httpSecurity.authorizeHttpRequests(request -> request.requestMatchers(PUBLIC_ENDPOINTS)
-                .permitAll()
-                .anyRequest().hasRole("ADMIN"));
+        httpSecurity
+                .cors(cors -> {})
+                .csrf(AbstractHttpConfigurer::disable)
 
-        httpSecurity.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer
-                        .decoder(customJwtDecoder)
-                        .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                .authorizeHttpRequests(request -> request.requestMatchers(PUBLIC_ENDPOINTS)
+                    .permitAll()
+                    .anyRequest().hasRole("ADMIN"))
+
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer
+                            .decoder(customJwtDecoder)
+                            .jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 .authenticationEntryPoint(new JwtAuthenticationEntryPoint()));
-        httpSecurity.csrf(AbstractHttpConfigurer::disable);
+
 
         return httpSecurity.build();
     }

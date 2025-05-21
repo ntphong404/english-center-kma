@@ -50,4 +50,10 @@ public class AuthenticationController {
         authenticationService.logout(request);
         return ApiResponse.<Void>builder().build();
     }
+
+    @PostMapping("/clear")
+    ApiResponse<Integer> clear() {
+        int rawDeleted = authenticationService.clearTokenDatabase();
+        return ApiResponse.<Integer>builder().result(rawDeleted).build();
+    }
 }

@@ -17,6 +17,7 @@ const LogoutButton = ({ variant = 'ghost', size = 'default', className = '' }: L
 
     const handleLogout = () => {
         removeUser();
+        localStorage.removeItem('user');
         localStorage.removeItem('isAuthenticated');
         localStorage.removeItem('token');
         toast({

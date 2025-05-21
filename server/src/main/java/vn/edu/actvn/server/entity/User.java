@@ -33,9 +33,9 @@ public class User {
     LocalDate dob;
     String lastName;
 
-    @ManyToMany
-    @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_name"))
-    Set<Role> roles;
+    @ManyToOne
+    @JoinColumn(name = "role_name")
+    Role role;
 
     @CreatedDate
     LocalDateTime createdAt;

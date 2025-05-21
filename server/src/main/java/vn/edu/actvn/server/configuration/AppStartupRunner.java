@@ -18,49 +18,46 @@ import java.util.HashSet;
 @Slf4j
 public class AppStartupRunner implements CommandLineRunner {
 
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder;
+        private final UserRepository userRepository;
+        private final RoleRepository roleRepository;
+        private final PasswordEncoder passwordEncoder;
 
-    private static final String ADMIN_USER_NAME = "admin";
-    private static final String ADMIN_PASSWORD = "admin";
+        private static final String ADMIN_USER_NAME = "admin";
+        private static final String ADMIN_PASSWORD = "admin";
 
-    @Override
-    public void run(String... args) {
-        log.warn("Initializing application.....");
+        @Override
+        public void run(String... args) {
+                log.warn("Initializing application.....");
 
-        if (userRepository.findByUsername(ADMIN_USER_NAME).isEmpty()) {
-            roleRepository.save(Role.builder()
-                    .name(PredefinedRole.STUDENT_ROLE)
-                    .description("User role")
-                    .build());
-            roleRepository.save(Role.builder()
-                    .name(PredefinedRole.TEACHER_ROLE)
-                    .description("Teacher role")
-                    .build());
-            roleRepository.save(Role.builder()
-                    .name(PredefinedRole.PARENT_ROLE)
-                    .description("Parent role")
-                    .build());
+                if (userRepository.findByUsername(ADMIN_USER_NAME).isEmpty()) {
+                        roleRepository.save(Role.builder()
+                                        .name(PredefinedRole.STUDENT_ROLE)
+                                        .description("User role")
+                                        .build());
+                        roleRepository.save(Role.builder()
+                                        .name(PredefinedRole.TEACHER_ROLE)
+                                        .description("Teacher role")
+                                        .build());
+                        roleRepository.save(Role.builder()
+                                        .name(PredefinedRole.PARENT_ROLE)
+                                        .description("Parent role")
+                                        .build());
 
-            Role adminRole = roleRepository.save(Role.builder()
-                    .name(PredefinedRole.ADMIN_ROLE)
-                    .description("Admin role")
-                    .build());
+                        Role adminRole = roleRepository.save(Role.builder()
+                                        .name(PredefinedRole.ADMIN_ROLE)
+                                        .description("Admin role")
+                                        .build());
 
-            var roles = new HashSet<Role>();
-            roles.add(adminRole);
+                        User user = User.builder()
+                                        .username(ADMIN_USER_NAME)
+                                        .password(passwordEncoder.encode(ADMIN_PASSWORD))
+                                        .role(adminRole)
+                                        .build();
 
-            User user = User.builder()
-                    .username(ADMIN_USER_NAME)
-                    .password(passwordEncoder.encode(ADMIN_PASSWORD))
-                    .roles(roles)
-                    .build();
+                        userRepository.save(user);
+                        log.warn("admin user has been created with default password: admin, please change it");
+                }
 
-            userRepository.save(user);
-            log.warn("admin user has been created with default password: admin, please change it");
+                log.warn("Application initialization completed .....");
         }
-
-        log.warn("Application initialization completed .....");
-    }
 }
