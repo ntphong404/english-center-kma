@@ -1,18 +1,13 @@
 package vn.edu.actvn.server.entity;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Set;
-
-import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
-
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -22,20 +17,24 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-public class User {
+@Table(name = "enrollments")
+public class Enrollment {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    String userId;
-
-    String username;
-    String password;
-    String fullName;
-    LocalDate dob;
-    String email;
+    String enrollmentId;
 
     @ManyToOne
-    @JoinColumn(name = "role_name")
-    Role role;
+    @JoinColumn(name = "class_id")
+    EntityClass entityClass;
+
+    @ManyToOne
+    @JoinColumn(name = "student_id")
+    User student;
+
+    @ManyToOne
+    @JoinColumn(name = "parent_id")
+    User parent;
 
     @CreatedDate
     LocalDateTime createdAt;

@@ -13,8 +13,8 @@ import vn.edu.actvn.server.validator.DobConstraint;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserUpdateRequest {
-    String firstName;
-    String lastName;
+    String fullName;
+    String email;
 
     @DobConstraint(min = 18, message = "INVALID_DOB")
     LocalDate dob;

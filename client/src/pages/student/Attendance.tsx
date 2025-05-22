@@ -20,7 +20,7 @@ interface AttendanceRecord {
     id: string;
     date: string;
     className: string;
-    status: "present" | "absent" | "late";
+    status: "present" | "absent";
     note?: string;
 }
 
@@ -35,8 +35,7 @@ const attendanceRecords: AttendanceRecord[] = [
         id: "2",
         date: "03/04/2024",
         className: "Tiếng Anh Giao Tiếp A1",
-        status: "late",
-        note: "Đi muộn 15 phút",
+        status: "present",
     },
     {
         id: "3",

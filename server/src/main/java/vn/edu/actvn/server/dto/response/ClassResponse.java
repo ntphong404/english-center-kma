@@ -1,22 +1,20 @@
 package vn.edu.actvn.server.dto.response;
 
-import java.time.LocalDate;
-import java.util.Set;
-
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserResponse {
-    String userId;
-    String username;
-    String fullName;
-    String email;
-
-    LocalDate dob;
-    RoleResponse role;
+public class ClassResponse {
+    String classId;
+    String className;
+    Integer year;
+    String status;
+    UserResponse teacher;
+    List<UserResponse> students;
 }

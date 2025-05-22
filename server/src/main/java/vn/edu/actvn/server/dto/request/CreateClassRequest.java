@@ -1,0 +1,15 @@
+package vn.edu.actvn.server.dto.request;
+
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class CreateClassRequest {
+    private String className;
+    private Integer year;
+    private String teacherId;
+}

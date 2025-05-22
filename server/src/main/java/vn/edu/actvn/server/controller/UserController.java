@@ -11,10 +11,12 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import vn.edu.actvn.server.dto.request.ChangePasswordRequest;
 import vn.edu.actvn.server.dto.response.ApiResponse;
 import vn.edu.actvn.server.dto.request.UserCreationRequest;
 import vn.edu.actvn.server.dto.request.UserUpdateRequest;
 import vn.edu.actvn.server.dto.response.UserResponse;
+import vn.edu.actvn.server.exception.AppException;
 import vn.edu.actvn.server.service.UserService;
 
 @RestController
@@ -63,6 +65,14 @@ public class UserController {
     ApiResponse<UserResponse> updateUser(@PathVariable String userId, @RequestBody UserUpdateRequest request) {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.updateUser(userId, request))
+                .build();
+    }
+
+    @PostMapping("/change-password")
+    ApiResponse<String> changePassword(@RequestBody ChangePasswordRequest request) {
+        userService.changePassword(request);
+        return ApiResponse.<String>builder()
+                .result("Password has been changed")
                 .build();
     }
 }

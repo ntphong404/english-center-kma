@@ -1,18 +1,12 @@
 package vn.edu.actvn.server.entity;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Set;
-
-import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
-
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -22,24 +16,28 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-public class User {
+@Table(name = "notifications")
+public class Notification {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    String userId;
-
-    String username;
-    String password;
-    String fullName;
-    LocalDate dob;
-    String email;
+    String notificationId;
 
     @ManyToOne
-    @JoinColumn(name = "role_name")
-    Role role;
+    @JoinColumn(name = "recipient_id")
+    User recipient;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    String message;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    Status status;
 
     @CreatedDate
-    LocalDateTime createdAt;
+    LocalDateTime sentAt;
 
-    @LastModifiedDate
-    LocalDateTime updatedAt;
+    public enum Status {
+        SENT, PENDING
+    }
 }

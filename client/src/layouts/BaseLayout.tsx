@@ -80,7 +80,7 @@ const BaseLayout = ({ title, logo, collapsedLogo, sidebarLinks }: BaseLayoutProp
 
                     <SidebarFooter className="mt-auto border-t p-4">
                         <div className="flex items-center justify-center">
-                            <LogoutButton />
+                            <LogoutButton inSidebar={true} />
                         </div>
                     </SidebarFooter>
                 </Sidebar>
@@ -92,9 +92,7 @@ const BaseLayout = ({ title, logo, collapsedLogo, sidebarLinks }: BaseLayoutProp
                             <h1 className="text-xl font-semibold">{title}</h1>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <Button variant="outline" size="sm" onClick={() => navigate('/')} className="hidden md:flex">
-                                <LogOut size={16} className="mr-2" /> Đăng xuất
-                            </Button>
+                            <LogoutButton variant="outline" size="sm" inSidebar={false} />
                         </div>
                     </header>
 

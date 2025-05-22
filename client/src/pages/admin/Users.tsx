@@ -25,7 +25,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { User, UserCreateRequest, UserUpdateRequest } from "@/types/User";
+import { User, UserCreateRequest, UserUpdateRequest } from "@/types/user";
 import { getUsers, createUser, updateUser, deleteUser } from '@/api/userApi';
 import { toast } from '@/hooks/use-toast';
 
@@ -45,8 +45,8 @@ export default function AdminUsers() {
     const [newUser, setNewUser] = useState<UserCreateRequest>({
         username: "",
         password: "",
-        firstName: "",
-        lastName: "",
+        fullName: "",
+        email: "",
         dob: new Date().toISOString().split('T')[0],
         role: ""
     });
@@ -59,6 +59,7 @@ export default function AdminUsers() {
         try {
             const response = await getUsers();
             setUsers(response.data.result);
+            console.log({ users: response.data.result });
         } catch (error) {
             toast({
                 title: "Lỗi",
@@ -76,8 +77,8 @@ export default function AdminUsers() {
             setNewUser({
                 username: "",
                 password: "",
-                firstName: "",
-                lastName: "",
+                fullName: "",
+                email: "",
                 dob: new Date().toISOString().split('T')[0],
                 role: ""
             });
@@ -95,6 +96,7 @@ export default function AdminUsers() {
     };
 
     const handleEdit = async (id: string, user: UserUpdateRequest) => {
+        console.log({ id: id, user: user });
         setSelectedUserId(id);
         setSelectedUser(user);
         setIsEditDialogOpen(true);
@@ -105,7 +107,7 @@ export default function AdminUsers() {
         try {
             const response = await updateUser(selectedUserId, selectedUser);
             setUsers(users.map(user =>
-                user.id === selectedUserId ? response.data.result : user
+                user.userId === selectedUserId ? response.data.result : user
             ));
             setIsEditDialogOpen(false);
             toast({
@@ -124,7 +126,7 @@ export default function AdminUsers() {
     const handleDelete = async (id: string) => {
         try {
             await deleteUser(id);
-            setUsers(users.filter(user => user.id !== id));
+            setUsers(users.filter(user => user.userId !== id));
             toast({
                 title: "Thành công",
                 description: "Xóa người dùng thành công"
@@ -180,27 +182,27 @@ export default function AdminUsers() {
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="firstName" className="text-right">
-                                    Tên
+                                <Label htmlFor="fullName" className="text-right">
+                                    Họ và tên
                                 </Label>
                                 <Input
-                                    id="firstName"
-                                    value={newUser.firstName}
+                                    id="fullName"
+                                    value={newUser.fullName}
                                     onChange={(e) =>
-                                        setNewUser({ ...newUser, firstName: e.target.value })
+                                        setNewUser({ ...newUser, fullName: e.target.value })
                                     }
                                     className="col-span-3"
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="lastName" className="text-right">
-                                    Họ
+                                <Label htmlFor="email" className="text-right">
+                                    Email
                                 </Label>
                                 <Input
-                                    id="lastName"
-                                    value={newUser.lastName}
+                                    id="email"
+                                    value={newUser.email}
                                     onChange={(e) =>
-                                        setNewUser({ ...newUser, lastName: e.target.value })
+                                        setNewUser({ ...newUser, email: e.target.value })
                                     }
                                     className="col-span-3"
                                 />
@@ -257,8 +259,8 @@ export default function AdminUsers() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Tên đăng nhập</TableHead>
-                            <TableHead>Họ</TableHead>
-                            <TableHead>Tên</TableHead>
+                            <TableHead>Họ và tên</TableHead>
+                            <TableHead>Email</TableHead>
                             <TableHead>Ngày sinh</TableHead>
                             <TableHead>Vai trò</TableHead>
                             <TableHead className="text-right">Thao tác</TableHead>
@@ -266,10 +268,10 @@ export default function AdminUsers() {
                     </TableHeader>
                     <TableBody>
                         {users.map((user) => (
-                            <TableRow key={user.id}>
+                            <TableRow key={user.userId}>
                                 <TableCell>{user.username}</TableCell>
-                                <TableCell>{user.lastName || "-"}</TableCell>
-                                <TableCell>{user.firstName || "-"}</TableCell>
+                                <TableCell>{user.fullName || "-"}</TableCell>
+                                <TableCell>{user.email || "-"}</TableCell>
                                 <TableCell>{user.dob || "-"}</TableCell>
                                 <TableCell>
                                     {user.role.name}
@@ -279,10 +281,10 @@ export default function AdminUsers() {
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => handleEdit(
-                                            user.id,
+                                            user.userId,
                                             {
-                                                firstName: user.firstName,
-                                                lastName: user.lastName,
+                                                fullName: user.fullName,
+                                                email: user.email,
                                                 dob: user.dob,
                                                 role: user.role.name
                                             })
@@ -293,7 +295,7 @@ export default function AdminUsers() {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() => handleDelete(user.id)}
+                                        onClick={() => handleDelete(user.userId)}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -312,27 +314,27 @@ export default function AdminUsers() {
                     {selectedUser && (
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-firstName" className="text-right">
-                                    Tên
+                                <Label htmlFor="edit-fullName" className="text-right">
+                                    Họ và tên
                                 </Label>
                                 <Input
-                                    id="edit-firstName"
-                                    value={selectedUser.firstName || ""}
+                                    id="edit-fullName"
+                                    value={selectedUser.fullName || ""}
                                     onChange={(e) =>
-                                        setSelectedUser({ ...selectedUser, firstName: e.target.value })
+                                        setSelectedUser({ ...selectedUser, fullName: e.target.value })
                                     }
                                     className="col-span-3"
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-lastName" className="text-right">
-                                    Họ
+                                <Label htmlFor="edit-email" className="text-right">
+                                    Email
                                 </Label>
                                 <Input
-                                    id="edit-lastName"
-                                    value={selectedUser.lastName || ""}
+                                    id="edit-email"
+                                    value={selectedUser.email || ""}
                                     onChange={(e) =>
-                                        setSelectedUser({ ...selectedUser, lastName: e.target.value })
+                                        setSelectedUser({ ...selectedUser, email: e.target.value })
                                     }
                                     className="col-span-3"
                                 />

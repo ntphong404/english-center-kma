@@ -1,18 +1,13 @@
 package vn.edu.actvn.server.entity;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Set;
-
-import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
-
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -22,24 +17,33 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-public class User {
+@Table(name = "fees")
+public class Fee {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    String userId;
-
-    String username;
-    String password;
-    String fullName;
-    LocalDate dob;
-    String email;
+    String feeId;
 
     @ManyToOne
-    @JoinColumn(name = "role_name")
-    Role role;
+    @JoinColumn(name = "student_id")
+    User student;
+
+    @ManyToOne
+    @JoinColumn(name = "class_id")
+    EntityClass entityClass;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    BigDecimal totalAmount;
+
+    @Column(precision = 10, scale = 2)
+    BigDecimal paidAmount;
+
+    @Column(precision = 5, scale = 2)
+    BigDecimal discount;
+
+    @Column(precision = 10, scale = 2)
+    BigDecimal remaining;
 
     @CreatedDate
     LocalDateTime createdAt;
-
-    @LastModifiedDate
-    LocalDateTime updatedAt;
 }
