@@ -8,13 +8,16 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { User } from 'lucide-react';
+import { User as UserIcon } from 'lucide-react';
+import { getUser, setUser } from '@/store/userStore';
+import axios from 'axios';
+import { login } from '@/api/authApi';
+import { LoginRequest } from '@/types/auth';
 
 // Define form schema
 const formSchema = z.object({
   username: z.string().min(1, { message: 'Vui lòng nhập tên đăng nhập' }),
   password: z.string().min(1, { message: 'Vui lòng nhập mật khẩu' }),
-  role: z.enum(['admin', 'teacher', 'student', 'parent'], { required_error: 'Vui lòng chọn vai trò' })
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -28,26 +31,20 @@ const LoginForm = () => {
     defaultValues: {
       username: '',
       password: '',
-      role: 'student'
     }
   });
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (formData: FormValues) => {
     setIsLoading(true);
 
-    // Simulate API call
     try {
-      console.log('Login attempt with:', data);
-
-      // Simulate successful login after 1 second
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Store user info in localStorage (in a real app, you'd store a token)
-      localStorage.setItem('user', JSON.stringify({
-        username: data.username,
-        role: data.role,
-        isLoggedIn: true
-      }));
+      const loginData: LoginRequest = {
+        username: formData.username,
+        password: formData.password
+      };
+      const user = await login(loginData);
+      // Lưu thông tin user
+      setUser(user);
 
       // Show success message
       toast({
@@ -56,7 +53,7 @@ const LoginForm = () => {
       });
 
       // Redirect based on role
-      switch (data.role) {
+      switch (user.role.name.toLowerCase()) {
         case 'admin':
           navigate('/admin/dashboard');
           break;
@@ -89,7 +86,7 @@ const LoginForm = () => {
     <div className="bg-white p-8 rounded-lg shadow-md">
       <div className="flex justify-center mb-6">
         <div className="bg-primary/10 p-3 rounded-full">
-          <User className="w-6 h-6 text-primary" />
+          <UserIcon className="w-6 h-6 text-primary" />
         </div>
       </div>
 
@@ -120,30 +117,6 @@ const LoginForm = () => {
                 <FormControl>
                   <Input type="password" placeholder="Nhập mật khẩu" {...field} disabled={isLoading} />
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="role"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Đăng nhập với vai trò</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Chọn vai trò" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="teacher">Giáo viên</SelectItem>
-                    <SelectItem value="parent">Phụ huynh</SelectItem>
-                    <SelectItem value="student">Học sinh</SelectItem>
-                  </SelectContent>
-                </Select>
                 <FormMessage />
               </FormItem>
             )}
