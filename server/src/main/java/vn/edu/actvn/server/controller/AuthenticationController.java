@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.nimbusds.jose.JOSEException;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -22,38 +25,60 @@ import vn.edu.actvn.server.service.AuthenticationService;
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Tag(name = "Authentication API", description = "Endpoints for user login, token management, and logout")
 public class AuthenticationController {
+
     AuthenticationService authenticationService;
 
     @PostMapping("/login")
-    ApiResponse<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
+    @Operation(summary = "Login with username and password")
+    public ApiResponse<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
         var result = authenticationService.authenticate(request);
-        return ApiResponse.<AuthenticationResponse>builder().result(result).build();
+        return ApiResponse.<AuthenticationResponse>builder()
+                .result(result)
+                .message("User authenticated successfully")
+                .build();
     }
 
     @PostMapping("/introspect")
-    ApiResponse<IntrospectResponse> authenticate(@RequestBody IntrospectRequest request)
+    @Operation(summary = "Check validity of access token")
+    public ApiResponse<IntrospectResponse> authenticate(@RequestBody IntrospectRequest request)
             throws ParseException, JOSEException {
         var result = authenticationService.introspect(request);
-        return ApiResponse.<IntrospectResponse>builder().result(result).build();
+        return ApiResponse.<IntrospectResponse>builder()
+                .result(result)
+                .message("Token introspection result")
+                .build();
     }
 
     @PostMapping("/refresh")
-    ApiResponse<AuthenticationResponse> authenticate(@RequestBody RefreshRequest request)
+    @Operation(summary = "Refresh access token using refresh token")
+    public ApiResponse<AuthenticationResponse> authenticate(@RequestBody RefreshRequest request)
             throws ParseException, JOSEException {
         var result = authenticationService.refreshToken(request);
-        return ApiResponse.<AuthenticationResponse>builder().result(result).build();
+        return ApiResponse.<AuthenticationResponse>builder()
+                .result(result)
+                .message("Token refreshed successfully")
+                .build();
     }
 
     @PostMapping("/logout")
-    ApiResponse<Void> logout(@RequestBody LogoutRequest request) throws ParseException, JOSEException {
+    @Operation(summary = "Logout and revoke tokens")
+    public ApiResponse<Void> logout(@RequestBody LogoutRequest request)
+            throws ParseException, JOSEException {
         authenticationService.logout(request);
-        return ApiResponse.<Void>builder().build();
+        return ApiResponse.<Void>builder()
+                .message("User logged out successfully")
+                .build();
     }
 
     @PostMapping("/clear")
-    ApiResponse<Integer> clear() {
+    @Operation(summary = "Clear all tokens from database")
+    public ApiResponse<Integer> clear() {
         int rawDeleted = authenticationService.clearTokenDatabase();
-        return ApiResponse.<Integer>builder().result(rawDeleted).build();
+        return ApiResponse.<Integer>builder()
+                .result(rawDeleted)
+                .message("Token database cleared")
+                .build();
     }
 }

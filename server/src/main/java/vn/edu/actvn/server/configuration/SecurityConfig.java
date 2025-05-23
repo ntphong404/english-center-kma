@@ -14,6 +14,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
+import java.util.Map;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -26,10 +28,20 @@ public class SecurityConfig {
         "/swagger-ui.html",
         "/v3/api-docs/**"
     };
-    private final String[] USER_PERMISSION = {
-            "/users/me",
-            "/users/change-password",
-    };
+    private static final Map<HttpMethod, String[]> USER_PERMISSIONS = Map.of(
+            HttpMethod.GET, new String[]{
+                    "/users/me",
+            },
+            HttpMethod.POST, new String[]{
+                    "/users/change-password",
+            },
+            HttpMethod.PUT, new String[]{
+                    "/users/**",
+            }
+    );
+
+
+    private final String[] USER_ROLES = {"STUDENT", "PARENT", "TEACHER", "ADMIN"};
 
     @Autowired
     private CustomJwtDecoder customJwtDecoder;
@@ -40,13 +52,18 @@ public class SecurityConfig {
                 .cors(cors -> {})
                 .csrf(AbstractHttpConfigurer::disable)
 
-                .authorizeHttpRequests(request -> request.requestMatchers(PUBLIC_ENDPOINTS)
-                    .permitAll()
-                    .requestMatchers(USER_PERMISSION).hasAnyRole("STUDENT", "PARENT", "TEACHER", "ADMIN")
-                    .requestMatchers(HttpMethod.PUT,"/users/**").hasAnyRole("STUDENT", "PARENT", "TEACHER", "ADMIN")
-                    .anyRequest().hasRole("ADMIN"))
+                .authorizeHttpRequests(request -> {
+                    request.requestMatchers(PUBLIC_ENDPOINTS).permitAll();
 
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer
+                    USER_PERMISSIONS.forEach((method, paths) ->
+                            request.requestMatchers(method, paths).hasAnyRole(USER_ROLES)
+                    );
+
+                    request.anyRequest().hasRole("ADMIN");
+                })
+
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwtConfigurer -> jwtConfigurer
                             .decoder(customJwtDecoder)
                             .jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 .authenticationEntryPoint(new JwtAuthenticationEntryPoint()));

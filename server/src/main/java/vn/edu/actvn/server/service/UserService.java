@@ -57,6 +57,12 @@ public class UserService {
         return userMapper.toUserResponse(user);
     }
 
+    public List<UserResponse> getAllUsersByRole(String Role) {
+        return userRepository.findByRole_Name(Role).stream()
+                .map(userMapper::toUserResponse)
+                .toList();
+    }
+
     @PostAuthorize("returnObject.username == authentication.name || hasRole('ADMIN')")
     public UserResponse updateUser(String userId, UserUpdateRequest request) {
         User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));

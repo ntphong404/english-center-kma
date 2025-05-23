@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -17,8 +18,8 @@ import java.util.List;
 @EntityListeners(AuditingEntityListener.class)
 public class Family {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    int familyId;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    String familyId;
 
     @OneToOne
     @JoinColumn(name = "parent_id", referencedColumnName = "userId")
@@ -26,5 +27,6 @@ public class Family {
 
     @OneToMany
     @JoinColumn(name = "family_id")
-    List<User> students;
+    @Builder.Default
+    List<User> students = new ArrayList<>();
 }

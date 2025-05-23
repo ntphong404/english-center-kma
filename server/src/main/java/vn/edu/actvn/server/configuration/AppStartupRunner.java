@@ -32,7 +32,7 @@ public class AppStartupRunner implements CommandLineRunner {
                 if (userRepository.findByUsername(ADMIN_USER_NAME).isEmpty()) {
                         roleRepository.save(Role.builder()
                                         .name(PredefinedRole.STUDENT_ROLE)
-                                        .description("User role")
+                                        .description("Student role")
                                         .build());
                         roleRepository.save(Role.builder()
                                         .name(PredefinedRole.TEACHER_ROLE)
