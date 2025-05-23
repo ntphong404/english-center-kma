@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import vn.edu.actvn.server.dto.request.ClassUpdateRequest;
 import vn.edu.actvn.server.dto.request.CreateClassRequest;
 import vn.edu.actvn.server.dto.response.ClassResponse;
 import vn.edu.actvn.server.entity.EntityClass;
@@ -59,13 +60,13 @@ public class ClassService {
     }
 
 
-    public ClassResponse updateClass(String classId, CreateClassRequest createClassRequest) {
+    public ClassResponse updateClass(String classId, ClassUpdateRequest classUpdateRequest) {
         EntityClass entityClass = classRepository.findById(classId)
                 .orElseThrow(() -> new AppException(ErrorCode.CLASS_NOT_EXISTED));
         if (entityClass.getStatus() == EntityClass.Status.CLOSED) {
             throw new AppException(ErrorCode.CLASS_ALREADY_CLOSED);
         }
-        entityClass = classMapper.toEntityClass(createClassRequest);
+        entityClass = classMapper.updateEntityClass(classUpdateRequest, entityClass);
         return classMapper.toClassResponse(classRepository.save(entityClass));
     }
 

@@ -8,6 +8,7 @@ import java.util.StringJoiner;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -186,8 +187,9 @@ public class AuthenticationService {
         return stringJoiner.toString();
     }
 
-    @Transactional
+    @Transactional @Scheduled(cron = "0 0 0 * * *")
     public int clearTokenDatabase() {
+        log.warn("Clearing expired token in database...");
         // Calculate the threshold time
         java.sql.Date threshold = new java.sql.Date(
             Instant.now().minusMillis(REFRESHABLE_DURATION * 1000).toEpochMilli()

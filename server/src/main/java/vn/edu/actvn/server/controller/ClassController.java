@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import vn.edu.actvn.server.dto.request.ClassUpdateRequest;
 import vn.edu.actvn.server.dto.request.CreateClassRequest;
 import vn.edu.actvn.server.dto.response.ClassResponse;
 import vn.edu.actvn.server.dto.response.ApiResponse;
@@ -49,7 +50,7 @@ public class ClassController {
     @Operation(summary = "Update class information")
     public ApiResponse<ClassResponse> updateClass(
             @PathVariable("id") String classId,
-            @RequestBody CreateClassRequest request
+            @RequestBody ClassUpdateRequest request
     ) {
         return ApiResponse.<ClassResponse>builder()
                 .result(classService.updateClass(classId, request))

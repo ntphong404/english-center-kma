@@ -14,7 +14,8 @@
 ---
 ## class `class` {
 
-    id ("3.1","3.2",...)
+    id 
+    class name ("3.1","3.2",...)
     nam (2018,...)
     status <open ,close>
     giao vien

@@ -4,12 +4,12 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CreateClassRequest {
+public class ClassUpdateRequest {
     String className;
     Integer year;
-    String teacherId;
+    String status;
 }

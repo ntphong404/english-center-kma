@@ -20,6 +20,7 @@ public enum ErrorCode {
     CLASS_NOT_EXISTED(404, "Class not existed", HttpStatus.BAD_REQUEST),
     CLASS_ALREADY_CLOSED(405, "Class already closed", HttpStatus.BAD_REQUEST),
     FAMILY_NOT_EXISTED(404, "Family not existed", HttpStatus.BAD_REQUEST),
+    ATTENDANCE_NOT_EXISTED(404, "Attendance not existed", HttpStatus.BAD_REQUEST),
     ;
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {
