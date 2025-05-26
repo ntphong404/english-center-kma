@@ -3,6 +3,8 @@ package vn.edu.actvn.server.dto.request;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigDecimal;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -11,5 +13,7 @@ import lombok.experimental.FieldDefaults;
 public class CreateClassRequest {
     String className;
     Integer year;
+    BigDecimal tuitionFee;
+    int totalSessions;
     String teacherId;
 }

@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import vn.edu.actvn.server.dto.request.ClassUpdateRequest;
 import vn.edu.actvn.server.dto.request.CreateClassRequest;
@@ -54,6 +55,7 @@ public class ClassService {
         }
 
         students.removeIf(s -> entityClass.getStudents().contains(s));
+
         entityClass.getStudents().addAll(students);
 
         return classMapper.toClassResponse(classRepository.save(entityClass));

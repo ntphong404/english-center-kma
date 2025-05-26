@@ -36,7 +36,7 @@ public class FamilyService {
 
     public FamilyResponse getFamilyById(String id) {
         return familyMapper.toFamilyResponse(familyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Family not found")));
+                .orElseThrow(() -> new AppException(ErrorCode.FAMILY_NOT_EXISTED)));
     }
 
     public List<FamilyResponse> getFamiliesByParentId(String parentId) {

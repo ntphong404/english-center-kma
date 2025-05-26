@@ -1,6 +1,5 @@
 package vn.edu.actvn.server.entity;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -8,6 +7,8 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -49,11 +50,27 @@ public class EntityClass {
     )
     List<User> students;
 
+    @Column(nullable = false, precision = 10, scale = 2)
+    BigDecimal totalAmount;
+
+    int totalSessions;
+
     @CreatedDate
     LocalDateTime createdAt;
 
     @LastModifiedDate
     LocalDateTime updatedAt;
+
+    BigDecimal calculateUnitPrice() {
+        if (totalSessions == 0) {
+            return BigDecimal.ZERO;
+        }
+        return totalAmount.divide(
+                BigDecimal.valueOf(totalSessions),
+                2, // số chữ số sau dấu phẩy
+                RoundingMode.HALF_UP
+        );
+    }
 
     public enum Status {
         OPEN, CLOSED
