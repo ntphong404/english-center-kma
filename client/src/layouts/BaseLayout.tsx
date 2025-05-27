@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/sidebar';
 import { SidebarMenuButtonWithClose } from '@/components/ui/sidebar-menu-button';
 import LogoutButton from '@/components/LogoutButton';
+import AvatarMenu from '@/components/AvatarMenu';
 
 interface SidebarLink {
     icon: React.ReactNode;
@@ -44,6 +45,20 @@ const SidebarLogo = ({ logo, collapsedLogo }: { logo: string; collapsedLogo: str
 const BaseLayout = ({ title, logo, collapsedLogo, sidebarLinks }: BaseLayoutProps) => {
     const navigate = useNavigate();
     const location = useLocation();
+
+    const user = localStorage.getItem('user');
+    let usernameInitial = '';
+    let role = '';
+
+    if (user) {
+        try {
+            const userData = JSON.parse(user);
+            usernameInitial = userData.username.charAt(0).toUpperCase();
+            role = userData.role.name.toLowerCase();
+        } catch (error) {
+            console.error('Error parsing user data:', error);
+        }
+    }
 
     const isActive = (path: string) => {
         return location.pathname === path;
@@ -92,7 +107,11 @@ const BaseLayout = ({ title, logo, collapsedLogo, sidebarLinks }: BaseLayoutProp
                             <h1 className="text-xl font-semibold">{title}</h1>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <LogoutButton variant="outline" size="sm" inSidebar={false} />
+                            {usernameInitial && role ? (
+                                <AvatarMenu usernameInitial={usernameInitial} role={role} />
+                            ) : (
+                                <LogoutButton variant="outline" size="sm" inSidebar={false} />
+                            )}
                         </div>
                     </header>
 
