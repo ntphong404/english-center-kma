@@ -1,112 +1,116 @@
 package vn.edu.actvn.server.service;
 
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import vn.edu.actvn.server.dto.request.AttendanceUpdateRequest;
-import vn.edu.actvn.server.dto.request.CreateAttendanceRequest;
-import vn.edu.actvn.server.dto.response.AttendanceResponse;
+import vn.edu.actvn.server.dto.request.attendance.AttendanceUpdateRequest;
+import vn.edu.actvn.server.dto.request.tuitionfee.CreateTuitionFeeRequest;
+import vn.edu.actvn.server.dto.response.attendance.AttendanceResponse;
 import vn.edu.actvn.server.entity.Attendance;
+import vn.edu.actvn.server.entity.EntityClass;
+import vn.edu.actvn.server.entity.StudentAttendance;
 import vn.edu.actvn.server.exception.AppException;
 import vn.edu.actvn.server.exception.ErrorCode;
 import vn.edu.actvn.server.mapper.AttendanceMapper;
 import vn.edu.actvn.server.repository.AttendanceRepository;
-import vn.edu.actvn.server.repository.ClassRepository;
-import vn.edu.actvn.server.repository.UserRepository;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static lombok.AccessLevel.PRIVATE;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = PRIVATE, makeFinal = true)
 public class AttendanceService {
+
     AttendanceRepository attendanceRepository;
     AttendanceMapper attendanceMapper;
-    ClassRepository classRepository;
-    UserRepository userRepository;
+    ClassService classService;
+    TuitionFeeService tuitionFeeService;
 
-    public AttendanceResponse createAttendance(CreateAttendanceRequest createAttendanceRequest) {
-        Attendance attendance = attendanceMapper.toAttendance(createAttendanceRequest);
-        attendance.setEntityClass(classRepository.findById(createAttendanceRequest.getClassId())
-                .orElseThrow(() -> new AppException(ErrorCode.CLASS_NOT_EXISTED)));
-        attendance.setStudent(userRepository.findById(createAttendanceRequest.getStudentId())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED)));
-        return attendanceMapper.toAttendanceResponse(attendanceRepository.save(attendance));
+    public AttendanceResponse getAttendanceToday(String classId) {
+        EntityClass entityClass = classService.getById(classId);
+        LocalDate today = LocalDate.now();
+        DayOfWeek todayDayOfWeek = today.getDayOfWeek();
+
+        boolean isValidDate = !today.isBefore(entityClass.getStartDate())
+                && !today.isAfter(entityClass.getEndDate())
+                && entityClass.getDaysOfWeek().contains(todayDayOfWeek);
+
+        if (!isValidDate) {
+            throw new AppException(ErrorCode.TODAY_NOT_VALID_FOR_ATTENDANCE);
+        }
+
+        Attendance attendance = attendanceRepository.findByEntityClass_ClassIdAndDate(classId, today)
+                .orElseGet(() -> {
+                    Attendance newAttendance = Attendance.builder()
+                            .entityClass(entityClass)
+                            .date(today)
+                            .studentAttendances(entityClass.getStudents().stream()
+                                    .map(student -> {
+                                        StudentAttendance sa = new StudentAttendance();
+                                        sa.setStudentId(student.getUserId());
+                                        sa.setStatus(Attendance.Status.ABSENT);
+                                        return sa;
+                                    })
+                                    .toList())
+                            .build();
+                    return attendanceRepository.save(newAttendance);
+                });
+
+        return attendanceMapper.toAttendanceResponse(attendance);
     }
 
-    public List<AttendanceResponse> getAllAttendance() {
-        return attendanceRepository.findAll()
-                .stream()
+    public AttendanceResponse getById(String id) {
+        return attendanceRepository.findById(id)
                 .map(attendanceMapper::toAttendanceResponse)
-                .toList();
+                .orElseThrow();
     }
 
-    public List<AttendanceResponse> getAttendanceByClassIdAndDate(String classId, LocalDate date) {
-        return attendanceRepository.findByEntityClass_ClassIdAndDate(classId,date)
-                .stream()
-                .map(attendanceMapper::toAttendanceResponse)
-                .toList();
+    public Page<AttendanceResponse> getAllByClassId(String classId, Pageable pageable) {
+        return attendanceRepository.findByEntityClass_ClassId(classId,pageable)
+                .map(attendanceMapper::toAttendanceResponse);
     }
 
-    public List<AttendanceResponse> getAttendanceByClassIdAndDateAndStatus(String classId, LocalDate date, Attendance.Status status) {
-        return attendanceRepository.findByEntityClass_ClassIdAndDateAndStatus(classId,date,status)
-                .stream()
-                .map(attendanceMapper::toAttendanceResponse)
-                .toList();
+    public AttendanceResponse update(String id, AttendanceUpdateRequest request) {
+        Attendance existing = attendanceRepository.findById(id).orElseThrow();
+        existing.setStudentAttendances(request.getStudentAttendances());
+        Attendance saved = attendanceRepository.save(existing);
+        return attendanceMapper.toAttendanceResponse(saved);
     }
 
-    public List<AttendanceResponse> getAttendanceByStudentIdAndDate(String studentId, LocalDate date) {
-        List<Attendance> attendances = attendanceRepository.findByStudent_UserIdAndDate(studentId,date);
-        if(attendances.isEmpty()) throw  new AppException(ErrorCode.ATTENDANCE_NOT_EXISTED);
-        return attendances.stream()
-                .map(attendanceMapper::toAttendanceResponse)
-                .toList();
-    }
-
-    public List<AttendanceResponse> getAttendanceByDate(LocalDate date) {
-        return attendanceRepository.findByDate(date)
-                .stream()
-                .map(attendanceMapper::toAttendanceResponse)
-                .toList();
-    }
-
-    public AttendanceResponse getAttendanceById(String id) {
-        return attendanceMapper.toAttendanceResponse(attendanceRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.ATTENDANCE_NOT_EXISTED)));
-    }
-
-    public AttendanceResponse updateAttendance(String id, AttendanceUpdateRequest attendanceUpdateRequest) {
+    public AttendanceResponse partialUpdateAttendance(String id, AttendanceUpdateRequest request) {
         Attendance attendance = attendanceRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.ATTENDANCE_NOT_EXISTED));
-        attendance = attendanceMapper.updateAttendance(attendanceUpdateRequest, attendance);
-        return attendanceMapper.toAttendanceResponse(attendanceRepository.save(attendance));
+                .orElseThrow(() -> new AppException(ErrorCode.ATTENDANCE_NOT_FOUND));
+
+        attendanceMapper.partiallyUpdateAttendance(attendance, request);
+        Attendance updated = attendanceRepository.save(attendance);
+
+        updated.getStudentAttendances().forEach(student -> {
+            CreateTuitionFeeRequest tuitionFeeRequest = CreateTuitionFeeRequest.builder()
+                    .studentId(student.getStudentId())
+                    .classId(attendance.getEntityClass().getClassId())
+                    .yearMonth(attendance.getDate())
+                    .build();
+            tuitionFeeService.createTuitionFee(tuitionFeeRequest);
+        });
+
+        return attendanceMapper.toAttendanceResponse(updated);
     }
 
-    public long CountAttendanceByStudentIdAndStatus(String studentId, Attendance.Status status) {
-        return attendanceRepository.countByStudent_UserIdAndStatus(studentId, status);
-    }
-
-    public void deleteAttendance(String id) {
-        Attendance attendance = attendanceRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.ATTENDANCE_NOT_EXISTED));
-        attendanceRepository.delete(attendance);
-    }
-
-    public List<AttendanceResponse> getAttendanceByStudentId(String studentId) {
-        return attendanceRepository.findByStudent_UserId(studentId)
-                .stream()
-                .map(attendanceMapper::toAttendanceResponse)
-                .toList();
-    }
-
-    public List<AttendanceResponse> getAttendanceByStudentIdAndClassId(String studentId, String classId) {
-        return attendanceRepository.findByStudent_UserIdAndEntityClass_ClassId(studentId, classId)
-                .stream()
-                .map(attendanceMapper::toAttendanceResponse)
-                .toList();
+    public void delete(String id) {
+        Optional<Attendance> attendance = attendanceRepository.findById(id);
+        if (attendance.isEmpty()) {
+            throw new AppException(ErrorCode.ATTENDANCE_NOT_FOUND);
+        }
+        attendanceRepository.delete(attendance.get());
     }
 }

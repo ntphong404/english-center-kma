@@ -9,6 +9,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 
 @Getter
 @Setter
@@ -23,21 +24,21 @@ public class Payment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    String paymentId;
+    String paymentId; //1  2
 
     LocalDate paymentDate;
 
     @ManyToOne
     @JoinColumn(name = "tuition_fee_id")
-    TuitionFee tuitionFee;
+    TuitionFee tuitionFee; // 1
 
     @ManyToOne
     @JoinColumn(name = "student_id")
-    User student;
+    Student student; // duy ngu
 
-    @ManyToOne
-    @JoinColumn(name = "parent_id")
-    User parent;
+    @Column(name = "billing_month", columnDefinition = "DATE")
+    private YearMonth yearMonth; // 2025-06
+    double amount; // 10.000
 
     @CreatedDate
     LocalDateTime createdAt;
@@ -45,26 +46,3 @@ public class Payment {
     @LastModifiedDate
     LocalDateTime updatedAt;
 }
-
-/*
-📌 1. Tạo học phí cho học sinh
-POST /api/tuition-fees
-
-📌 2. Lấy học phí của học sinh theo tháng
-GET /api/tuition-fees?studentId=123&month=5&year=2025
-
-📌 3. Ghi nhận đóng học phí
-POST /api/payments
-
-📌 4. Danh sách nợ học phí của 1 học sinh
-GET /api/tuition-fees/debts?studentId=123
-
-📌 5. Thống kê doanh thu theo tháng / quý / năm
-GET /api/statistics/revenue?from=2025-01-01&to=2025-05-31
-
-📌 6. Thống kê công nợ theo lớp
-GET /api/statistics/debt-by-class?month=5&year=2025
-
-📌 7. Gửi tin nhắn cảnh báo nợ học phí
-POST /api/notifications/tuition-alert
-*/

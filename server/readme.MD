@@ -1,9 +1,3 @@
-# Identity service
-This microservice is responsible for:
-* Onboarding users
-* Roles and permissions
-* Authentication
-
 ## Tech stack
 * Build tool: maven >= 3.9.5
 * Java: 21

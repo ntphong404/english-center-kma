@@ -1,23 +1,26 @@
 package vn.edu.actvn.server.controller;
 
-import java.util.List;
-
 import jakarta.validation.Valid;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.web.bind.annotation.*;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import vn.edu.actvn.server.dto.request.ChangePasswordRequest;
+import vn.edu.actvn.server.dto.request.user.CreateAdminRequest;
+import vn.edu.actvn.server.dto.request.user.UpdateAdminRequest;
 import vn.edu.actvn.server.dto.response.ApiResponse;
-import vn.edu.actvn.server.dto.request.UserCreationRequest;
-import vn.edu.actvn.server.dto.request.UserUpdateRequest;
-import vn.edu.actvn.server.dto.response.UserResponse;
+import vn.edu.actvn.server.dto.response.user.UserResponse;
+import vn.edu.actvn.server.dto.request.user.ChangePasswordRequest;
 import vn.edu.actvn.server.service.UserService;
 
 @RestController
@@ -31,7 +34,7 @@ public class UserController {
 
     @PostMapping
     @Operation(summary = "Create a new user")
-    public ApiResponse<UserResponse> createUser(@RequestBody @Valid UserCreationRequest request) {
+    public ApiResponse<UserResponse> createUser(@RequestBody @Valid CreateAdminRequest request) {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.createUser(request))
                 .message("User created successfully")
@@ -40,9 +43,23 @@ public class UserController {
 
     @GetMapping
     @Operation(summary = "Get all users")
-    public ApiResponse<List<UserResponse>> getUsers() {
-        return ApiResponse.<List<UserResponse>>builder()
-                .result(userService.getUsers())
+    public ApiResponse<Page<UserResponse>> getUsers(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "sort", defaultValue = "username,asc") String sort
+    ) {
+        Sort pageSort;
+        String[] sortPart = sort.split(",");
+        String direction = sortPart.length > 1 ? sortPart[1] : "asc";
+        String sortField = sortPart[0].trim();
+        Sort.Direction sortDirection = Sort.Direction.fromString(direction.toUpperCase());
+        String actualSortField = "fullName".equalsIgnoreCase(sortField) ? "lastName" : sortField;
+
+        pageSort = Sort.by(sortDirection, actualSortField);
+
+        Pageable pageable = PageRequest.of(page, size, pageSort);
+        return ApiResponse.<Page<UserResponse>>builder()
+                .result(userService.getUsers(pageable))
                 .message("Fetched all users")
                 .build();
     }
@@ -65,15 +82,6 @@ public class UserController {
                 .build();
     }
 
-    @GetMapping("/role/{roleName}")
-    @Operation(summary = "Get users by role name")
-    public ApiResponse<List<UserResponse>> getUsersByRoleName(@PathVariable String roleName) {
-        return ApiResponse.<List<UserResponse>>builder()
-                .result(userService.getAllUsersByRole(roleName))
-                .message("Fetched users by role")
-                .build();
-    }
-
     @DeleteMapping("/{userId}")
     @Operation(summary = "Delete a user by ID")
     public ApiResponse<String> deleteUser(@PathVariable String userId) {
@@ -86,9 +94,20 @@ public class UserController {
 
     @PutMapping("/{userId}")
     @Operation(summary = "Update user information")
-    public ApiResponse<UserResponse> updateUser(@PathVariable String userId, @RequestBody UserUpdateRequest request) {
+    public ApiResponse<UserResponse> updateUser(@PathVariable String userId,
+            @RequestBody UpdateAdminRequest request) {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.updateUser(userId, request))
+                .message("User updated successfully")
+                .build();
+    }
+
+    @PatchMapping("/{userId}")
+    @Operation(summary = "Update user information")
+    public ApiResponse<UserResponse> patchUser(@PathVariable String userId,
+            @RequestBody UpdateAdminRequest request) {
+        return ApiResponse.<UserResponse>builder()
+                .result(userService.patchUser(userId, request))
                 .message("User updated successfully")
                 .build();
     }

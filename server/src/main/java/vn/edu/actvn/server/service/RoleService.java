@@ -8,8 +8,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import vn.edu.actvn.server.dto.request.RoleRequest;
-import vn.edu.actvn.server.dto.response.RoleResponse;
+import vn.edu.actvn.server.dto.request.role.RoleRequest;
+import vn.edu.actvn.server.dto.response.role.RoleResponse;
 import vn.edu.actvn.server.mapper.RoleMapper;
 import vn.edu.actvn.server.repository.RoleRepository;
 

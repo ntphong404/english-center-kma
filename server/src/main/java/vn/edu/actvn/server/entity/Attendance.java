@@ -6,6 +6,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @Setter
@@ -25,19 +26,12 @@ public class Attendance {
     @JoinColumn(name = "class_id")
     EntityClass entityClass;
 
-    @ManyToOne
-    @JoinColumn(name = "student_id")
-    User student;
-
     @Column(nullable = false)
     LocalDate date;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    Status status;
-
-    @Column(columnDefinition = "TEXT")
-    String notes;
+    @ElementCollection
+    @CollectionTable(name = "attendance_student", joinColumns = @JoinColumn(name = "attendance_id"))
+    List<StudentAttendance> studentAttendances;
 
     public enum Status {
         PRESENT, ABSENT

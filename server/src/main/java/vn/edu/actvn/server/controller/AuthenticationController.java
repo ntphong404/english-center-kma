@@ -15,10 +15,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import vn.edu.actvn.server.dto.request.*;
+import vn.edu.actvn.server.dto.request.auth.AuthenticationRequest;
+import vn.edu.actvn.server.dto.request.auth.IntrospectRequest;
+import vn.edu.actvn.server.dto.request.auth.LogoutRequest;
+import vn.edu.actvn.server.dto.request.auth.RefreshRequest;
 import vn.edu.actvn.server.dto.response.ApiResponse;
-import vn.edu.actvn.server.dto.response.AuthenticationResponse;
-import vn.edu.actvn.server.dto.response.IntrospectResponse;
+import vn.edu.actvn.server.dto.response.auth.AuthenticationResponse;
+import vn.edu.actvn.server.dto.response.auth.IntrospectResponse;
 import vn.edu.actvn.server.service.AuthenticationService;
 
 @RestController

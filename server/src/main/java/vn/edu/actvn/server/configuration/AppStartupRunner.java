@@ -11,7 +11,7 @@ import vn.edu.actvn.server.entity.User;
 import vn.edu.actvn.server.repository.RoleRepository;
 import vn.edu.actvn.server.repository.UserRepository;
 
-import java.util.HashSet;
+import java.time.LocalDate;
 
 @Component
 @RequiredArgsConstructor
@@ -51,6 +51,9 @@ public class AppStartupRunner implements CommandLineRunner {
                         User user = User.builder()
                                         .username(ADMIN_USER_NAME)
                                         .password(passwordEncoder.encode(ADMIN_PASSWORD))
+                                        .fullName("Admin")
+                                        .email("englishcenter@gmail.com")
+                                        .dob(LocalDate.of(2000, 1, 1))
                                         .role(adminRole)
                                         .build();
 

@@ -13,7 +13,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
 
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -26,12 +25,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
-import vn.edu.actvn.server.dto.request.AuthenticationRequest;
-import vn.edu.actvn.server.dto.request.IntrospectRequest;
-import vn.edu.actvn.server.dto.request.LogoutRequest;
-import vn.edu.actvn.server.dto.request.RefreshRequest;
-import vn.edu.actvn.server.dto.response.AuthenticationResponse;
-import vn.edu.actvn.server.dto.response.IntrospectResponse;
+import vn.edu.actvn.server.dto.request.auth.AuthenticationRequest;
+import vn.edu.actvn.server.dto.request.auth.IntrospectRequest;
+import vn.edu.actvn.server.dto.request.auth.LogoutRequest;
+import vn.edu.actvn.server.dto.request.auth.RefreshRequest;
+import vn.edu.actvn.server.dto.response.auth.AuthenticationResponse;
+import vn.edu.actvn.server.dto.response.auth.IntrospectResponse;
 import vn.edu.actvn.server.entity.InvalidatedToken;
 import vn.edu.actvn.server.entity.User;
 import vn.edu.actvn.server.exception.AppException;
@@ -167,7 +166,6 @@ public class AuthenticationService {
                 : signedJWT.getJWTClaimsSet().getExpirationTime();
 
         var verified = signedJWT.verify(verifier);
-        log.warn("Expiry time: {}", expiryTime);
         if (!(verified && expiryTime.after(new Date())))
             throw new AppException(ErrorCode.UNAUTHENTICATED);
 
@@ -187,7 +185,8 @@ public class AuthenticationService {
         return stringJoiner.toString();
     }
 
-    @Transactional @Scheduled(cron = "0 0 0 * * *")
+    @Transactional
+    @Scheduled(cron = "0 0 0 * * *")
     public int clearTokenDatabase() {
         log.warn("Clearing expired token in database...");
         // Calculate the threshold time

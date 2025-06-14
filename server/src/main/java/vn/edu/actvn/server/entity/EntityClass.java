@@ -9,7 +9,10 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Getter
@@ -33,14 +36,16 @@ public class EntityClass {
     @Column(nullable = false)
     Integer year;
 
+    @Column(nullable = false)
+    Integer grade;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     Status status;
 
     @ManyToOne
-    @JoinColumn(name = "teacher_id",
-            referencedColumnName = "userId")
-    User teacher;
+    @JoinColumn(name = "teacher_id")
+    Teacher teacher;
 
     @ManyToMany
     @JoinTable(
@@ -48,29 +53,26 @@ public class EntityClass {
             joinColumns = @JoinColumn(name = "class_id"),
             inverseJoinColumns = @JoinColumn(name = "student_id")
     )
-    List<User> students;
+    List<Student> students;
 
     @Column(nullable = false, precision = 10, scale = 2)
-    BigDecimal totalAmount;
+    BigDecimal unitPrice;
 
-    int totalSessions;
+    LocalDate startDate;
+    LocalDate endDate;
+
+    LocalTime startTime;
+    LocalTime endTime;
+
+    @ElementCollection
+    @Enumerated(EnumType.STRING)
+    List<DayOfWeek> daysOfWeek;
 
     @CreatedDate
     LocalDateTime createdAt;
 
     @LastModifiedDate
     LocalDateTime updatedAt;
-
-    BigDecimal calculateUnitPrice() {
-        if (totalSessions == 0) {
-            return BigDecimal.ZERO;
-        }
-        return totalAmount.divide(
-                BigDecimal.valueOf(totalSessions),
-                2, // số chữ số sau dấu phẩy
-                RoundingMode.HALF_UP
-        );
-    }
 
     public enum Status {
         OPEN, CLOSED

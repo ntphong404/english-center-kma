@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 import com.nimbusds.jose.JOSEException;
 
-import vn.edu.actvn.server.dto.request.IntrospectRequest;
+import vn.edu.actvn.server.dto.request.auth.IntrospectRequest;
 import vn.edu.actvn.server.service.AuthenticationService;
 
 @Component

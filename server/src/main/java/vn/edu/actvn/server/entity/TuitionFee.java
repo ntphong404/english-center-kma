@@ -7,7 +7,9 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 
 @Getter
 @Setter
@@ -22,18 +24,24 @@ public class TuitionFee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    String tuitionFeeId;
+    String tuitionFeeId; //1
 
     @ManyToOne
     @JoinColumn(name = "student_id")
-    User student;
+    Student student; // duy ngu
 
     @ManyToOne
     @JoinColumn(name = "class_id")
-    EntityClass entityClass;
+    EntityClass entityClass; // ai eo 4.0
 
-    @Column(precision = 5, scale = 2)
-    BigDecimal discount;
+    @Column(name = "fee_year_month", nullable = false)
+    LocalDate yearMonth; // 2025-06
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    BigDecimal amount; // 1.000.000
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    BigDecimal remainingAmount; // 990.000
 
     @CreatedDate
     LocalDateTime createdAt;

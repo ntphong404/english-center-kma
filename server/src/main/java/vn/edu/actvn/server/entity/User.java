@@ -10,18 +10,21 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.Formula;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@SuperBuilder
 @Entity
 @EntityListeners(AuditingEntityListener.class)
+@Inheritance(strategy = InheritanceType.JOINED)
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -30,6 +33,11 @@ public class User {
     String username;
     String password;
     String fullName;
+
+    @Formula("SUBSTRING_INDEX(full_name, ' ', -1)")
+            @Setter(AccessLevel.NONE)
+    String lastName;
+
     LocalDate dob;
     String email;
 
