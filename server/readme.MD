@@ -13,9 +13,3 @@
 
 ## Build application
 `mvn clean package`
-
-## Build docker
-Bật docker destop lên trước rồi chạy
-
-`docker-compose up --build`
-
