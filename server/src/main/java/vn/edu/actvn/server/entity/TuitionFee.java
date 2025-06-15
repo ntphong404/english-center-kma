@@ -45,4 +45,17 @@ public class TuitionFee {
 
     @CreatedDate
     LocalDateTime createdAt;
+
+    @Override
+    public String toString() {
+        return "TuitionFee{" +
+                "tuitionFeeId='" + tuitionFeeId + '\'' +
+                ", student=" + student.getFullName() +
+                ", entityClass=" + entityClass.getClassName() +
+                ", yearMonth=" + yearMonth +
+                ", amount=" + amount +
+                ", remainingAmount=" + remainingAmount +
+                ", createdAt=" + createdAt +
+                '}';
+    }
 }

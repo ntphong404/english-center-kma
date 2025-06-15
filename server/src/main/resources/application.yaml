@@ -5,13 +5,9 @@ server:
 
 spring:
   datasource:
-#    url: jdbc:mysql://english-center-db-ntphong-db.c.aivencloud.com:19323/english_center_db?useSSL=true&verifyServerCertificate=false
-#    username: avnadmin
-#    password: AVNS_pHueFS54Wi1YixZLxLw
-#    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/english_center_db
-    username: root
-    password:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/english-center-db}
+    username: ${SPRING_DATASOURCE_USERNAME:user}
+    password: ${SPRING_DATASOURCE_PASSWORD:pass}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:

@@ -33,9 +33,9 @@ English Center là hệ thống quản lý trung tâm Anh ngữ toàn diện, đ
 ## Yêu Cầu Hệ Thống
 
 ### Backend
-- Java 17 trở lên
+- Java 21
 - Spring Boot 3.x
-- Maven hoặc Gradle
+- Maven 
 - MySQL 8.0 trở lên
 
 ### Frontend
@@ -67,6 +67,11 @@ mvn clean install
 ```bash
 cd client
 npm install
+
+# Hoặc 
+yarn
+
+
 ```
 
 ### 3. Cấu Hình Môi Trường
@@ -74,29 +79,43 @@ npm install
 #### Backend
 Tạo file `application.properties` hoặc `application.yml` trong thư mục `server/src/main/resources`:
 ```properties
-# Server Configuration
-server.port=8080
+server:
+  port: 8080
+  servlet:
+    context-path: /api
 
-# Database Configuration
-spring.datasource.url=jdbc:mysql://localhost:3306/english_center
-spring.datasource.username=root
-spring.datasource.password=your_password
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
+spring:
+  datasource:
+    url: ...
+    username: ...
+    password: ...
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  main:
+    banner-mode: off
 
-# JWT Configuration
-jwt.secret=your_jwt_secret
-jwt.expiration=86400000
+logging:
+  level:
+    root: warn
 
-# File Upload Configuration
-spring.servlet.multipart.max-file-size=10MB
-spring.servlet.multipart.max-request-size=10MB
+jwt:
+  signerKey: "..."
+  valid-duration: 3600 # in second
+  refreshable-duration: 36000 # in seconds
+
+cloudinary:
+  cloud-name: ...
+  api-key: ...
+  api-secret: ...
 ```
 
 #### Frontend
 Tạo file `.env` trong thư mục `client`:
 ```env
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=http://localhost:8080/api
 ```
 
 ### 4. Chạy Ứng Dụng
@@ -115,6 +134,9 @@ mvn spring-boot:run
 ```bash
 cd client
 npm run dev
+
+# Hoặc
+yarn dev
 ```
 
 Ứng dụng sẽ chạy tại:
@@ -138,16 +160,16 @@ english-center/
     ├── src/
     │   ├── main/
     │   │   ├── java/
-    │   │   │   ├── controllers/  # REST controllers
-    │   │   │   ├── models/       # Entity classes
-    │   │   │   ├── repositories/ # JPA repositories
-    │   │   │   ├── services/     # Business logic
+    │   │   │   ├── controller/  # REST controllers
+    │   │   │   ├── model/       # Entity classes
+    │   │   │   ├── repository/ # JPA repositories
+    │   │   │   ├── service/     # Business logic
     │   │   │   ├── dto/          # Data transfer objects
     │   │   │   ├── config/       # Configuration classes
     │   │   │   └── utils/        # Utility classes
     │   │   └── resources/        # Application properties
     │   └── test/                 # Test classes
-    └── uploads/                  # Uploaded files
+    └── uploads (Cloudinary)/                  # Uploaded files
 ```
 
 ## API Documentation
@@ -175,7 +197,7 @@ API documentation có thể được truy cập tại: http://localhost:8080/swa
 ## Công Nghệ Sử Dụng
 
 ### Backend
-- Java 17
+- Java 21
 - Spring Boot 3.x
 - Spring Security
 - Spring Data JPA

@@ -18,8 +18,5 @@ public class Role {
     @Id
     String name;
 
-    @ManyToOne
-    User user;
-
     String description;
 }

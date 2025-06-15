@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>vn.edu.actvn</groupId>
-	<artifactId>identity-service</artifactId>
-	<name>identity-service</name>
-	<version>0.0.1-SNAPSHOT</version>
-	<description>Identity service</description>
+	<artifactId>english-center</artifactId>
+	<name>english-center</name>
+	<version>1.0.0</version>
+	<description>English center backend</description>
 	<properties>
 		<java.version>21</java.version>
 		<projectlombok-lombok.version>1.18.30</projectlombok-lombok.version>

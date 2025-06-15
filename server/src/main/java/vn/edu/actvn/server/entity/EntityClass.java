@@ -61,7 +61,7 @@ public class EntityClass {
     LocalDate startDate;
     LocalDate endDate;
 
-    LocalTime startTime;
+    LocalTime startTime; //7:30->9:30 ->11:30 , 13:30->15:30 ->17:30
     LocalTime endTime;
 
     @ElementCollection

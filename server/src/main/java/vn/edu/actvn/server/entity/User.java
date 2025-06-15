@@ -41,6 +41,10 @@ public class User {
     LocalDate dob;
     String email;
 
+//    String address;
+//    String phoneNumber;
+//    String avatarUrl;
+
     @ManyToOne
     @JoinColumn(name = "role_name")
     Role role;

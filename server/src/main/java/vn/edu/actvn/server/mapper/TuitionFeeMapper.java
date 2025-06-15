@@ -9,19 +9,16 @@ import vn.edu.actvn.server.entity.TuitionFee;
 import java.time.LocalDate;
 import java.time.YearMonth;
 
-@Mapper(unmappedTargetPolicy = ReportingPolicy.IGNORE, componentModel = MappingConstants.ComponentModel.SPRING)
+@Mapper(
+        unmappedTargetPolicy = ReportingPolicy.IGNORE,
+        componentModel = MappingConstants.ComponentModel.SPRING,
+        uses = {DateMapper.class})
 public interface TuitionFeeMapper {
     TuitionFee toTuitionFee(CreateTuitionFeeRequest createTuitionFeeRequest);
 
     @Mapping(target = "studentId", source = "student.userId")
     @Mapping(target = "classId", source = "entityClass.classId")
-    @Mapping(target = "yearMonth", source = "yearMonth", qualifiedByName = "localDateToYearMonth")
     TuitionFeeResponse toTuitionFeeResponse(TuitionFee tuitionFee);
-
-    @Named("localDateToYearMonth")
-    default YearMonth localDateToYearMonth(LocalDate localDate) {
-        return localDate != null ? YearMonth.from(localDate) : null;
-    }
 
     void update(UpdateTuitionFeeRequest updateTuitionFeeRequest, @MappingTarget TuitionFee tuitionFee);
 

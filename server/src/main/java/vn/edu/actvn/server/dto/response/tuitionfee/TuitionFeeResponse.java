@@ -1,5 +1,6 @@
 package vn.edu.actvn.server.dto.response.tuitionfee;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -12,8 +13,10 @@ import java.time.YearMonth;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class TuitionFeeResponse {
+    String tuitionFeeId;
     String studentId;
     String classId;
+    @JsonFormat(pattern = "yyyy-MM")
     YearMonth yearMonth; // 2025-06
     BigDecimal amount; // 1.000.000
     BigDecimal remainingAmount; // 500.000

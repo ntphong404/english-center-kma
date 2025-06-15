@@ -7,6 +7,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -20,25 +21,17 @@ import java.time.YearMonth;
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "payments")
+@ToString
 public class Payment {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     String paymentId; //1  2
-
-    LocalDate paymentDate;
 
     @ManyToOne
     @JoinColumn(name = "tuition_fee_id")
     TuitionFee tuitionFee; // 1
 
-    @ManyToOne
-    @JoinColumn(name = "student_id")
-    Student student; // duy ngu
-
-    @Column(name = "billing_month", columnDefinition = "DATE")
-    private YearMonth yearMonth; // 2025-06
-    double amount; // 10.000
+    BigDecimal paidAmount; //
 
     @CreatedDate
     LocalDateTime createdAt;

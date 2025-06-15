@@ -1,22 +1,22 @@
 package vn.edu.actvn.server.service;
 
 import com.cloudinary.Cloudinary;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.actvn.server.exception.AppException;
 import vn.edu.actvn.server.exception.ErrorCode;
 
-import java.io.IOException;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE,makeFinal = true)
 public class ImageUploadService {
 
-    private final Cloudinary cloudinary;
-
-    public ImageUploadService(Cloudinary cloudinary) {
-        this.cloudinary = cloudinary;
-    }
+    Cloudinary cloudinary;
 
     public String upload(MultipartFile file) {
         try {
@@ -27,7 +27,7 @@ public class ImageUploadService {
             Map<?, ?> result = cloudinary.uploader().upload(file.getBytes(), options);
             return result.get("secure_url").toString();
         } catch (Exception e) {
-            throw new AppException(ErrorCode.FAILDED_TO_UPLOAD_IMAGE);
+            throw new AppException(ErrorCode.FAILED_TO_UPLOAD_IMAGE);
         }
     }
 }

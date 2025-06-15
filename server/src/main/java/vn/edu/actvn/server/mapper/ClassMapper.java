@@ -28,6 +28,6 @@ public interface ClassMapper {
         if (students == null) return null;
         return students.stream()
                 .map(Student::getUserId)
-                .collect(Collectors.toList());
+                .toList();
     }
 }
