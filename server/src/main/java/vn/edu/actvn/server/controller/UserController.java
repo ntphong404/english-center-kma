@@ -64,6 +64,30 @@ public class UserController {
                 .build();
     }
 
+    @GetMapping("/role/{roleName}")
+    @Operation(summary = "Get users by role name")
+    public ApiResponse<Page<UserResponse>> getUsersByRoleName(
+            @PathVariable("roleName") String roleName,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "sort", defaultValue = "username,asc") String sort
+    ) {
+        Sort pageSort;
+        String[] sortPart = sort.split(",");
+        String direction = sortPart.length > 1 ? sortPart[1] : "asc";
+        String sortField = sortPart[0].trim();
+        Sort.Direction sortDirection = Sort.Direction.fromString(direction.toUpperCase());
+        String actualSortField = "fullName".equalsIgnoreCase(sortField) ? "lastName" : sortField;
+
+        pageSort = Sort.by(sortDirection, actualSortField);
+
+        Pageable pageable = PageRequest.of(page, size, pageSort);
+        return ApiResponse.<Page<UserResponse>>builder()
+                .result(userService.getUsersByRole(roleName, pageable))
+                .message("Fetched users by role: " + roleName)
+                .build();
+    }
+
     @GetMapping("/{userId}")
     @Operation(summary = "Get user by ID")
     public ApiResponse<UserResponse> getUser(@PathVariable("userId") String userId) {

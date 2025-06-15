@@ -86,6 +86,11 @@ public class UserService {
                 userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED)));
     }
 
+    public Page<UserResponse> getUsersByRole(String roleName, Pageable pageable) {
+        return userRepository.findByRole_Name(pageable, roleName)
+                .map(userMapper::toUserResponse);
+    }
+
     public void changePassword(ChangePasswordRequest request) {
         var context = SecurityContextHolder.getContext();
         String name = context.getAuthentication().getName();
