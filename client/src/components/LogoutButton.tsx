@@ -9,14 +9,16 @@ interface LogoutButtonProps {
     variant?: 'ghost' | 'outline';
     size?: 'default' | 'sm';
     className?: string;
+    inSidebar?: boolean;
 }
 
-const LogoutButton = ({ variant = 'ghost', size = 'default', className = '' }: LogoutButtonProps) => {
+const LogoutButton = ({ variant = 'ghost', size = 'default', className = '', inSidebar = false }: LogoutButtonProps) => {
     const { state } = useSidebar();
     const navigate = useNavigate();
 
     const handleLogout = () => {
         removeUser();
+        localStorage.removeItem('user');
         localStorage.removeItem('isAuthenticated');
         localStorage.removeItem('token');
         toast({
@@ -30,11 +32,11 @@ const LogoutButton = ({ variant = 'ghost', size = 'default', className = '' }: L
         <Button
             variant={variant}
             size={size}
-            className={`flex items-center ${state === "collapsed" ? "justify-center w-8 h-8" : "justify-start w-full"} text-red-500 hover:text-red-600 hover:bg-red-50 ${className}`}
+            className={`flex items-center ${inSidebar ? (state === "collapsed" ? "justify-center w-8 h-8 text-red-500 hover:text-red-600 hover:bg-red-50" : "justify-start w-full text-red-500 hover:text-red-600 hover:bg-red-50") : "justify-start w-full"} ${className}`}
             onClick={handleLogout}
         >
-            <LogOut size={size === 'sm' ? 16 : 18} className={state === "collapsed" ? "" : "mr-3"} />
-            {state !== "collapsed" && <span>Đăng xuất</span>}
+            <LogOut size={size === 'sm' ? 16 : 18} className={inSidebar && state !== "collapsed" ? "mr-3" : ""} />
+            {(!inSidebar || state !== "collapsed") && <span>Đăng xuất</span>}
         </Button>
     );
 };

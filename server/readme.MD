@@ -1,9 +1,3 @@
-# Identity service
-This microservice is responsible for:
-* Onboarding users
-* Roles and permissions
-* Authentication
-
 ## Tech stack
 * Build tool: maven >= 3.9.5
 * Java: 21
@@ -19,3 +13,9 @@ This microservice is responsible for:
 
 ## Build application
 `mvn clean package`
+
+## Build docker
+Bật docker destop lên trước rồi chạy
+
+`docker-compose up --build`
+

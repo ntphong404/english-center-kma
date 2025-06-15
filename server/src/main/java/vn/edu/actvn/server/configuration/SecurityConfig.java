@@ -3,6 +3,7 @@ package vn.edu.actvn.server.configuration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -13,6 +14,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
+import java.util.Map;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -20,29 +23,52 @@ public class SecurityConfig {
 
     private final String[] PUBLIC_ENDPOINTS = {
         "/users",
-        "/auth/login",
-        "/auth/introspect",
-        "/auth/logout",
-        "/auth/refresh",
+        "/auth/**",
         "/swagger-ui/**",
         "/swagger-ui.html",
-        "/v3/api-docs/**"
+        "/v3/api-docs/**",
+            "/payments/sepay"
     };
+    private static final Map<HttpMethod, String[]> USER_PERMISSIONS = Map.of(
+            HttpMethod.GET, new String[]{
+                    "/users/me",
+            },
+            HttpMethod.POST, new String[]{
+                    "/users/change-password",
+            },
+            HttpMethod.PUT, new String[]{
+                    "/users/**",
+            }
+    );
+
+
+    private final String[] USER_ROLES = {"STUDENT", "PARENT", "TEACHER", "ADMIN"};
 
     @Autowired
     private CustomJwtDecoder customJwtDecoder;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
-        httpSecurity.authorizeHttpRequests(request -> request.requestMatchers(PUBLIC_ENDPOINTS)
-                .permitAll()
-                .anyRequest().hasRole("ADMIN"));
+        httpSecurity
+                .cors(cors -> {})
+                .csrf(AbstractHttpConfigurer::disable)
 
-        httpSecurity.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer
-                        .decoder(customJwtDecoder)
-                        .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                .authorizeHttpRequests(request -> {
+                    request.requestMatchers(PUBLIC_ENDPOINTS).permitAll();
+
+                    USER_PERMISSIONS.forEach((method, paths) ->
+                            request.requestMatchers(method, paths).hasAnyRole(USER_ROLES)
+                    );
+
+                    request.anyRequest().hasRole("ADMIN");
+                })
+
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwtConfigurer -> jwtConfigurer
+                            .decoder(customJwtDecoder)
+                            .jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 .authenticationEntryPoint(new JwtAuthenticationEntryPoint()));
-        httpSecurity.csrf(AbstractHttpConfigurer::disable);
+
 
         return httpSecurity.build();
     }

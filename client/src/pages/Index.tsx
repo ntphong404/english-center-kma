@@ -1,24 +1,76 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LoginForm from '@/components/LoginForm';
 import HomeSlider from '@/components/HomeSlider';
 import AboutSection from '@/components/AboutSection';
 import RegisterForm from '@/components/RegisterForm';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ChevronDownIcon } from '@heroicons/react/20/solid';
+import AvatarMenu from '@/components/AvatarMenu';
 
 const Index = () => {
+  const user = localStorage.getItem('user');
+  const token = localStorage.getItem('token');
+  let usernameInitial = '';
+  let role = '';
+
+  if (user && token) {
+    try {
+      const userData = JSON.parse(user);
+      usernameInitial = userData.username.charAt(0).toUpperCase();
+      role = userData.role.name.toLowerCase();
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+    }
+  }
+
+  const navigate = useNavigate();
+
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const toggleMenu = () => {
+    setMenuOpen((prev) => !prev);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    localStorage.removeItem('isAuthenticated');
+    navigate('/login');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">English Center</h1>
           <nav>
-            <Link to="/login">
-              <Button variant="outline" size="sm">
-                Đăng nhập
-              </Button>
-            </Link>
+            {usernameInitial ? (
+              <AvatarMenu usernameInitial={usernameInitial} role={role} />
+            ) : (
+              <Link to="/login">
+                <Button variant="outline" size="sm">
+                  Đăng nhập
+                </Button>
+              </Link>
+            )}
           </nav>
         </div>
       </header>

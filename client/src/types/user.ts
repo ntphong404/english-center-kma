@@ -1,10 +1,10 @@
 import { Role } from './role';
 
 export interface User {
-    id: string;
+    userId: string;
     username: string;
-    firstName: string | null;
-    lastName: string | null;
+    fullName: string | null;
+    email: string | null;
     dob: string | null;
     role: Role;
 }
@@ -12,15 +12,15 @@ export interface User {
 export interface UserCreateRequest {
     username: string;
     password: string;
-    firstName: string;
-    lastName: string;
+    fullName: string;
+    email: string;
     dob: string;
     role: string;
 }
 
 export interface UserUpdateRequest {
-    firstName: string;
-    lastName: string;
+    fullName: string;
+    email: string;
     dob: string;
     role: string;
 }

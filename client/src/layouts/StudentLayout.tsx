@@ -15,7 +15,6 @@ const StudentLayout = () => {
     { icon: <BookOpen size={18} />, label: 'Lớp học', path: '/student/classes' },
     { icon: <Calendar size={18} />, label: 'Lịch học', path: '/student/schedule' },
     { icon: <ClipboardCheck size={18} />, label: 'Điểm danh', path: '/student/attendance' },
-    { icon: <DollarSign size={18} />, label: 'Học phí', path: '/student/fees' },
     { icon: <Settings size={18} />, label: 'Cài đặt', path: '/student/settings' },
   ];
 

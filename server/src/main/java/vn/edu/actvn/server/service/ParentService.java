@@ -1,0 +1,129 @@
+package vn.edu.actvn.server.service;
+
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import vn.edu.actvn.server.dto.request.user.CreateParentRequest;
+import vn.edu.actvn.server.dto.request.user.UpdateParentRequest;
+import vn.edu.actvn.server.dto.response.user.UserResponse;
+import vn.edu.actvn.server.entity.Parent;
+import vn.edu.actvn.server.entity.Role;
+import vn.edu.actvn.server.entity.Student;
+import vn.edu.actvn.server.exception.AppException;
+import vn.edu.actvn.server.exception.ErrorCode;
+import vn.edu.actvn.server.mapper.UserMapper;
+import vn.edu.actvn.server.repository.ParentRepository;
+import vn.edu.actvn.server.repository.RoleRepository;
+import vn.edu.actvn.server.repository.StudentRepository;
+import vn.edu.actvn.server.repository.UserRepository;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
+public class ParentService {
+    ParentRepository parentRepository;
+    UserMapper userMapper;
+    UserRepository userRepository;
+    RoleRepository roleRepository;
+    StudentRepository studentRepository;
+    PasswordEncoder passwordEncoder;
+
+    public List<UserResponse> getAllParents() {
+        return parentRepository.findAll().stream()
+                .map(userMapper::toParentResponse)
+                .toList();
+    }
+
+    public Page<UserResponse> getAllParents(Pageable pageable) {
+        return parentRepository.findAll(pageable)
+                .map(userMapper::toParentResponse);
+    }
+
+    public UserResponse getParentById(String id) {
+        Parent parent = parentRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        return userMapper.toParentResponse(parent);
+    }
+
+    public UserResponse updateParent(String parentId, UpdateParentRequest request) {
+        Parent parent = parentRepository.findById(parentId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        userMapper.updateParent(parent, request);
+        return userMapper.toParentResponse(parentRepository.save(parent));
+    }
+
+    public UserResponse patchParent(String parentId, UpdateParentRequest request) {
+        Parent parent = parentRepository.findById(parentId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        userMapper.patchParent(parent, request);
+        return userMapper.toParentResponse(parentRepository.save(parent));
+    }
+
+    public UserResponse createParent(CreateParentRequest request) {
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new AppException(ErrorCode.USER_EXISTED);
+        }
+
+        Parent parent = userMapper.toParent(request);
+        parent.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        Role role = roleRepository.findById("PARENT")
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
+        parent.setRole(role);
+
+        return userMapper.toUserResponse(userRepository.save(parent));
+    }
+
+    public UserResponse addStudent(String parentId, String studentId) {
+        Parent parent = parentRepository.findById(parentId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        if (parent.getStudentIds().stream().anyMatch(s -> s.equals(studentId))) {
+            throw new AppException(ErrorCode.STUDENT_ALREADY_ADDED);
+        }
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        if (student.getParentId() != null && !student.getParentId().equals(parentId)) {
+            throw new AppException(ErrorCode.STUDENT_ALREADY_HAS_PARENT);
+        }
+        if (student.getParentId() == null) {
+            student.setParentId(parentId);
+            studentRepository.save(student);
+        }
+        parent.getStudentIds().add(studentId);
+
+        return userMapper.toParentResponse(parentRepository.save(parent));
+    }
+
+    public UserResponse removeStudent(String parentId, String studentId) {
+        Parent parent = parentRepository.findById(parentId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        if (!parent.getStudentIds().remove(studentId)) {
+            throw new AppException(ErrorCode.STUDENT_NOT_FOUND);
+        }
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        if (student.getParentId() != null && student.getParentId().equals(parentId)) {
+            student.setParentId(null);
+            studentRepository.save(student);
+        } else {
+            throw new AppException(ErrorCode.STUDENT_NOT_FOUND);
+        }
+
+        return userMapper.toParentResponse(parentRepository.save(parent));
+    }
+
+    public void deleteParent(String id) {
+        parentRepository.deleteById(id);
+    }
+}

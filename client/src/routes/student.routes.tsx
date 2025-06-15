@@ -8,7 +8,6 @@ const StudentDashboard = lazy(() => import('@/pages/student/Dashboard'));
 const StudentClasses = lazy(() => import('@/pages/student/Classes'));
 const StudentSchedule = lazy(() => import('@/pages/student/Schedule'));
 const StudentAttendance = lazy(() => import('@/pages/student/Attendance'));
-const StudentFees = lazy(() => import('@/pages/student/Fees'));
 const StudentSettings = lazy(() => import('@/pages/student/Settings'));
 
 export const studentRoutes: RouteObject = {
@@ -38,10 +37,6 @@ export const studentRoutes: RouteObject = {
         {
             path: 'attendance',
             element: <StudentAttendance />,
-        },
-        {
-            path: 'fees',
-            element: <StudentFees />,
         },
         {
             path: 'settings',

@@ -5,5 +5,9 @@ import org.springframework.stereotype.Repository;
 
 import vn.edu.actvn.server.entity.InvalidatedToken;
 
+import java.sql.Date;
+
 @Repository
-public interface InvalidatedTokenRepository extends JpaRepository<InvalidatedToken, String> {}
+public interface InvalidatedTokenRepository extends JpaRepository<InvalidatedToken, String> {
+    int deleteByExpiryTimeBefore(Date date);
+}
