@@ -18,6 +18,10 @@ RUN ./mvnw clean package -DskipTests
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
+# Thiết lập timezone
+ENV TZ=Asia/Ho_Chi_Minh
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 # Copy the built jar from build stage
 COPY --from=build /app/target/english-center-1.0.0.jar app.jar
 

@@ -39,6 +39,9 @@ public class EntityClass {
     @Column(nullable = false)
     Integer grade;
 
+    @Column(nullable = false)
+    String roomName;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     Status status;
@@ -48,11 +51,7 @@ public class EntityClass {
     Teacher teacher;
 
     @ManyToMany
-    @JoinTable(
-            name = "class_students",
-            joinColumns = @JoinColumn(name = "class_id"),
-            inverseJoinColumns = @JoinColumn(name = "student_id")
-    )
+    @JoinTable(name = "class_students", joinColumns = @JoinColumn(name = "class_id"), inverseJoinColumns = @JoinColumn(name = "student_id"))
     List<Student> students;
 
     @Column(nullable = false, precision = 10, scale = 2)
@@ -61,7 +60,7 @@ public class EntityClass {
     LocalDate startDate;
     LocalDate endDate;
 
-    LocalTime startTime; //7:30->9:30 ->11:30 , 13:30->15:30 ->17:30
+    LocalTime startTime; // 7:30->9:30 ->11:30 , 13:30->15:30 ->17:30
     LocalTime endTime;
 
     @ElementCollection

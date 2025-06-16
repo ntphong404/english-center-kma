@@ -22,6 +22,7 @@ public class CreateClassRequest {
     String className;
     Integer year;
     Integer Grade;
+    String roomName;
     String teacherId;
     List<String> studentIds;
 

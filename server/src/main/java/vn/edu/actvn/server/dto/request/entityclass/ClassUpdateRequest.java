@@ -19,6 +19,7 @@ public class ClassUpdateRequest {
     String className;
     Integer year;
     Integer Grade;
+    String roomName;
     String teacherId;
     List<String> studentIds;
 

@@ -25,6 +25,9 @@ public class ClassResponse {
     @Column(nullable = false)
     Integer grade;
 
+    @Column(nullable = false)
+    String roomName;
+
     String status;
     String teacherId;
     List<String> studentIds;
