@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, ChevronDown } from 'lucide-react';
 import {
     SidebarProvider,
     Sidebar,
@@ -34,7 +34,7 @@ const SidebarLogo = ({ logo, collapsedLogo }: { logo: string; collapsedLogo: str
     const { state } = useSidebar();
 
     return (
-        <Link to="/dashboard" className="flex items-center justify-center">
+        <Link to="/" className="flex items-center justify-center">
             <span className="text-xl font-bold text-primary">
                 {state === "collapsed" ? collapsedLogo : logo}
             </span>
@@ -49,12 +49,14 @@ const BaseLayout = ({ title, logo, collapsedLogo, sidebarLinks }: BaseLayoutProp
     const user = localStorage.getItem('user');
     let usernameInitial = '';
     let role = '';
+    let fullName = '';
 
     if (user) {
         try {
             const userData = JSON.parse(user);
             usernameInitial = userData.username.charAt(0).toUpperCase();
-            role = userData.role.name.toLowerCase();
+            role = userData.role.toLowerCase();
+            fullName = userData.fullName;
         } catch (error) {
             console.error('Error parsing user data:', error);
         }
@@ -108,7 +110,7 @@ const BaseLayout = ({ title, logo, collapsedLogo, sidebarLinks }: BaseLayoutProp
                         </div>
                         <div className="flex items-center space-x-4">
                             {usernameInitial && role ? (
-                                <AvatarMenu usernameInitial={usernameInitial} role={role} />
+                                <AvatarMenu usernameInitial={usernameInitial} role={role} fullName={fullName} />
                             ) : (
                                 <LogoutButton variant="outline" size="sm" inSidebar={false} />
                             )}

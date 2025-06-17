@@ -24,7 +24,7 @@ public class UserResponse {
     String email;
 
     LocalDate dob;
-    RoleResponse role;
+    String role;
 
     List<String> studentIds;
     Double salary;

@@ -1,38 +1,37 @@
-import axiosInstance from '@/services/axios';
-import Student from '@/types/Student';
+import { Student, CreateStudentRequest, UpdateStudentRequest } from '../types/user';
+import { ApiResponse, PageResponse } from '../types/api';
+import axiosInstance from '../services/axios';
 
-// Lấy danh sách học sinh
-export const getStudents = () => {
-    return axiosInstance.get<Student[]>('/users').then(response => {
-        // Lọc ra các user có role STUDENT
-        return {
-            ...response,
-            data: response.data.filter(user =>
-                user.roles.some(role => role.name === 'STUDENT')
-            )
-        };
-    });
+const studentApi = {
+    getAll: (page: number = 0, size: number = 10, sort: string = 'userId,ASC') => {
+        return axiosInstance.get<ApiResponse<PageResponse<Student>>>('/students', {
+            params: { page, size, sort }
+        });
+    },
+
+    getById: (id: string) => {
+        return axiosInstance.get<ApiResponse<Student>>(`/students/${id}`);
+    },
+
+    create: (student: CreateStudentRequest) => {
+        return axiosInstance.post<ApiResponse<Student>>('/students', student);
+    },
+
+    update: (id: string, student: UpdateStudentRequest) => {
+        return axiosInstance.put<ApiResponse<Student>>(`/students/${id}`, student);
+    },
+
+    patch: (id: string, student: Partial<UpdateStudentRequest>) => {
+        return axiosInstance.patch<ApiResponse<Student>>(`/students/${id}`, student);
+    },
+
+    delete: (id: string) => {
+        return axiosInstance.delete<ApiResponse<void>>(`/students/${id}`);
+    },
+
+    getByIds: (ids: string[]) => {
+        return axiosInstance.post<ApiResponse<Student[]>>('/students/studentIds', { ids });
+    },
 };
 
-// Lấy thông tin một học sinh
-export const getStudent = (id: string) => {
-    return axiosInstance.get<Student>(`/users/${id}`);
-};
-
-// Tạo học sinh mới
-export const createStudent = (data: Omit<Student, 'id'>) => {
-    return axiosInstance.post<Student>('/users', {
-        ...data,
-        roles: [{ name: 'STUDENT', description: 'Student role' }]
-    });
-};
-
-// Cập nhật thông tin học sinh
-export const updateStudent = (id: string, data: Partial<Student>) => {
-    return axiosInstance.put<Student>(`/users/${id}`, data);
-};
-
-// Xóa học sinh
-export const deleteStudent = (id: string) => {
-    return axiosInstance.delete(`/users/${id}`);
-}; 
+export default studentApi;

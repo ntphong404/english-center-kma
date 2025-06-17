@@ -14,7 +14,7 @@ export const getUser = (): User | null => {
 // Lấy role của user
 export const getUserRole = (): string | null => {
     const user = getUser();
-    return user?.role.name.toLowerCase() || null;
+    return user?.role.toLowerCase() || null;
 };
 
 // Cập nhật thông tin user

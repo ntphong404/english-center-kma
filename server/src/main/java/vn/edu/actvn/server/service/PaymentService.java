@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import vn.edu.actvn.server.dto.request.attendance.AttendanceUpdateRequest;
 import vn.edu.actvn.server.dto.request.payment.CreatePaymentRequest;
@@ -37,6 +38,7 @@ public class PaymentService {
     TuitionFeeRepository tuitionFeeRepository;
     PaymentMapper paymentMapper;
 
+    @PreAuthorize("hasAuthority('PAYMENT_CREATE')")
     public PaymentResponse createPayment(CreatePaymentRequest request) {
         TuitionFee tuitionFee = tuitionFeeRepository.findById(request.getTuitionFeeId())
                 .orElseThrow(() -> new AppException(ErrorCode.TUITION_FEE_NOT_EXISTED));
@@ -53,12 +55,14 @@ public class PaymentService {
         return paymentMapper.toPaymentResponse(paymentRepository.save(payment));
     }
 
+    @PreAuthorize("hasAuthority('PAYMENT_READ')")
     public List<PaymentResponse> getAllPayments() {
         return paymentRepository.findAll().stream()
                 .map(paymentMapper::toPaymentResponse)
                 .toList();
     }
 
+    @PreAuthorize("hasAuthority('PAYMENT_READ')")
     public PaymentResponse getPaymentById(String id) {
         Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_EXISTED));
@@ -72,6 +76,7 @@ public class PaymentService {
                 .toList();
     }
 
+    @PreAuthorize("hasAuthority('PAYMENT_READ')")
     public List<PaymentResponse> getPaymentsByStudentIdAndClassId(String studentId, String classId) {
         List<Payment> payments = paymentRepository.findByTuitionFee_Student_UserIdAndTuitionFee_EntityClass_ClassId(
                 studentId, classId);
@@ -80,11 +85,13 @@ public class PaymentService {
                 .toList();
     }
 
+    @PreAuthorize("hasAuthority('PAYMENT_READ')")
     public Page<PaymentResponse> getPagedPaymentsByStudentId(String studentId, Pageable pageable) {
         Page<Payment> paymentsPage = paymentRepository.findByTuitionFee_Student_UserId(pageable, studentId);
         return paymentsPage.map(paymentMapper::toPaymentResponse);
     }
 
+    @PreAuthorize("hasAuthority('PAYMENT_UPDATE')")
     public PaymentResponse updatePayment(String id, CreatePaymentRequest request) {
         Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_EXISTED));
@@ -101,6 +108,7 @@ public class PaymentService {
         return paymentMapper.toPaymentResponse(payment);
     }
 
+    @PreAuthorize("hasAuthority('PAYMENT_DELETE')")
     public void deletePayment(String id) {
         if (!paymentRepository.existsById(id)) {
             throw new AppException(ErrorCode.PAYMENT_NOT_EXISTED);

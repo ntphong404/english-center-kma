@@ -3,10 +3,12 @@ package vn.edu.actvn.server.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.actvn.server.dto.request.tuitionfee.CreateTuitionFeeRequest;
 import vn.edu.actvn.server.dto.request.tuitionfee.UpdateTuitionFeeRequest;
@@ -38,12 +40,13 @@ public class TuitionFeeController {
     @GetMapping
     @Operation(summary = "Get all tuition fees", description = "Return paginated tuition fee list")
     public ApiResponse<Page<TuitionFeeResponse>>  getAll(
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "limit", defaultValue = "10") int limit,
-            @RequestParam(value = "sortBy", defaultValue = "amount") String sort,
-            @RequestParam(value = "direction", defaultValue = "asc") String direction
+            @ParameterObject @PageableDefault(
+                    page = 0,
+                    size = 10,
+                    sort = "yearMonth",
+                    direction = Sort.Direction.DESC
+            ) Pageable pageable
     ) {
-        Pageable pageable = PageRequest.of(page,limit, Sort.by(Sort.Direction.fromString(direction.toUpperCase()), sort));
         return ApiResponse.<Page<TuitionFeeResponse>>builder()
                 .result(tuitionFeeService.getAllTuitionFees(pageable))
                 .message("Fetched all tuition fees")
@@ -61,9 +64,17 @@ public class TuitionFeeController {
 
     @GetMapping("/student/{studentId}")
     @Operation(summary = "Get tuition fees by student", description = "Return all tuition fees for a student")
-    public ApiResponse<List<TuitionFeeResponse>> getByStudent(@PathVariable String studentId) {
-        return ApiResponse.<List<TuitionFeeResponse>>builder()
-                .result(tuitionFeeService.getTuitionFeesByStudentId(studentId))
+    public ApiResponse<Page<TuitionFeeResponse>> getByStudent(
+            @PathVariable String studentId,
+            @ParameterObject @PageableDefault(
+                    page = 0,
+                    size = 10,
+                    sort = "yearMonth",
+                    direction = Sort.Direction.DESC
+            ) Pageable pageable
+    ) {
+        return ApiResponse.<Page<TuitionFeeResponse>>builder()
+                .result(tuitionFeeService.getTuitionFeesByStudentId(pageable,studentId))
                 .message("Fetched tuition fees for student")
                 .build();
     }

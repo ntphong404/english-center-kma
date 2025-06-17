@@ -29,9 +29,9 @@ const processQueue = (error: any, token: string | null = null) => {
 axiosInstance.interceptors.request.use(
     (config) => {
         // Lấy token từ localStorage
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+        const accessToken = localStorage.getItem('accessToken');
+        if (accessToken) {
+            config.headers.Authorization = `Bearer ${accessToken}`;
         }
         return config;
     },
@@ -72,26 +72,26 @@ axiosInstance.interceptors.response.use(
 
                         try {
                             // Lấy token hiện tại
-                            const currentToken = localStorage.getItem('token');
-                            if (!currentToken) {
+                            const refreshToken = localStorage.getItem('refreshToken');
+                            if (!refreshToken) {
                                 throw new Error('No token available');
                             }
 
                             // Gọi API refresh với token trong request body
                             const response = await axios.post(
                                 `${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/auth/refresh`,
-                                { token: currentToken }
+                                { token: refreshToken }
                             );
 
                             // Lưu token mới
-                            const newToken = response.data.result.token;
-                            localStorage.setItem('token', newToken);
+                            const newAccessToken = response.data.result.accessToken;
+                            localStorage.setItem('accessToken', newAccessToken);
 
                             // Cập nhật header cho request gốc
-                            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
                             // Xử lý các request trong queue
-                            processQueue(null, newToken);
+                            processQueue(null, newAccessToken);
 
                             // Thực hiện lại request gốc
                             return axiosInstance(originalRequest);
@@ -100,7 +100,8 @@ axiosInstance.interceptors.response.use(
                             processQueue(refreshError, null);
 
                             // Xóa token và các thông tin liên quan
-                            localStorage.removeItem('token');
+                            localStorage.removeItem('accessToken');
+                            localStorage.removeItem('refreshToken');
                             localStorage.removeItem('user');
                             localStorage.removeItem('isAuthenticated');
 
@@ -112,6 +113,8 @@ axiosInstance.interceptors.response.use(
                         }
                     }
                     break;
+                case 400:
+                    return Promise.reject(error);
                 case 403:
                     // Xử lý lỗi forbidden
                     console.error('Không có quyền truy cập');
@@ -125,7 +128,8 @@ axiosInstance.interceptors.response.use(
                     console.error('Lỗi server');
                     break;
                 default:
-                    console.error('Có lỗi xảy ra:', error.response.data);
+                    console.error('Có lỗi xảy ra: ahihi', error.response.data);
+                    return Promise.reject(error);
             }
         } else if (error.request) {
             // Xử lý lỗi không nhận được response

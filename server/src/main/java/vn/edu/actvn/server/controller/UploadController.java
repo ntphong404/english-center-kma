@@ -19,18 +19,28 @@ import vn.edu.actvn.server.service.ImageUploadService;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
-@Tag(name = "User API", description = "Endpoints for user management and information")
+@Tag(name = "Upload API", description = "Endpoints for uploaded files")
 public class UploadController {
 
     ImageUploadService imageUploadService;
 
-    @PostMapping
+    @PostMapping("/avatar")
     @Operation(summary = "Upload an image file")
-    public ApiResponse<String> upload(@RequestParam("file") MultipartFile file) {
-        String url = imageUploadService.upload(file);
+    public ApiResponse<String> uploadAvatar(@RequestParam("file") MultipartFile file) {
+        String url = imageUploadService.uploadAvatar(file);
         return ApiResponse.<String>builder()
                 .result(url)
                 .message("File uploaded successfully")
+                .build();
+    }
+
+    @PostMapping("/banner")
+    @Operation(summary = "Upload a banner image file")
+    public ApiResponse<String> uploadBanner(@RequestParam("file") MultipartFile file) {
+        String url = imageUploadService.uploadBanner(file);
+        return ApiResponse.<String>builder()
+                .result(url)
+                .message("Banner uploaded successfully")
                 .build();
     }
 }

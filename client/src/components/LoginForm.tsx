@@ -11,7 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { User as UserIcon } from 'lucide-react';
 import { getUser, setUser } from '@/store/userStore';
 import axios from 'axios';
-import { login } from '@/api/authApi';
+import authApi from '@/api/authApi';
 import { LoginRequest } from '@/types/auth';
 
 // Define form schema
@@ -42,9 +42,7 @@ const LoginForm = () => {
         username: formData.username,
         password: formData.password
       };
-      const user = await login(loginData);
-      // Lưu thông tin user
-      setUser(user);
+      const loginResponse = await authApi.login(loginData);
 
       // Show success message
       toast({
@@ -53,7 +51,7 @@ const LoginForm = () => {
       });
 
       // Redirect based on role
-      switch (user.role.name.toLowerCase()) {
+      switch (loginResponse.user.role.toLowerCase()) {
         case 'admin':
           navigate('/admin/dashboard');
           break;

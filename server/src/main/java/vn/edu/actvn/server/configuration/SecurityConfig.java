@@ -27,22 +27,8 @@ public class SecurityConfig {
         "/swagger-ui/**",
         "/swagger-ui.html",
         "/v3/api-docs/**",
-            "/payments/sepay"
+        "/upload/**",
     };
-    private static final Map<HttpMethod, String[]> USER_PERMISSIONS = Map.of(
-            HttpMethod.GET, new String[]{
-                    "/users/me",
-            },
-            HttpMethod.POST, new String[]{
-                    "/users/change-password",
-            },
-            HttpMethod.PUT, new String[]{
-                    "/users/**",
-            }
-    );
-
-
-    private final String[] USER_ROLES = {"STUDENT", "PARENT", "TEACHER", "ADMIN"};
 
     @Autowired
     private CustomJwtDecoder customJwtDecoder;
@@ -53,15 +39,9 @@ public class SecurityConfig {
                 .cors(cors -> {})
                 .csrf(AbstractHttpConfigurer::disable)
 
-                .authorizeHttpRequests(request -> {
-                    request.requestMatchers(PUBLIC_ENDPOINTS).permitAll();
-
-                    USER_PERMISSIONS.forEach((method, paths) ->
-                            request.requestMatchers(method, paths).hasAnyRole(USER_ROLES)
-                    );
-
-                    request.anyRequest().hasRole("ADMIN");
-                })
+                .authorizeHttpRequests(request ->
+                    request.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                            .anyRequest().authenticated())
 
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwtConfigurer -> jwtConfigurer

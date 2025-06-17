@@ -26,8 +26,8 @@ logging:
 
 jwt:
   signerKey: "1TjXchw5FloESb63Kc+DFhTARvpWL4jUGCwfGWxuG5SIf/1y/LgJxHnMqaF6A/ij"
-  valid-duration: 360000 # in second
-  refreshable-duration: 36000 # in seconds
+  access-exp: 86400 # in second
+  refresh-exp: 604800 # in seconds
 
 cloudinary:
   cloud-name: dnsve3y1o

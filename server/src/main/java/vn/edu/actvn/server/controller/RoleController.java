@@ -1,6 +1,7 @@
 package vn.edu.actvn.server.controller;
 
 import java.util.List;
+import java.util.Set;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.web.bind.annotation.*;
 
+import vn.edu.actvn.server.constant.Permission;
+import vn.edu.actvn.server.dto.request.role.PermissionRequest;
 import vn.edu.actvn.server.dto.request.role.RoleRequest;
 import vn.edu.actvn.server.dto.response.ApiResponse;
 import vn.edu.actvn.server.dto.response.role.RoleResponse;
@@ -50,6 +53,24 @@ public class RoleController {
         roleService.delete(role);
         return ApiResponse.<Void>builder()
                 .message("Role deleted successfully")
+                .build();
+    }
+
+    @PostMapping("/{role}/permissions")
+    @Operation(summary = "Add permissions to a role")
+    public ApiResponse<RoleResponse> addPermissions(@PathVariable String role, @RequestBody Set<Permission> permissions) {
+        return ApiResponse.<RoleResponse>builder()
+                .message("Permissions added successfully")
+                .result(roleService.addPermission(role, permissions))
+                .build();
+    }
+
+    @PutMapping("/{role}/permissions")
+    @Operation(summary = "Update all permissions for a role")
+    public ApiResponse<RoleResponse> updatePermissions(@PathVariable String role, @RequestBody PermissionRequest permissions) {
+        return ApiResponse.<RoleResponse>builder()
+                .message("Permissions updated successfully")
+                .result(roleService.updatePermissions(role, permissions.permissions()))
                 .build();
     }
 }

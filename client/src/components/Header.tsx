@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 
 const Header = () => {
     const navigate = useNavigate();
@@ -7,6 +8,10 @@ const Header = () => {
 
     const handleLogout = () => {
         localStorage.removeItem('user');
+        toast({
+            title: "Đăng xuất thành công",
+            description: "Bạn đã đăng xuất khỏi hệ thống",
+        });
         navigate('/login');
     };
 

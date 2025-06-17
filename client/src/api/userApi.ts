@@ -1,32 +1,58 @@
-import axiosInstance from '@/services/axios';
-import { User, UserCreateRequest, UserUpdateRequest } from '@/types/User';
+import { User } from '../types/user';
+import { ApiResponse, PageResponse } from '../types/api';
+import axiosInstance from '../services/axios';
 
-interface ApiResponse<T> {
-    code: number;
-    result: T;
-}
+export const userApi = {
+    getAll: (page: number = 0, size: number = 10, sort: string = 'userId,ASC') => {
+        return axiosInstance.get<ApiResponse<PageResponse<User>>>('/users', {
+            params: { page, size, sort }
+        });
+    },
 
-// Lấy danh sách users
-export const getUsers = () => {
-    return axiosInstance.get<ApiResponse<User[]>>('/users');
-};
+    getById: (userId: string) => {
+        return axiosInstance.get<ApiResponse<User>>(`/users/${userId}`);
+    },
 
-// Lấy thông tin một user
-export const getUser = (id: string) => {
-    return axiosInstance.get<ApiResponse<User>>(`/users/${id}`);
-};
+    getByRoleName: (roleName: string, page: number = 0, size: number = 10, sort: string = 'userId,ASC') => {
+        return axiosInstance.get<ApiResponse<PageResponse<User>>>(`/users/role/${roleName}`, {
+            params: { page, size, sort }
+        });
+    },
 
-// Tạo user mới
-export const createUser = (data: UserCreateRequest) => {
-    return axiosInstance.post<ApiResponse<User>>('/users', data);
-};
+    getCurrentUser: () => {
+        return axiosInstance.get<ApiResponse<User>>('/users/me');
+    },
 
-// Cập nhật thông tin user
-export const updateUser = (id: string, data: Omit<UserUpdateRequest, 'id'>) => {
-    return axiosInstance.put<ApiResponse<User>>(`/users/${id}`, data);
-};
+    create: (user: Partial<User>) => {
+        return axiosInstance.post<ApiResponse<User>>('/users', user);
+    },
 
-// Xóa user
-export const deleteUser = (id: string) => {
-    return axiosInstance.delete<ApiResponse<void>>(`/users/${id}`);
+    update: (userId: string, user: Partial<User>) => {
+        return axiosInstance.put<ApiResponse<User>>(`/users/${userId}`, user);
+    },
+
+    patch: (userId: string, user: Partial<User>) => {
+        return axiosInstance.patch<ApiResponse<User>>(`/users/${userId}`, user);
+    },
+
+    delete: (userId: string) => {
+        return axiosInstance.delete<ApiResponse<void>>(`/users/${userId}`);
+    },
+
+    changePassword: (oldPassword: string, newPassword: string) => {
+        return axiosInstance.post<ApiResponse<void>>('/users/change-password', {
+            oldPassword,
+            newPassword
+        });
+    },
+
+    uploadImage: (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return axiosInstance.post<ApiResponse<string>>('/upload', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+    },
 };

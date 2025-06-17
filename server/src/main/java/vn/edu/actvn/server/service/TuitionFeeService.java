@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import vn.edu.actvn.server.dto.request.tuitionfee.CreateTuitionFeeRequest;
 import vn.edu.actvn.server.dto.request.tuitionfee.UpdateTuitionFeeRequest;
@@ -82,26 +83,30 @@ public class TuitionFeeService {
         return tuitionFeeMapper.toTuitionFeeResponse(savedTuitionFee);
     }
 
+    @PreAuthorize("hasAuthority('TUITION_FEE_READ_ALL')")
     public Page<TuitionFeeResponse> getAllTuitionFees(Pageable pageable) {
         return tuitionFeeRepository.findAll(pageable)
                 .map(tuitionFeeMapper::toTuitionFeeResponse);
     }
 
+    @PreAuthorize("hasAuthority('TUITION_FEE_READ')")
     public TuitionFeeResponse getTuitionFeeById(String id) {
         return tuitionFeeRepository.findById(id)
                 .map(tuitionFeeMapper::toTuitionFeeResponse)
                 .orElseThrow(() -> new AppException(ErrorCode.TUITION_FEE_NOT_EXISTED));
     }
 
-    public List<TuitionFeeResponse> getTuitionFeesByStudentId(String studentId) {
-        Student student = studentService.getById(studentId);
+    @PreAuthorize("hasAuthority('TUITION_FEE_READ')")
+    public Page<TuitionFeeResponse> getTuitionFeesByStudentId(Pageable pageable, String studentId) {
+        if (studentService.getById(studentId)== null) {
+            throw new AppException(ErrorCode.USER_NOT_EXISTED);
+        }
 
-        return tuitionFeeRepository.findByStudent_UserId(student.getUserId())
-                .stream()
-                .map(tuitionFeeMapper::toTuitionFeeResponse)
-                .toList();
+        return tuitionFeeRepository.findByStudent_UserId(pageable,studentId)
+                .map(tuitionFeeMapper::toTuitionFeeResponse);
     }
 
+    @PreAuthorize("hasAuthority('TUITION_FEE_READ')")
     public TuitionFeeResponse getTuitionFeeByStudentIdAndYearMonth(String studentId, LocalDate yearMonth) {
         Student student = studentService.getById(studentId);
 
@@ -110,6 +115,7 @@ public class TuitionFeeService {
                 .orElseThrow(() -> new AppException(ErrorCode.TUITION_FEE_NOT_EXISTED));
     }
 
+    @PreAuthorize("hasAuthority('TUITION_FEE_UPDATE')")
     public TuitionFeeResponse updateTuitionFee(String id, UpdateTuitionFeeRequest request) {
         TuitionFee existingTuitionFee = tuitionFeeRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.TUITION_FEE_NOT_EXISTED));
@@ -129,6 +135,7 @@ public class TuitionFeeService {
         return tuitionFeeMapper.toTuitionFeeResponse(updatedTuitionFee);
     }
 
+    @PreAuthorize("hasAuthority('TUITION_FEE_UPDATE')")
     public TuitionFeeResponse partialUpdateTuitionFee(String id, UpdateTuitionFeeRequest request) {
         TuitionFee existingTuitionFee = tuitionFeeRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.TUITION_FEE_NOT_EXISTED));
@@ -148,6 +155,7 @@ public class TuitionFeeService {
         return tuitionFeeMapper.toTuitionFeeResponse(updatedTuitionFee);
     }
 
+    @PreAuthorize("hasAuthority('TUITION_FEE_DELETE')")
     public void deleteTuitionFee(String id) {
         if (!tuitionFeeRepository.existsById(id)) {
             throw new AppException(ErrorCode.TUITION_FEE_NOT_EXISTED);

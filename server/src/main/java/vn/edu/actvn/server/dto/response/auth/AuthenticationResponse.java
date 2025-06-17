@@ -11,6 +11,7 @@ import vn.edu.actvn.server.dto.response.user.UserResponse;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AuthenticationResponse {
     UserResponse user;
-    String token;
+    String accessToken;
+    String refreshToken;
     boolean authenticated;
 }

@@ -13,17 +13,7 @@ import vn.edu.actvn.server.entity.Student;
 public interface UserMapper {
 
     default User toUser(Object request) {
-        if (request instanceof CreateParentRequest) {
-            return toParent((CreateParentRequest) request);
-        } else if (request instanceof CreateTeacherRequest) {
-            return toTeacher((CreateTeacherRequest) request);
-        } else if (request instanceof CreateStudentRequest) {
-            return toStudent((CreateStudentRequest) request);
-        } else if (request instanceof CreateAdminRequest) {
             return toAdmin((CreateAdminRequest) request);
-        } else {
-            throw new IllegalArgumentException("Unsupported request type");
-        }
     }
 
     @Mapping(target = "role", ignore = true)
@@ -39,15 +29,7 @@ public interface UserMapper {
     Student toStudent(CreateStudentRequest request);
 
     default UserResponse toUserResponse(User user) {
-        if (user instanceof Parent) {
-            return toParentResponse((Parent) user);
-        } else if (user instanceof Teacher) {
-            return toTeacherResponse((Teacher) user);
-        } else if (user instanceof Student) {
-            return toStudentResponse((Student) user);
-        } else {
             return toAdminResponse(user);
-        }
     }
 
     void updateAdmin(@MappingTarget User user, UpdateAdminRequest request);
@@ -70,11 +52,15 @@ public interface UserMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void patchAdmin(@MappingTarget User user, UpdateAdminRequest request);
 
+    @Mapping(target = "role", source = "role.name")
     UserResponse toAdminResponse(User admin);
 
+    @Mapping(target = "role", source = "role.name")
     UserResponse toParentResponse(Parent parent);
 
+    @Mapping(target = "role", source = "role.name")
     UserResponse toTeacherResponse(Teacher teacher);
 
+    @Mapping(target = "role", source = "role.name")
     UserResponse toStudentResponse(Student student);
 }

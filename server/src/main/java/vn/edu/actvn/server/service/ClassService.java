@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import vn.edu.actvn.server.dto.request.entityclass.ClassUpdateRequest;
 import vn.edu.actvn.server.dto.request.entityclass.CreateClassRequest;
@@ -37,11 +38,13 @@ public class ClassService {
     StudentRepository studentRepository;
     ClassMapper classMapper;
 
+    @PreAuthorize("hasAuthority('CLASS_READ')")
     public EntityClass getById(String id) {
         return classRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.CLASS_NOT_EXISTED));
     }
 
+    @PreAuthorize("hasAuthority('CLASS_CREATE')")
     public ClassResponse createClass(CreateClassRequest createClassRequest) {
         EntityClass entityClass = classMapper.toEntityClass(createClassRequest);
         Teacher teacher = teacherRepository.findById(createClassRequest.getTeacherId())
@@ -57,6 +60,7 @@ public class ClassService {
         return classMapper.toClassResponse(classRepository.save(entityClass));
     }
 
+    @PreAuthorize("hasAuthority('CLASS_UPDATE')")
     public ClassResponse updateClass(String classId, ClassUpdateRequest classUpdateRequest) {
         EntityClass entityClass = findClassById(classId);
         if (isClosed(entityClass)) {
@@ -71,6 +75,7 @@ public class ClassService {
         return classMapper.toClassResponse(classRepository.save(entityClass));
     }
 
+    @PreAuthorize("hasAuthority('CLASS_UPDATE')")
     public ClassResponse patchClass(String classId, ClassUpdateRequest classUpdateRequest) {
         EntityClass entityClass = findClassById(classId);
         if (isClosed(entityClass)) {
@@ -85,32 +90,38 @@ public class ClassService {
         return classMapper.toClassResponse(classRepository.save(entityClass));
     }
 
+    @PreAuthorize("hasAuthority('CLASS_READ_ALL')")
     public List<ClassResponse> getClasses() {
         return classRepository.findAll().stream()
                 .map(classMapper::toClassResponse)
                 .toList();
     }
 
+    @PreAuthorize("hasAuthority('CLASS_READ_ALL')")
     public Page<ClassResponse> getClasses(Pageable pageable) {
         return classRepository.findAll(pageable)
                 .map(classMapper::toClassResponse);
     }
 
+    @PreAuthorize("hasAuthority('CLASS_READ')")
     public List<ClassResponse> getClassesByTeacherId(String teacherId) {
         return classRepository.findByTeacher_UserId(teacherId).stream()
                 .map(classMapper::toClassResponse).toList();
     }
 
+    @PreAuthorize("hasAuthority('CLASS_READ')")
     public Page<ClassResponse> getClassesByTeacherId(String teacherId, Pageable pageable) {
         return classRepository.findByTeacher_UserId(teacherId, pageable)
                 .map(classMapper::toClassResponse);
     }
 
+    @PreAuthorize("hasAuthority('CLASS_READ')")
     public ClassResponse getClassById(String classId) {
         return classMapper.toClassResponse(classRepository.findById(classId)
                 .orElseThrow(() -> new AppException(ErrorCode.CLASS_NOT_EXISTED)));
     }
 
+    @PreAuthorize("hasAuthority('CLASS_DELETE')")
     public void deleteClass(String classId) {
         EntityClass entityClass = classRepository.findById(classId)
                 .orElseThrow(() -> new AppException(ErrorCode.CLASS_NOT_EXISTED));
@@ -121,6 +132,7 @@ public class ClassService {
         classRepository.save(entityClass);
     }
 
+    @PreAuthorize("hasAuthority('CLASS_UPDATE')")
     public ClassResponse addStudents(String classId, List<String> studentIds) {
         EntityClass entityClass = findClassById(classId);
         if (isClosed(entityClass)) {
@@ -139,6 +151,7 @@ public class ClassService {
         return classMapper.toClassResponse(classRepository.save(entityClass));
     }
 
+    @PreAuthorize("hasAuthority('CLASS_UPDATE')")
     public ClassResponse removeStudents(String classId, String studentId) {
         EntityClass entityClass = findClassById(classId);
         if (isClosed(entityClass)) {

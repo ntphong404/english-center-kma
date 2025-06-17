@@ -9,27 +9,40 @@ import RegisterForm from '@/components/RegisterForm';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import AvatarMenu from '@/components/AvatarMenu';
+import authApi from '@/api/authApi';
 
 const Index = () => {
-  const user = localStorage.getItem('user');
-  const token = localStorage.getItem('token');
-  let usernameInitial = '';
-  let role = '';
+  const [userData, setUserData] = useState<{
+    usernameInitial: string;
+    fullName: string;
+    role: string;
+  } | null>(null);
 
-  if (user && token) {
-    try {
-      const userData = JSON.parse(user);
-      usernameInitial = userData.username.charAt(0).toUpperCase();
-      role = userData.role.name.toLowerCase();
-    } catch (error) {
-      console.error('Error parsing user data:', error);
+  const updateUserData = () => {
+    const user = localStorage.getItem('user');
+    if (user) {
+      try {
+        const parsedUser = JSON.parse(user);
+        setUserData({
+          usernameInitial: parsedUser.username.charAt(0).toUpperCase(),
+          fullName: parsedUser.fullName,
+          role: parsedUser.role.toLowerCase()
+        });
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        setUserData(null);
+      }
+    } else {
+      setUserData(null);
     }
-  }
+  };
+
+  useEffect(() => {
+    updateUserData();
+  }, [userData]);
 
   const navigate = useNavigate();
-
   const [menuOpen, setMenuOpen] = useState(false);
-
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -49,11 +62,33 @@ const Index = () => {
     setMenuOpen((prev) => !prev);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    localStorage.removeItem('isAuthenticated');
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      // Clear user data first
+      setUserData(null);
+
+      // Clear localStorage
+      localStorage.removeItem('user');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+
+      // Call logout API
+      await authApi.logout({
+        accessToken: localStorage.getItem('accessToken') || '',
+        refreshToken: localStorage.getItem('refreshToken') || '',
+      });
+
+      // Force a re-render
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if the API call fails, we still want to clear local data
+      setUserData(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      window.location.href = '/';
+    }
   };
 
   return (
@@ -62,8 +97,12 @@ const Index = () => {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">English Center</h1>
           <nav>
-            {usernameInitial ? (
-              <AvatarMenu usernameInitial={usernameInitial} role={role} />
+            {userData ? (
+              <AvatarMenu
+                usernameInitial={userData.usernameInitial}
+                role={userData.role}
+                fullName={userData.fullName}
+              />
             ) : (
               <Link to="/login">
                 <Button variant="outline" size="sm">

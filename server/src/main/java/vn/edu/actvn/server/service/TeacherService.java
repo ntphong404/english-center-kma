@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import vn.edu.actvn.server.dto.request.user.CreateTeacherRequest;
@@ -40,17 +41,20 @@ public class TeacherService {
                 .toList();
     }
 
+    @PreAuthorize("hasAuthority('TEACHER_READ_ALL')")
     public Page<UserResponse> getAllTeachers(Pageable pageable) {
         return teacherRepository.findAll(pageable)
                 .map(userMapper::toTeacherResponse);
     }
 
+    @PreAuthorize("hasAuthority('TEACHER_READ')")
     public UserResponse getTeacherById(String id) {
         Teacher teacher = teacherRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         return userMapper.toTeacherResponse(teacher);
     }
 
+    @PreAuthorize("hasAuthority('TEACHER_UPDATE')")
     public UserResponse updateTeacher(String teacherId,UpdateTeacherRequest request) {
         Teacher teacher = teacherRepository.findById(teacherId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
@@ -58,6 +62,7 @@ public class TeacherService {
         return userMapper.toTeacherResponse(teacherRepository.save(teacher));
     }
 
+    @PreAuthorize("hasAuthority('TEACHER_UPDATE')")
     public UserResponse patchTeacher(String teacherId,UpdateTeacherRequest request) {
         Teacher teacher = teacherRepository.findById(teacherId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
@@ -65,6 +70,7 @@ public class TeacherService {
         return userMapper.toTeacherResponse(teacherRepository.save(teacher));
     }
 
+    @PreAuthorize("hasAuthority('TEACHER_CREATE')")
     public UserResponse createTeacher(CreateTeacherRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new AppException(ErrorCode.USER_EXISTED);
@@ -80,6 +86,7 @@ public class TeacherService {
         return userMapper.toUserResponse(userRepository.save(teacher));
     }
 
+    @PreAuthorize("hasAuthority('TEACHER_DELETE')")
     public void deleteTeacher(String id) {
         teacherRepository.deleteById(id);
     }

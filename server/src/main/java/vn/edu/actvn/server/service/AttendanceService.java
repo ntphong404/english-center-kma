@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import vn.edu.actvn.server.dto.request.attendance.AttendanceUpdateRequest;
 import vn.edu.actvn.server.dto.request.tuitionfee.CreateTuitionFeeRequest;
@@ -36,6 +37,7 @@ public class AttendanceService {
     ClassService classService;
     TuitionFeeService tuitionFeeService;
 
+    @PreAuthorize("hasAuthority('ATTENDANCE_CREATE')")
     public AttendanceResponse getAttendanceToday(String classId) {
         EntityClass entityClass = classService.getById(classId);
         LocalDate today = LocalDate.now();
@@ -69,17 +71,20 @@ public class AttendanceService {
         return attendanceMapper.toAttendanceResponse(attendance);
     }
 
+    @PreAuthorize("hasAuthority('ATTENDANCE_READ')")
     public AttendanceResponse getById(String id) {
         return attendanceRepository.findById(id)
                 .map(attendanceMapper::toAttendanceResponse)
                 .orElseThrow();
     }
 
+    @PreAuthorize("hasAuthority('ATTENDANCE_READ')")
     public Page<AttendanceResponse> getAllByClassId(String classId, Pageable pageable) {
         return attendanceRepository.findByEntityClass_ClassId(classId,pageable)
                 .map(attendanceMapper::toAttendanceResponse);
     }
 
+    @PreAuthorize("hasAuthority('ATTENDANCE_UPDATE')")
     public AttendanceResponse update(String id, AttendanceUpdateRequest request) {
         Attendance existing = attendanceRepository.findById(id).orElseThrow();
         existing.setStudentAttendances(request.getStudentAttendances());
@@ -87,6 +92,7 @@ public class AttendanceService {
         return attendanceMapper.toAttendanceResponse(saved);
     }
 
+    @PreAuthorize("hasAuthority('ATTENDANCE_UPDATE')")
     public AttendanceResponse partialUpdateAttendance(String id, AttendanceUpdateRequest request) {
         Attendance attendance = attendanceRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.ATTENDANCE_NOT_FOUND));
@@ -106,6 +112,7 @@ public class AttendanceService {
         return attendanceMapper.toAttendanceResponse(updated);
     }
 
+    @PreAuthorize("hasAuthority('ATTENDANCE_UPDATE')")
     public void delete(String id) {
         Optional<Attendance> attendance = attendanceRepository.findById(id);
         if (attendance.isEmpty()) {

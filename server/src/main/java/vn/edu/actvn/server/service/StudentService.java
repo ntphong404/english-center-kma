@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import vn.edu.actvn.server.dto.request.user.CreateStudentRequest;
@@ -38,23 +39,27 @@ public class StudentService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
     }
 
+    @PreAuthorize("hasAuthority('STUDENT_READ_ALL')")
     public List<UserResponse> getAllStudents() {
         return studentRepository.findAll().stream()
                 .map(userMapper::toStudentResponse)
                 .toList();
     }
 
+    @PreAuthorize("hasAuthority('STUDENT_READ_ALL')")
     public Page<UserResponse> getAllStudents(Pageable pageable) {
         return studentRepository.findAll(pageable)
                 .map(userMapper::toStudentResponse);
     }
 
+    @PreAuthorize("hasAuthority('STUDENT_READ_ALL')")
     public UserResponse getStudentById(String id) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         return userMapper.toStudentResponse(student);
     }
 
+    @PreAuthorize("hasAuthority('STUDENT_READ_ALL')")
     public List<UserResponse> getStudentsByIds(List<String> ids) {
         List<Student> students = studentRepository.findAllById(ids);
         if (students.isEmpty()) {
@@ -65,6 +70,7 @@ public class StudentService {
                 .toList();
     }
 
+    @PreAuthorize("hasAuthority('STUDENT_UPDATE')")
     public UserResponse updateStudent(String studentId, UpdateStudentRequest request) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
@@ -72,6 +78,7 @@ public class StudentService {
         return userMapper.toStudentResponse(studentRepository.save(student));
     }
 
+    @PreAuthorize("hasAuthority('STUDENT_UPDATE')")
     public UserResponse patchStudent(String studentId, UpdateStudentRequest request) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
@@ -79,6 +86,7 @@ public class StudentService {
         return userMapper.toStudentResponse(studentRepository.save(student));
     }
 
+    @PreAuthorize("hasAuthority('STUDENT_CREATE')")
     public UserResponse createStudent(CreateStudentRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new AppException(ErrorCode.USER_EXISTED);
@@ -94,6 +102,7 @@ public class StudentService {
         return userMapper.toUserResponse(userRepository.save(student));
     }
 
+    @PreAuthorize("hasAuthority('STUDENT_DELETE')")
     public void deleteStudent(String id) {
         studentRepository.deleteById(id);
     }

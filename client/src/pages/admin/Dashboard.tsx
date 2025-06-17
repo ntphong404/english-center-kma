@@ -1,9 +1,23 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, GraduationCap, DollarSign, Bell } from 'lucide-react';
+import studentApi from '@/api/studentApi';
+import { Student } from '@/types/user';
 
 const AdminDashboard = () => {
+  const [students, setStudents] = useState<Student[]>([]);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      const res = await studentApi.getAll(0, 10, 'fullName,asc');
+      setStudents(res.data.result.content);
+      // Log students after setting state
+      res.data.result.content.forEach((student) => {
+        console.log(student.fullName);
+      });
+    };
+    fetchStudents();
+  }, []); // Remove students from dependency array
   // Mock data for dashboard stats
   const stats = [
     { title: 'Tổng số học sinh', value: '215', icon: <Users className="h-5 w-5 text-blue-500" />, change: '+12%', changeDirection: 'up', changeDescription: 'so với tháng trước' },
@@ -23,7 +37,6 @@ const AdminDashboard = () => {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold mb-8">Tổng quan</h1>
-
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (

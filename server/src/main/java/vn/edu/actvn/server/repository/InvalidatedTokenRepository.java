@@ -9,5 +9,5 @@ import java.sql.Date;
 
 @Repository
 public interface InvalidatedTokenRepository extends JpaRepository<InvalidatedToken, String> {
-    int deleteByExpiryTimeBefore(Date date);
+    int deleteByTypeAndExpiryTimeBefore(String type, Date date);
 }

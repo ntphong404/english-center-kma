@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class UserService {
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
 
+    @PreAuthorize("hasAuthority('USER_CREATE')")
     public UserResponse createUser(CreateAdminRequest request) {
         if (userRepository.existsByUsername(request.getUsername()))
             throw new AppException(ErrorCode.USER_EXISTED);
@@ -47,6 +49,7 @@ public class UserService {
         return userMapper.toUserResponse(userRepository.save(user));
     }
 
+    @PreAuthorize("hasAuthority('USER_READ')")
     public UserResponse getMyInfo() {
         var context = SecurityContextHolder.getContext();
         String name = context.getAuthentication().getName();
@@ -56,7 +59,7 @@ public class UserService {
         return userMapper.toUserResponse(user);
     }
 
-    @PostAuthorize("returnObject.username == authentication.name || hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('USER_UPDATE')")
     public UserResponse updateUser(String userId, UpdateAdminRequest request) {
         User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
@@ -65,6 +68,7 @@ public class UserService {
         return userMapper.toUserResponse(userRepository.save(user));
     }
 
+    @PreAuthorize("hasAuthority('USER_UPDATE')")
     public UserResponse patchUser(String userId, UpdateAdminRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
@@ -72,25 +76,30 @@ public class UserService {
         return userMapper.toUserResponse(userRepository.save(user));
     }
 
+    @PreAuthorize("hasAuthority('USER_DELETE')")
     public void deleteUser(String userId) {
         userRepository.deleteById(userId);
     }
 
+    @PreAuthorize("hasAuthority('USER_READ')")
     public Page<UserResponse> getUsers(Pageable pageable) {
         return userRepository.findAll(pageable)
                 .map(userMapper::toUserResponse);
     }
 
+    @PreAuthorize("hasAuthority('USER_READ')")
     public UserResponse getUser(String id) {
         return userMapper.toUserResponse(
                 userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED)));
     }
 
+    @PreAuthorize("hasAuthority('USER_READ')")
     public Page<UserResponse> getUsersByRole(String roleName, Pageable pageable) {
         return userRepository.findByRole_Name(pageable, roleName)
                 .map(userMapper::toUserResponse);
     }
 
+    @PreAuthorize("hasAuthority('USER_UPDATE')")
     public void changePassword(ChangePasswordRequest request) {
         var context = SecurityContextHolder.getContext();
         String name = context.getAuthentication().getName();

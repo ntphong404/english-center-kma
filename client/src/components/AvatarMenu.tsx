@@ -1,36 +1,45 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ChevronDownIcon } from '@heroicons/react/20/solid';
+import { ChevronUpDownIcon } from '@heroicons/react/20/solid';
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+} from "@/components/ui/avatar"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { LogOut, LayoutDashboard } from "lucide-react"
+import authApi from '@/api/authApi';
+import { toast } from '@/hooks/use-toast';
 
-const AvatarMenu = ({ usernameInitial, role }) => {
+const AvatarMenu = ({ usernameInitial, role, fullName, avatarUrl = "" }) => {
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
-    const menuRef = useRef(null);
+    const [triggerWidth, setTriggerWidth] = useState<number>(0);
+    const triggerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                setMenuOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
-
-    const toggleMenu = () => {
-        setMenuOpen((prev) => !prev);
-    };
+        if (triggerRef.current) {
+            setTriggerWidth(triggerRef.current.offsetWidth);
+        }
+    }, [fullName]); // cập nhật khi tên người dùng thay đổi
 
     const handleLogout = () => {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        localStorage.removeItem('isAuthenticated');
+        authApi.logout({
+            accessToken: localStorage.getItem('accessToken') || '',
+            refreshToken: localStorage.getItem('refreshToken') || '',
+        });
+        toast({
+            title: "Đăng xuất thành công",
+            description: "Bạn đã đăng xuất khỏi hệ thống",
+        });
         setMenuOpen(false);
-        navigate('/login');
+        navigate('/');
     };
 
     const handleNavigate = (path: string) => {
@@ -39,31 +48,48 @@ const AvatarMenu = ({ usernameInitial, role }) => {
     };
 
     return (
-        <div className="relative" ref={menuRef}>
-            <button onClick={toggleMenu} className="flex items-center focus:outline-none">
-                <Avatar>
-                    <AvatarFallback>{usernameInitial}</AvatarFallback>
-                </Avatar>
-                <ChevronDownIcon className="w-5 h-5 ml-2 text-gray-500" />
-            </button>
-            {menuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border rounded-md shadow-lg z-10">
-                    <button
-                        className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => handleNavigate(`/${role}/dashboard`)}
-                    >
-                        Dashboard
-                    </button>
-                    <button
-                        className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={handleLogout}
-                    >
-                        Đăng xuất
-                    </button>
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+            <DropdownMenuTrigger asChild>
+                <div
+                    ref={triggerRef}
+                    className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-border bg-background hover:bg-muted transition"
+                >
+                    <Avatar className="h-6 w-6">
+                        {avatarUrl ? (
+                            <AvatarImage src={avatarUrl} alt={fullName} />
+                        ) : (
+                            <AvatarFallback>{usernameInitial}</AvatarFallback>
+                        )}
+                    </Avatar>
+                    <span className="text-sm font-medium">{fullName}</span>
+                    <ChevronUpDownIcon className="w-4 h-4 text-muted-foreground" />
                 </div>
-            )}
-        </div>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent
+                align="end"
+                style={{ width: triggerWidth }}
+                className="p-1 rounded-md"
+            >
+                <DropdownMenuItem
+                    onClick={() => handleNavigate(`/${role}/dashboard`)}
+                    className="h-8 px-3 text-sm"
+                >
+                    <LayoutDashboard className="w-4 h-4 mr-2" />
+                    Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="h-8 px-3 text-sm"
+                >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Đăng xuất
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+
+        </DropdownMenu>
     );
 };
 
-export default AvatarMenu; 
+export default AvatarMenu;
