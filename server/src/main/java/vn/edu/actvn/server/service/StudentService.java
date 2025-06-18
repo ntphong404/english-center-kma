@@ -52,14 +52,14 @@ public class StudentService {
                 .map(userMapper::toStudentResponse);
     }
 
-    @PreAuthorize("hasAuthority('STUDENT_READ_ALL')")
+    @PreAuthorize("hasAuthority('STUDENT_READ')")
     public UserResponse getStudentById(String id) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         return userMapper.toStudentResponse(student);
     }
 
-    @PreAuthorize("hasAuthority('STUDENT_READ_ALL')")
+    @PreAuthorize("hasAuthority('STUDENT_READ')")
     public List<UserResponse> getStudentsByIds(List<String> ids) {
         List<Student> students = studentRepository.findAllById(ids);
         if (students.isEmpty()) {
