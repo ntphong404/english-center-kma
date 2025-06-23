@@ -6,18 +6,11 @@ import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
-import vn.edu.actvn.server.dto.request.attendance.AttendanceUpdateRequest;
 import vn.edu.actvn.server.dto.request.payment.CreatePaymentRequest;
 import vn.edu.actvn.server.dto.response.ApiResponse;
-import vn.edu.actvn.server.dto.response.attendance.AttendanceResponse;
 import vn.edu.actvn.server.dto.response.payment.PaymentResponse;
-import vn.edu.actvn.server.service.AttendanceService;
 import vn.edu.actvn.server.service.PaymentService;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/payments")
@@ -39,10 +32,13 @@ public class PaymentController {
 
     @GetMapping
     @Operation(summary = "Get all payments")
-    public ApiResponse<List<PaymentResponse>> getAllPayments() {
-        List<PaymentResponse> result = paymentService.getAllPayments();
-        return ApiResponse.<List<PaymentResponse>>builder()
-                .result(result)
+    public ApiResponse<Page<PaymentResponse>> getAllPayments(
+            @RequestParam (required = false) String studentId,
+            @RequestParam (required = false) String classId,
+            @ParameterObject Pageable pageable
+    ) {
+        return ApiResponse.<Page<PaymentResponse>>builder()
+                .result(paymentService.getAllPayments(studentId, classId, pageable))
                 .message("List of payments")
                 .build();
     }
@@ -74,36 +70,6 @@ public class PaymentController {
         paymentService.deletePayment(id);
         return ApiResponse.<Void>builder()
                 .message("Payment deleted")
-                .build();
-    }
-
-
-    @GetMapping("/student/{studentId}/class/{classId}")
-    @Operation(summary = "Get all payments by student ID and class ID")
-    public ApiResponse<List<PaymentResponse>> getPaymentsByStudentIdAndClassId(
-            @PathVariable String studentId,
-            @PathVariable String classId) {
-        List<PaymentResponse> result = paymentService.getPaymentsByStudentIdAndClassId(studentId, classId);
-        return ApiResponse.<List<PaymentResponse>>builder()
-                .result(result)
-                .message("List of payments for student in class")
-                .build();
-    }
-
-    @GetMapping("/student/{studentId}")
-    @Operation(summary = "Get payments by student ID")
-    public ApiResponse<Page<PaymentResponse>> getPagedPaymentsByStudentId(
-            @PathVariable String studentId,
-            @ParameterObject
-            @PageableDefault(
-                    sort = "createdAt",
-                    direction = Sort.Direction.DESC
-            ) Pageable pageable
-    ) {
-        Page<PaymentResponse> result = paymentService.getPagedPaymentsByStudentId(studentId, pageable);
-        return ApiResponse.<Page<PaymentResponse>>builder()
-                .result(result)
-                .message("Paginated list of payments for student")
                 .build();
     }
 }

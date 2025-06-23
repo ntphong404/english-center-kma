@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Carousel,
   CarouselContent,
@@ -6,48 +6,48 @@ import {
   CarouselNext,
   CarouselPrevious
 } from '@/components/ui/carousel';
-
-import lop1 from '@/assets/images/courses/lop1.jpg';
-import lop2 from '@/assets/images/courses/lop2.jpg';
-import lop3 from '@/assets/images/courses/lop3.jpg';
-import lop4 from '@/assets/images/courses/lop4.jpg';
+import { BannerCourseResponse } from '@/types/bannercourse';
+import { ApiResponse } from '@/types/api';
+import { bannerCourseApi } from '@/api/bannerCourseApi';
+import Autoplay from 'embla-carousel-autoplay';
 
 const HomeSlider = () => {
-  const slides = [
-    {
-      id: 1,
-      title: "Lớp Tiếng Anh cho trẻ 4-6 tuổi",
-      description: "Khai giảng ngày 15/06/2023",
-      image: lop1,
-    },
-    {
-      id: 2,
-      title: "Lớp Tiếng Anh giao tiếp 7-9 tuổi",
-      description: "Khai giảng ngày 20/06/2023",
-      image: lop2,
-    },
-    {
-      id: 3,
-      title: "Lớp Tiếng Anh học thuật 10-12 tuổi",
-      description: "Khai giảng ngày 25/06/2023",
-      image: lop3,
-    },
-    {
-      id: 4,
-      title: "Lớp Tiếng Anh giao tiếp 13-15 tuổi",
-      description: "Khai giảng ngày 30/06/2023",
-      image: lop4,
-    }
-  ];
+  const [slides, setSlides] = useState<BannerCourseResponse[]>([]);
+  const autoplay = useRef(
+    Autoplay({ delay: 5000, stopOnInteraction: false })
+  );
+
+  useEffect(() => {
+    const fetchBanners = async () => {
+      try {
+        const response = await bannerCourseApi.getList();
+        if (response.data.code === 200) {
+          setSlides(response.data.result);
+        }
+      } catch (error) {
+        console.error('Failed to fetch banners:', error);
+      }
+    };
+
+    fetchBanners();
+  }, []);
 
   return (
-    <Carousel className="w-full">
+    <Carousel
+      className="w-full"
+      plugins={[autoplay.current]}
+      onMouseEnter={autoplay.current.stop}
+      onMouseLeave={autoplay.current.reset}
+      opts={{
+        loop: true,
+      }}
+    >
       <CarouselContent>
         {slides.map((slide) => (
-          <CarouselItem key={slide.id}>
+          <CarouselItem key={slide.bannerCourseId}>
             <div className="relative h-[400px] w-full overflow-hidden rounded-lg">
               <img
-                src={slide.image}
+                src={slide.imageUrl}
                 alt={slide.title}
                 className="w-full h-full object-cover"
               />

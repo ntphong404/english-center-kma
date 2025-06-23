@@ -16,7 +16,10 @@ import java.util.List;
 public class UpdateStudentRequest {
     String fullName;
     String email;
-
+    String gender;
+    String address;
+    String phoneNumber;
+    String avatarUrl;
     @DobConstraint(min = 18, message = "INVALID_DOB")
     LocalDate dob;
 

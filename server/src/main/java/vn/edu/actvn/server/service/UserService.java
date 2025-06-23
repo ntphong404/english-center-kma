@@ -1,6 +1,7 @@
 package vn.edu.actvn.server.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,11 +17,13 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import vn.edu.actvn.server.dto.request.user.*;
 import vn.edu.actvn.server.dto.response.user.UserResponse;
+import vn.edu.actvn.server.entity.Otp;
 import vn.edu.actvn.server.entity.Role;
 import vn.edu.actvn.server.entity.User;
 import vn.edu.actvn.server.exception.AppException;
 import vn.edu.actvn.server.exception.ErrorCode;
 import vn.edu.actvn.server.mapper.UserMapper;
+import vn.edu.actvn.server.repository.OtpRepository;
 import vn.edu.actvn.server.repository.RoleRepository;
 import vn.edu.actvn.server.repository.UserRepository;
 
@@ -33,8 +36,10 @@ public class UserService {
     RoleRepository roleRepository;
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
+    ImageUploadService imageUploadService;
+    OtpService otpService;
 
-    @PreAuthorize("hasAuthority('USER_CREATE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponse createUser(CreateAdminRequest request) {
         if (userRepository.existsByUsername(request.getUsername()))
             throw new AppException(ErrorCode.USER_EXISTED);
@@ -49,7 +54,7 @@ public class UserService {
         return userMapper.toUserResponse(userRepository.save(user));
     }
 
-    @PreAuthorize("hasAuthority('USER_READ')")
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponse getMyInfo() {
         var context = SecurityContextHolder.getContext();
         String name = context.getAuthentication().getName();
@@ -59,7 +64,7 @@ public class UserService {
         return userMapper.toUserResponse(user);
     }
 
-    @PreAuthorize("hasAuthority('USER_UPDATE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponse updateUser(String userId, UpdateAdminRequest request) {
         User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
@@ -68,7 +73,7 @@ public class UserService {
         return userMapper.toUserResponse(userRepository.save(user));
     }
 
-    @PreAuthorize("hasAuthority('USER_UPDATE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponse patchUser(String userId, UpdateAdminRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
@@ -76,30 +81,30 @@ public class UserService {
         return userMapper.toUserResponse(userRepository.save(user));
     }
 
-    @PreAuthorize("hasAuthority('USER_DELETE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteUser(String userId) {
         userRepository.deleteById(userId);
     }
 
-    @PreAuthorize("hasAuthority('USER_READ')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<UserResponse> getUsers(Pageable pageable) {
         return userRepository.findAll(pageable)
                 .map(userMapper::toUserResponse);
     }
 
-    @PreAuthorize("hasAuthority('USER_READ')")
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponse getUser(String id) {
         return userMapper.toUserResponse(
                 userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED)));
     }
 
-    @PreAuthorize("hasAuthority('USER_READ')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<UserResponse> getUsersByRole(String roleName, Pageable pageable) {
         return userRepository.findByRole_Name(pageable, roleName)
                 .map(userMapper::toUserResponse);
     }
 
-    @PreAuthorize("hasAuthority('USER_UPDATE')")
+    @PreAuthorize("hasAnyAuthority('CHANGE_PASSWORD') || hasRole('ADMIN')")
     public void changePassword(ChangePasswordRequest request) {
         var context = SecurityContextHolder.getContext();
         String name = context.getAuthentication().getName();
@@ -110,4 +115,28 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
+
+    public void resetPassword(String email, String otpCode, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        otpService.verifyOtp(email, otpCode);
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        otpService.setUsedOtp(email);
+    }
+
+    @PreAuthorize("hasAnyAuthority('CHANGE_AVATAR') || hasRole('ADMIN')")
+    public UserResponse changeAvatar(String avatarUrl,String publicId) {
+        var context = SecurityContextHolder.getContext();
+        String name = context.getAuthentication().getName();
+        User user = userRepository.findByUsername(name)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        if (user.getAvatarUrl()!=null && user.getPublicId()!=null) {
+             imageUploadService.deleteImageByPublicId(user.getPublicId());
+        }
+        user.setAvatarUrl(avatarUrl);
+        user.setPublicId(publicId);
+        return userMapper.toUserResponse(userRepository.save(user));
+    }
 }
+

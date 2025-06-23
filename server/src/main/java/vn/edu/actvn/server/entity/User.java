@@ -25,6 +25,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Inheritance(strategy = InheritanceType.JOINED)
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -34,16 +35,18 @@ public class User {
     String password;
     String fullName;
 
-    @Formula("SUBSTRING_INDEX(full_name, ' ', -1)")
-            @Setter(AccessLevel.NONE)
+//    @Formula("SUBSTRING_INDEX(full_name, ' ', -1)") // This is MySQL syntax, not supported by JPA/Hibernate
+    @Setter(AccessLevel.NONE)
+    @Formula("reverse(split_part(reverse(full_name), ' ', 1))") // PostgreSQL syntax for last name extraction
     String lastName;
 
     LocalDate dob;
     String email;
-
-//    String address;
-//    String phoneNumber;
-//    String avatarUrl;
+    String gender="";
+    String address="";
+    String phoneNumber="";
+    String avatarUrl="";
+    String publicId="";
 
     @ManyToOne
     @JoinColumn(name = "role_name")

@@ -3,6 +3,8 @@ package vn.edu.actvn.server.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,8 +16,6 @@ import vn.edu.actvn.server.dto.response.ApiResponse;
 import vn.edu.actvn.server.dto.response.user.UserResponse;
 import vn.edu.actvn.server.service.TeacherService;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/teachers")
 @RequiredArgsConstructor
@@ -26,22 +26,19 @@ public class TeacherController {
     @GetMapping
     @Operation(summary = "Get all teachers")
     public ApiResponse<Page<UserResponse>> getAllTeachers(
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "10") int size,
-            @RequestParam(value = "sort", defaultValue = "username,asc") String sort
+            @RequestParam(value = "fullName", required = false) String fullName,
+            @RequestParam(value = "email", required = false) String email,
+            @ParameterObject Pageable pageable
     ) {
-        Sort pageSort;
-        String[] sortPart = sort.split(",");
-        String direction = sortPart.length > 1 ? sortPart[1] : "asc";
-        String sortField = sortPart[0].trim();
-        Sort.Direction sortDirection = Sort.Direction.fromString(direction.toUpperCase());
-        String actualSortField = "fullName".equalsIgnoreCase(sortField) ? "lastName" : sortField;
-
-        pageSort = Sort.by(sortDirection, actualSortField);
-
-        Pageable pageable = PageRequest.of(page, size, pageSort);
+        if (pageable.getSort().isSorted()) {
+            Sort.Order order = pageable.getSort().iterator().next();
+            String sortField = order.getProperty();
+            Sort.Direction sortDirection = order.getDirection();
+            String actualSortField = "fullName".equalsIgnoreCase(sortField) ? "lastName" : sortField;
+            pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(sortDirection, actualSortField));
+        }
         return ApiResponse.<Page<UserResponse>>builder()
-                .result(teacherService.getAllTeachers(pageable))
+                .result(teacherService.getAllTeachers(fullName,email,pageable))
                 .message("Fetched all teachers")
                 .build();
     }
@@ -64,15 +61,6 @@ public class TeacherController {
                 .build();
     }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "Update teacher information")
-    public ApiResponse<UserResponse> updateTeacher(@PathVariable String id, @RequestBody UpdateTeacherRequest request) {
-        return ApiResponse.<UserResponse>builder()
-                .result(teacherService.updateTeacher(id, request))
-                .message("Teacher updated successfully")
-                .build();
-    }
-
     @PatchMapping("/{id}")
     @Operation(summary = "Partially update teacher information")
     public ApiResponse<UserResponse> patchTeacher(@PathVariable String id, @RequestBody UpdateTeacherRequest request) {
@@ -92,3 +80,4 @@ public class TeacherController {
                 .build();
     }
 }
+

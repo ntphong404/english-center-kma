@@ -3,9 +3,9 @@ import { ApiResponse, PageResponse } from '../types/api';
 import axiosInstance from '../services/axios';
 
 export const classApi = {
-    getAll: (page: number, size: number, sort: string = 'ClassId,ASC') => {
+    getAll: (className?: string, teacherId?: string, studentId?: string, grade?: number, page?: number, size?: number, sort?: string) => {
         return axiosInstance.get<ApiResponse<PageResponse<ClassResponse>>>('/classes', {
-            params: { page, size, sort }
+            params: { className, teacherId, studentId, grade, page, size, sort }
         });
     },
 
@@ -15,10 +15,6 @@ export const classApi = {
 
     create: (entityClass: Partial<CreateClassRequest>) => {
         return axiosInstance.post<ApiResponse<ClassResponse>>('/classes', entityClass);
-    },
-
-    update: (id: string, entityClass: Partial<ClassUpdateRequest>) => {
-        return axiosInstance.put<ApiResponse<ClassResponse>>(`/classes/${id}`, entityClass);
     },
 
     patch: (id: string, entityClass: Partial<ClassUpdateRequest>) => {
@@ -39,7 +35,4 @@ export const classApi = {
         });
     },
 
-    getByTeacher: (teacherId: string) => {
-        return axiosInstance.get<ApiResponse<ClassResponse[]>>(`/classes/teacher/${teacherId}`);
-    },
 }; 

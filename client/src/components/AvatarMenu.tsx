@@ -13,9 +13,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LogOut, LayoutDashboard } from "lucide-react"
+import { LogOut, LayoutDashboard, User } from "lucide-react"
 import authApi from '@/api/authApi';
 import { toast } from '@/hooks/use-toast';
+import { getUser, setUser } from '@/store/userStore';
 
 const AvatarMenu = ({ usernameInitial, role, fullName, avatarUrl = "" }) => {
     const navigate = useNavigate();
@@ -47,12 +48,34 @@ const AvatarMenu = ({ usernameInitial, role, fullName, avatarUrl = "" }) => {
         navigate(path);
     };
 
+    const handleProfileClick = () => {
+        let profilePath = '';
+        const user = getUser();
+        switch (user.role) {
+            case 'ADMIN':
+                profilePath = '/admin/profile';
+                break;
+            case 'TEACHER':
+                profilePath = '/teacher/profile';
+                break;
+            case 'STUDENT':
+                profilePath = '/student/profile';
+                break;
+            case 'PARENT':
+                profilePath = '/parent/profile';
+                break;
+            default:
+                profilePath = '/profile';
+        }
+        handleNavigate(profilePath);
+    };
+
     return (
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger asChild>
                 <div
                     ref={triggerRef}
-                    className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-border bg-background hover:bg-muted transition"
+                    className="flex items-center justify-between gap-2 cursor-pointer px-3 py-2 rounded-md border border-border bg-background hover:bg-muted transition min-w-[160px]"
                 >
                     <Avatar className="h-6 w-6">
                         {avatarUrl ? (
@@ -61,8 +84,8 @@ const AvatarMenu = ({ usernameInitial, role, fullName, avatarUrl = "" }) => {
                             <AvatarFallback>{usernameInitial}</AvatarFallback>
                         )}
                     </Avatar>
-                    <span className="text-sm font-medium">{fullName}</span>
-                    <ChevronUpDownIcon className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium flex-1 ml-2">{fullName}</span>
+                    <ChevronUpDownIcon className="w-4 h-4 text-muted-foreground ml-auto" />
                 </div>
             </DropdownMenuTrigger>
 
@@ -72,11 +95,18 @@ const AvatarMenu = ({ usernameInitial, role, fullName, avatarUrl = "" }) => {
                 className="p-1 rounded-md"
             >
                 <DropdownMenuItem
-                    onClick={() => handleNavigate(`/${role}/dashboard`)}
+                    onClick={() => handleNavigate(`/${role.toLowerCase()}/dashboard`)}
                     className="h-8 px-3 text-sm"
                 >
                     <LayoutDashboard className="w-4 h-4 mr-2" />
                     Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    onClick={handleProfileClick}
+                    className="h-8 px-3 text-sm"
+                >
+                    <User className="w-4 h-4 mr-2" />
+                    Trang cá nhân
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

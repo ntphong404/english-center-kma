@@ -8,6 +8,8 @@ import AdminReports from '@/pages/admin/Reports';
 import AdminNotifications from '@/pages/admin/Notifications';
 import AdminSettings from '@/pages/admin/Settings';
 import Users from '@/pages/admin/Users';
+import Banner from '@/pages/admin/Banner';
+import AdminProfile from '@/pages/admin/Profile';
 // Admin pages
 const AdminDashboard = lazy(() => import('@/pages/admin/Dashboard'));
 
@@ -51,5 +53,13 @@ export const adminRoutes: RouteObject = {
             path: 'settings',
             element: <AdminSettings />,
         },
+        {
+            path: 'banner',
+            element: <Banner />,
+        },
+        {
+            path: 'profile',
+            element: <AdminProfile />,
+        }
     ],
 }; 

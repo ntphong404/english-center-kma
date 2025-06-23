@@ -1,112 +1,234 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, BookOpen, GraduationCap, CreditCard, Users, Bell } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { getUser } from '@/store/userStore';
+import parentApi from '@/api/parentApi';
+import studentApi from '@/api/studentApi';
+import { classApi } from '@/api/classApi';
+import attendanceApi from '@/api/attendanceApi';
+import tuitionFeeApi from '@/api/tuitionFeeApi';
+import { Parent, Student } from '@/types/user';
+import { ClassResponse } from '@/types/entityclass';
+import { AttendanceResponse } from '@/types/attendance';
+import { TuitionFeeResponse } from '@/types/tuitionfee';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 
-interface Child {
-    id: string;
-    name: string;
-    class: string;
-    teacher: string;
-    nextClass: string;
-    nextClassDate: string;
+interface ChildData {
+    student: Student;
+    class?: ClassResponse;
+    teacher?: { fullName: string };
     attendance: {
         total: number;
         present: number;
         absent: number;
     };
     fees: {
-        total: string;
-        paid: string;
-        remaining: string;
-        dueDate: string;
+        total: number;
+        paid: number;
+        remaining: number;
+        dueDate?: string;
+    };
+    nextClass?: {
+        time: string;
+        date: string;
     };
 }
 
 const ParentDashboard = () => {
-    const children: Child[] = [
-        {
-            id: "1",
-            name: "Nguyễn Văn An",
-            class: "Lớp 3.1 - 2024",
-            teacher: "Nguyễn Thị Hồng",
-            nextClass: "Thứ 3, 15:00 - 16:30",
-            nextClassDate: "21/05/2024",
-            attendance: {
-                total: 48,
-                present: 42,
-                absent: 6,
-            },
-            fees: {
-                total: "3.600.000đ",
-                paid: "2.400.000đ",
-                remaining: "1.200.000đ",
-                dueDate: "30/05/2024",
-            },
-        },
-        {
-            id: "2",
-            name: "Nguyễn Thị Bình",
-            class: "Lớp 4.2 - 2024",
-            teacher: "Trần Văn Minh",
-            nextClass: "Thứ 4, 17:00 - 18:30",
-            nextClassDate: "22/05/2024",
-            attendance: {
-                total: 48,
-                present: 45,
-                absent: 3,
-            },
-            fees: {
-                total: "3.600.000đ",
-                paid: "3.600.000đ",
-                remaining: "0đ",
-                dueDate: "30/05/2024",
-            },
-        },
-    ];
+    const [children, setChildren] = useState<ChildData[]>([]);
+    const [loading, setLoading] = useState(true);
+    const { toast } = useToast();
+    const currentUser = getUser();
+
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!currentUser?.userId) return;
+
+            setLoading(true);
+            try {
+                // Get parent info with student IDs
+                const parentRes = await parentApi.getById(currentUser.userId);
+                const parent: Parent = parentRes.data.result;
+
+                if (!parent.studentIds || parent.studentIds.length === 0) {
+                    setChildren([]);
+                    return;
+                }
+
+                // Get all students of this parent
+                const studentsRes = await studentApi.getByIds(parent.studentIds);
+                const students: Student[] = studentsRes.data.result || [];
+
+                // Fetch data for each student
+                const childrenData: ChildData[] = await Promise.all(
+                    students.map(async (student) => {
+                        // Get student's classes
+                        const classesRes = await classApi.getAll(undefined, undefined, student.userId, undefined, 0, 10);
+                        const classes = classesRes.data.result.content || [];
+                        const studentClass = classes[0]; // Get first class
+
+                        // Get attendance data
+                        let attendance = { total: 0, present: 0, absent: 0 };
+                        if (studentClass) {
+                            try {
+                                const attendanceRes = await attendanceApi.getAll(undefined, studentClass.classId, undefined, 0, 100);
+                                let attendances: any[] = [];
+                                const result = attendanceRes.data.result;
+                                if (result && typeof result === 'object' && 'content' in result && Array.isArray(result.content)) {
+                                    attendances = result.content;
+                                } else if (Array.isArray(result)) {
+                                    attendances = result;
+                                }
+
+                                attendance.total = attendances.length;
+                                attendance.present = attendances.reduce((total, att) => {
+                                    const studentAtt = att.studentAttendances.find(sa => sa.studentId === student.userId);
+                                    return total + (studentAtt?.status === 'PRESENT' ? 1 : 0);
+                                }, 0);
+                                attendance.absent = attendance.total - attendance.present;
+                            } catch (error) {
+                                console.error('Error fetching attendance:', error);
+                            }
+                        }
+
+                        // Get tuition fee data
+                        let fees = { total: 0, paid: 0, remaining: 0, dueDate: undefined as string | undefined };
+                        try {
+                            const feesRes = await tuitionFeeApi.getAll(student.userId, undefined, 0, 100);
+                            let tuitionFees: any[] = [];
+                            const result = feesRes.data.result;
+                            if (result && typeof result === 'object' && 'content' in result && Array.isArray(result.content)) {
+                                tuitionFees = result.content;
+                            } else if (Array.isArray(result)) {
+                                tuitionFees = result;
+                            }
+
+                            fees.total = tuitionFees.reduce((total, fee) => total + (fee.amount || 0), 0);
+                            fees.paid = tuitionFees.reduce((total, fee) => total + (fee.paidAmount || 0), 0);
+                            fees.remaining = fees.total - fees.paid;
+
+                            // Get due date from latest fee
+                            const latestFee = tuitionFees[0];
+                            if (latestFee?.dueDate) {
+                                fees.dueDate = format(new Date(latestFee.dueDate), 'dd/MM/yyyy', { locale: vi });
+                            }
+                        } catch (error) {
+                            console.error('Error fetching fees:', error);
+                        }
+
+                        // Get teacher info
+                        let teacher = undefined;
+                        if (studentClass?.teacherId) {
+                            try {
+                                // Note: Assuming there's a teacher API, but we'll use a simple approach for now
+                                teacher = { fullName: 'Giáo viên' }; // Placeholder
+                            } catch (error) {
+                                console.error('Error fetching teacher:', error);
+                            }
+                        }
+
+                        // Calculate next class
+                        let nextClass = undefined;
+                        if (studentClass) {
+                            const today = new Date();
+                            const classDays = studentClass.daysOfWeek || [];
+                            const startTime = studentClass.startTime;
+
+                            // Simple next class calculation
+                            nextClass = {
+                                time: `${startTime} - ${studentClass.endTime}`,
+                                date: format(today, 'dd/MM/yyyy', { locale: vi })
+                            };
+                        }
+
+                        return {
+                            student,
+                            class: studentClass,
+                            teacher,
+                            attendance,
+                            fees,
+                            nextClass
+                        };
+                    })
+                );
+
+                setChildren(childrenData);
+            } catch (error) {
+                console.error('Error fetching parent dashboard data:', error);
+                toast({
+                    title: 'Lỗi',
+                    description: 'Không thể tải dữ liệu dashboard',
+                    variant: 'destructive'
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [currentUser?.userId, toast]);
 
     // Stats for each child
-    const getChildStats = (child: Child) => [
+    const getChildStats = (child: ChildData) => [
         {
             title: 'Điểm danh',
             value: `${child.attendance.present}/${child.attendance.total}`,
             icon: <Users className="h-5 w-5 text-blue-500" />,
-            change: `${Math.round((child.attendance.present / child.attendance.total) * 100)}%`,
+            change: child.attendance.total > 0 ? `${Math.round((child.attendance.present / child.attendance.total) * 100)}%` : '0%',
             changeDirection: 'up',
             changeDescription: 'tỷ lệ đi học'
         },
         {
             title: 'Học phí đã đóng',
-            value: child.fees.paid,
+            value: `${child.fees.paid.toLocaleString('vi-VN')}đ`,
             icon: <CreditCard className="h-5 w-5 text-green-500" />,
-            change: child.fees.remaining === "0đ" ? "100%" : `${Math.round((parseInt(child.fees.paid.replace(/[^\d]/g, '')) / parseInt(child.fees.total.replace(/[^\d]/g, ''))) * 100)}%`,
-            changeDirection: child.fees.remaining === "0đ" ? 'up' : 'down',
+            change: child.fees.total > 0 ? `${Math.round((child.fees.paid / child.fees.total) * 100)}%` : '0%',
+            changeDirection: child.fees.remaining === 0 ? 'up' : 'down',
             changeDescription: 'tỷ lệ đóng học phí'
         },
         {
             title: 'Buổi học tiếp theo',
-            value: child.nextClass,
+            value: child.nextClass?.time || 'Không có lịch',
             icon: <Calendar className="h-5 w-5 text-yellow-500" />,
-            change: child.nextClassDate,
+            change: child.nextClass?.date || '',
             changeDirection: 'up',
             changeDescription: 'ngày học'
         },
         {
             title: 'Thông báo',
-            value: child.fees.remaining !== "0đ" ? "Cần đóng học phí" : "Đã đóng đủ",
+            value: child.fees.remaining > 0 ? "Cần đóng học phí" : "Đã đóng đủ",
             icon: <Bell className="h-5 w-5 text-red-500" />,
-            change: child.fees.remaining,
-            changeDirection: child.fees.remaining !== "0đ" ? 'down' : 'up',
+            change: `${child.fees.remaining.toLocaleString('vi-VN')}đ`,
+            changeDirection: child.fees.remaining > 0 ? 'down' : 'up',
             changeDescription: 'học phí còn lại'
         }
     ];
+
+    if (loading) {
+        return <div className="flex items-center justify-center h-64">Đang tải...</div>;
+    }
+
+    if (children.length === 0) {
+        return (
+            <div className="space-y-6">
+                <h1 className="text-3xl font-bold mb-8">Tổng quan</h1>
+                <div className="text-center py-12">
+                    <p className="text-gray-500">Bạn chưa có con em nào được đăng ký.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold mb-8">Tổng quan</h1>
 
             {children.map((child) => (
-                <div key={child.id} className="space-y-6">
-                    <h2 className="text-2xl font-semibold">{child.name}</h2>
+                <div key={child.student.userId} className="space-y-6">
+                    <h2 className="text-2xl font-semibold">{child.student.fullName || child.student.username}</h2>
 
                     {/* Stats Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -145,19 +267,19 @@ const ParentDashboard = () => {
                                     <dl className="space-y-2">
                                         <div className="flex justify-between">
                                             <dt className="text-gray-500">Lớp:</dt>
-                                            <dd className="font-medium">{child.class}</dd>
+                                            <dd className="font-medium">{child.class?.className || 'Chưa có lớp'}</dd>
                                         </div>
                                         <div className="flex justify-between">
                                             <dt className="text-gray-500">Giáo viên:</dt>
-                                            <dd className="font-medium">{child.teacher}</dd>
+                                            <dd className="font-medium">{child.teacher?.fullName || 'Chưa có thông tin'}</dd>
                                         </div>
                                         <div className="flex justify-between">
                                             <dt className="text-gray-500">Buổi học tiếp theo:</dt>
-                                            <dd className="font-medium">{child.nextClass}</dd>
+                                            <dd className="font-medium">{child.nextClass?.time || 'Không có lịch'}</dd>
                                         </div>
                                         <div className="flex justify-between">
                                             <dt className="text-gray-500">Ngày:</dt>
-                                            <dd className="font-medium">{child.nextClassDate}</dd>
+                                            <dd className="font-medium">{child.nextClass?.date || 'Không có lịch'}</dd>
                                         </div>
                                     </dl>
                                 </div>
@@ -166,19 +288,19 @@ const ParentDashboard = () => {
                                     <dl className="space-y-2">
                                         <div className="flex justify-between">
                                             <dt className="text-gray-500">Tổng học phí:</dt>
-                                            <dd className="font-medium">{child.fees.total}</dd>
+                                            <dd className="font-medium">{child.fees.total.toLocaleString('vi-VN')}đ</dd>
                                         </div>
                                         <div className="flex justify-between">
                                             <dt className="text-gray-500">Đã đóng:</dt>
-                                            <dd className="font-medium text-green-600">{child.fees.paid}</dd>
+                                            <dd className="font-medium text-green-600">{child.fees.paid.toLocaleString('vi-VN')}đ</dd>
                                         </div>
                                         <div className="flex justify-between">
                                             <dt className="text-gray-500">Còn lại:</dt>
-                                            <dd className="font-medium text-red-600">{child.fees.remaining}</dd>
+                                            <dd className="font-medium text-red-600">{child.fees.remaining.toLocaleString('vi-VN')}đ</dd>
                                         </div>
                                         <div className="flex justify-between">
                                             <dt className="text-gray-500">Hạn nộp:</dt>
-                                            <dd className="font-medium">{child.fees.dueDate}</dd>
+                                            <dd className="font-medium">{child.fees.dueDate || 'Chưa có thông tin'}</dd>
                                         </div>
                                     </dl>
                                 </div>

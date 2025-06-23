@@ -20,6 +20,8 @@ import vn.edu.actvn.server.dto.response.entityclass.ClassResponse;
 import vn.edu.actvn.server.dto.response.ApiResponse;
 import vn.edu.actvn.server.service.ClassService;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/classes")
 @Tag(name = "Class API", description = "Operations related to entityclass management")
@@ -39,18 +41,6 @@ public class ClassController {
                 .build();
     }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "Update entityclass information")
-    public ApiResponse<ClassResponse> updateClass(
-            @PathVariable("id") String classId,
-            @RequestBody ClassUpdateRequest request
-    ) {
-        return ApiResponse.<ClassResponse>builder()
-                .result(classService.updateClass(classId, request))
-                .message("Class updated successfully")
-                .build();
-    }
-
     @PatchMapping("/{id}")
     @Operation(summary = "Partially update entityclass information")
     public ApiResponse<ClassResponse> patchClass(
@@ -66,33 +56,15 @@ public class ClassController {
     @GetMapping
     @Operation(summary = "Get all classes")
     public ApiResponse<Page<ClassResponse>> getAllClasses(
-            @ParameterObject @PageableDefault(
-                    page = 0,
-                    size = 10,
-                    sort = "teacher.userId",
-                    direction = Sort.Direction.ASC
-            ) Pageable pageable
+            @RequestParam (required = false) String studentId,
+            @RequestParam (required = false) String teacherId,
+            @RequestParam (required = false) String className,
+            @RequestParam (required = false) Integer grade,
+            @ParameterObject Pageable pageable
             ) {
         return ApiResponse.<Page<ClassResponse>>builder()
-                .result(classService.getClasses(pageable))
+                .result(classService.getClasses(studentId,teacherId,className,grade,pageable))
                 .message("Class list retrieved successfully")
-                .build();
-    }
-
-    @GetMapping("/teacher/{teacherId}")
-    @Operation(summary = "Get classes by teacher ID")
-    public ApiResponse<Page<ClassResponse>> getClassesByTeacher(
-            @PathVariable String teacherId,
-            @ParameterObject @PageableDefault(
-                    page = 0,
-                    size = 10,
-                    sort = "grade",
-                    direction = Sort.Direction.ASC //grade,asc
-            ) Pageable pageable
-    ) {
-        return ApiResponse.<Page<ClassResponse>>builder()
-                .result(classService.getClassesByTeacherId(teacherId,pageable))
-                .message("Classes retrieved successfully")
                 .build();
     }
 
@@ -106,9 +78,9 @@ public class ClassController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a entityclass by ID")
-    public ApiResponse<Void> deleteClass(@PathVariable("id") String classId) {
-        classService.deleteClass(classId);
+    @Operation(summary = "close a entityclass by ID")
+    public ApiResponse<Void> closeClass(@PathVariable("id") String classId) {
+        classService.closeClass(classId);
         return ApiResponse.<Void>builder()
                 .message("Class deleted successfully")
                 .build();
@@ -116,25 +88,25 @@ public class ClassController {
 
     @PostMapping("/{classId}/students")
     @Operation(summary = "Add students to a class")
-    public ApiResponse<Void> addStudentsToClass(
+    public ApiResponse<ClassResponse> addStudentsToClass(
             @PathVariable("classId") String classId,
             @RequestBody ListStringIdRequest studentIds
     ) {
-        classService.addStudents(classId, studentIds.ids());
-        return ApiResponse.<Void>builder()
+        return ApiResponse.<ClassResponse>builder()
                 .message("Students added to class successfully")
+                .result(classService.addStudents(classId, studentIds.ids()))
                 .build();
     }
 
     @DeleteMapping("/{classId}/students")
     @Operation(summary = "Remove students from a class")
-    public ApiResponse<Void> removeStudentsFromClass(
+    public ApiResponse<ClassResponse> removeStudentsFromClass(
             @PathVariable("classId") String classId,
             @RequestBody StringIdRequest studentId
     ) {
-        classService.removeStudents(classId, studentId.id());
-        return ApiResponse.<Void>builder()
+        return ApiResponse.<ClassResponse>builder()
                 .message("Students removed from class successfully")
+                .result(classService.removeStudents(classId, studentId.id()))
                 .build();
     }
 }

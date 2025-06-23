@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     Card,
     CardContent,
@@ -10,40 +10,20 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-
-interface Schedule {
-    id: string;
-    className: string;
-    room: string;
-    startTime: string;
-    endTime: string;
-    dayOfWeek: string;
-    students: number;
-    level: string;
-}
-
-const sampleSchedules: Schedule[] = [
-    {
-        id: "1",
-        className: "Lớp A1",
-        room: "Phòng 101",
-        startTime: "08:00",
-        endTime: "09:30",
-        dayOfWeek: "Thứ 2",
-        students: 15,
-        level: "Beginner",
-    },
-    {
-        id: "2",
-        className: "Lớp B2",
-        room: "Phòng 102",
-        startTime: "13:30",
-        endTime: "15:00",
-        dayOfWeek: "Thứ 4",
-        students: 12,
-        level: "Intermediate",
-    },
-];
+import { classApi } from '@/api/classApi';
+import { getUser } from '@/store/userStore';
+import { ClassResponse } from '@/types/entityclass';
+import { useToast } from '@/components/ui/use-toast';
+import studentApi from '@/api/studentApi';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+    DialogClose,
+} from '@/components/ui/dialog';
 
 const daysOfWeek = [
     "Thứ 2",
@@ -54,14 +34,98 @@ const daysOfWeek = [
     "Thứ 7",
     "Chủ nhật",
 ];
+const dayMap: Record<string, string> = {
+    MONDAY: "Thứ 2",
+    TUESDAY: "Thứ 3",
+    WEDNESDAY: "Thứ 4",
+    THURSDAY: "Thứ 5",
+    FRIDAY: "Thứ 6",
+    SATURDAY: "Thứ 7",
+    SUNDAY: "Chủ nhật"
+};
+
+function getDayOfWeekVN(date: Date) {
+    const day = date.getDay();
+    return daysOfWeek[day === 0 ? 6 : day - 1];
+}
 
 export default function TeacherSchedule() {
-    const [selectedDay, setSelectedDay] = useState<string>("Thứ 2");
+    const [classes, setClasses] = useState<ClassResponse[]>([]);
+    const [selectedDay, setSelectedDay] = useState<string>(getDayOfWeekVN(new Date()));
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const { toast } = useToast();
+    const [studentDialogOpen, setStudentDialogOpen] = useState(false);
+    const [studentList, setStudentList] = useState<any[]>([]);
+    const [studentPage, setStudentPage] = useState(0);
+    const [studentHasMore, setStudentHasMore] = useState(true);
+    const STUDENT_PAGE_SIZE = 10;
+    const [currentClass, setCurrentClass] = useState<ClassResponse | null>(null);
 
-    const filteredSchedules = sampleSchedules.filter(
-        (schedule) => schedule.dayOfWeek === selectedDay
+    useEffect(() => {
+        const fetchClasses = async () => {
+            const user = getUser();
+            if (user) {
+                try {
+                    const res = await classApi.getAll(undefined, user.userId, undefined, undefined, 0, 100);
+                    let result = res.data.result;
+                    let newClasses: ClassResponse[] = [];
+                    if (result && typeof result === 'object' && 'content' in result && Array.isArray(result.content)) {
+                        newClasses = result.content;
+                    } else if (Array.isArray(result)) {
+                        newClasses = result;
+                    }
+                    setClasses(newClasses);
+                } catch {
+                    toast({ title: 'Lỗi', description: 'Không thể tải danh sách lớp.' });
+                }
+            }
+        };
+        fetchClasses();
+    }, []);
+
+    // Lọc theo thứ
+    const filteredSchedules = classes.filter(cls =>
+        cls.daysOfWeek?.some(day => dayMap[day] === selectedDay)
     );
+    // Lọc theo ngày
+    const filteredByDate = classes.filter(cls =>
+        cls.daysOfWeek?.some(day => dayMap[day] === getDayOfWeekVN(selectedDate))
+    );
+
+    const handleShowStudents = async (cls: ClassResponse) => {
+        setCurrentClass(cls);
+        setStudentDialogOpen(true);
+        setStudentPage(0);
+        setStudentHasMore(true);
+        if (cls.studentIds.length === 0) {
+            setStudentList([]);
+            setStudentHasMore(false);
+            return;
+        }
+        const ids = cls.studentIds.slice(0, STUDENT_PAGE_SIZE);
+        try {
+            const res = await studentApi.getByIds(ids);
+            setStudentList(res.data.result || []);
+            setStudentHasMore(cls.studentIds.length > STUDENT_PAGE_SIZE);
+        } catch {
+            setStudentList([]);
+            setStudentHasMore(false);
+        }
+    };
+
+    const handleLoadMoreStudents = async () => {
+        if (!currentClass) return;
+        const start = (studentPage + 1) * STUDENT_PAGE_SIZE;
+        const ids = currentClass.studentIds.slice(start, start + STUDENT_PAGE_SIZE);
+        try {
+            const res = await studentApi.getByIds(ids);
+            setStudentList(prev => [...prev, ...(res.data.result || [])]);
+            setStudentPage(prev => prev + 1);
+            setStudentHasMore(currentClass.studentIds.length > start + STUDENT_PAGE_SIZE);
+        } catch {
+            setStudentHasMore(false);
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -92,28 +156,29 @@ export default function TeacherSchedule() {
                             </div>
 
                             <div className="space-y-4">
-                                {filteredSchedules.map((schedule) => (
+                                {filteredSchedules.length === 0 && <div>Không có lớp nào.</div>}
+                                {filteredSchedules.map((cls) => (
                                     <div
-                                        key={schedule.id}
+                                        key={cls.classId}
                                         className="p-4 border rounded-lg space-y-2"
                                     >
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <h3 className="font-semibold">{schedule.className}</h3>
+                                                <h3 className="font-semibold">{cls.className}</h3>
                                                 <p className="text-sm text-gray-500">
-                                                    Trình độ: {schedule.level}
+                                                    Trình độ: {cls.grade}
                                                 </p>
                                             </div>
                                             <div className="text-right">
                                                 <p className="font-medium">
-                                                    {schedule.startTime} - {schedule.endTime}
+                                                    {cls.startTime} - {cls.endTime}
                                                 </p>
-                                                <p className="text-sm text-gray-500">{schedule.room}</p>
+                                                <p className="text-sm text-gray-500">{cls.roomName}</p>
                                             </div>
                                         </div>
                                         <div className="flex justify-between items-center text-sm text-gray-500">
-                                            <p>Số học viên: {schedule.students}</p>
-                                            <Button variant="outline" size="sm">
+                                            <p>Sĩ số: {cls.studentIds.length}</p>
+                                            <Button variant="outline" size="sm" onClick={() => handleShowStudents(cls)}>
                                                 Xem chi tiết
                                             </Button>
                                         </div>
@@ -144,14 +209,15 @@ export default function TeacherSchedule() {
                                 Lịch dạy ngày {format(selectedDate, "dd/MM/yyyy", { locale: vi })}
                             </h3>
                             <div className="space-y-2">
-                                {filteredSchedules.map((schedule) => (
+                                {filteredByDate.length === 0 && <div>Không có lớp nào.</div>}
+                                {filteredByDate.map((cls) => (
                                     <div
-                                        key={schedule.id}
+                                        key={cls.classId}
                                         className="flex justify-between items-center text-sm"
                                     >
-                                        <span>{schedule.className}</span>
+                                        <span>{cls.className}</span>
                                         <span>
-                                            {schedule.startTime} - {schedule.endTime}
+                                            {cls.startTime} - {cls.endTime}
                                         </span>
                                     </div>
                                 ))}
@@ -160,6 +226,36 @@ export default function TeacherSchedule() {
                     </CardContent>
                 </Card>
             </div>
+
+            <Dialog open={studentDialogOpen} onOpenChange={setStudentDialogOpen}>
+                <DialogContent className="max-w-lg w-full">
+                    <DialogHeader>
+                        <DialogTitle>Danh sách học sinh</DialogTitle>
+                        <DialogDescription>
+                            {currentClass?.className} ({currentClass?.studentIds.length || 0} học sinh)
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {studentList.length === 0 && <div>Không có học sinh nào.</div>}
+                        {studentList.map(stu => (
+                            <div key={stu.userId} className="border-b py-2">
+                                <div className="font-medium">{stu.fullName || stu.username}</div>
+                                <div className="text-sm text-gray-500">Email: {stu.email || '---'}</div>
+                            </div>
+                        ))}
+                    </div>
+                    {studentHasMore && (
+                        <DialogFooter>
+                            <Button variant="outline" onClick={handleLoadMoreStudents}>Xem thêm</Button>
+                        </DialogFooter>
+                    )}
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="outline">Đóng</Button>
+                        </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 } 

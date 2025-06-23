@@ -43,6 +43,7 @@ public class AppStartupRunner implements CommandLineRunner {
                         studentPermissions.add(Permission.TUITION_FEE_READ);
                         studentPermissions.add(Permission.PAYMENT_READ);
                         studentPermissions.add(Permission.IMAGE_AVATAR_UPLOAD);
+                        studentPermissions.add(Permission.TEACHER_READ);
 
                         Role studentRole = Role.builder()
                                 .name(PredefinedRole.STUDENT_ROLE)
@@ -89,13 +90,9 @@ public class AppStartupRunner implements CommandLineRunner {
                                 .build();
                         roleRepository.save(parentRole);
 
-                        // Create admin role with all permissions
-                        Set<Permission> adminPermissions = new HashSet<>(Arrays.asList(Permission.values()));
-
                         Role adminRole = Role.builder()
                                 .name(PredefinedRole.ADMIN_ROLE)
                                 .description("Admin role")
-                                .permissions(adminPermissions)
                                 .build();
                         roleRepository.save(adminRole);
 

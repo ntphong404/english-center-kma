@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Card,
     CardContent,
@@ -10,6 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import { classApi } from '@/api/classApi';
+import teacherApi from '@/api/teacherApi';
+import { getUser } from '@/store/userStore';
+import { ClassResponse } from '@/types/entityclass';
+import { Teacher } from '@/types/user';
+import { useToast } from '@/components/ui/use-toast';
 
 interface Schedule {
     id: string;
@@ -22,29 +28,6 @@ interface Schedule {
     level: string;
 }
 
-const sampleSchedules: Schedule[] = [
-    {
-        id: "1",
-        className: "Tiếng Anh Giao Tiếp A1",
-        teacher: "Nguyễn Văn A",
-        room: "Phòng 101",
-        startTime: "08:00",
-        endTime: "09:30",
-        dayOfWeek: "Thứ 2",
-        level: "Beginner",
-    },
-    {
-        id: "2",
-        className: "Ngữ Pháp Cơ Bản",
-        teacher: "Trần Thị B",
-        room: "Phòng 102",
-        startTime: "13:30",
-        endTime: "15:00",
-        dayOfWeek: "Thứ 4",
-        level: "Intermediate",
-    },
-];
-
 const daysOfWeek = [
     "Thứ 2",
     "Thứ 3",
@@ -55,12 +38,66 @@ const daysOfWeek = [
     "Chủ nhật",
 ];
 
+const dayMap: Record<string, string> = {
+    'MONDAY': 'Thứ 2',
+    'TUESDAY': 'Thứ 3',
+    'WEDNESDAY': 'Thứ 4',
+    'THURSDAY': 'Thứ 5',
+    'FRIDAY': 'Thứ 6',
+    'SATURDAY': 'Thứ 7',
+    'SUNDAY': 'Chủ nhật'
+};
+
+function getDayOfWeekVN(date: Date) {
+    const days = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+    return days[date.getDay()];
+}
+
 export default function StudentSchedule() {
     const [selectedDay, setSelectedDay] = useState<string>("Thứ 2");
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [classes, setClasses] = useState<ClassResponse[]>([]);
+    const [teacherMap, setTeacherMap] = useState<Record<string, Teacher>>({});
+    const [loading, setLoading] = useState(false);
+    const { toast } = useToast();
+    const studentId = getUser()?.userId;
 
-    const filteredSchedules = sampleSchedules.filter(
-        (schedule) => schedule.dayOfWeek === selectedDay
+    useEffect(() => {
+        const fetchClassesAndTeachers = async () => {
+            if (!studentId) return;
+            setLoading(true);
+            try {
+                const res = await classApi.getAll(undefined, undefined, studentId, undefined, 0, 100);
+                const classList = res.data.result.content;
+                setClasses(classList);
+
+                // Lấy thông tin giáo viên
+                const teacherIds = Array.from(new Set(classList.map(cls => cls.teacherId)));
+                const teacherResults = await Promise.all(
+                    teacherIds.map(id => teacherApi.getById(id).then(r => r.data.result).catch(() => null))
+                );
+                const map: Record<string, Teacher> = {};
+                teacherResults.forEach(teacher => {
+                    if (teacher) map[teacher.userId] = teacher;
+                });
+                setTeacherMap(map);
+            } catch (error) {
+                toast({ title: 'Lỗi', description: 'Không thể tải lịch học', variant: 'destructive' });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchClassesAndTeachers();
+    }, [studentId, toast]);
+
+    // Lọc theo thứ
+    const filteredSchedules = classes.filter(cls =>
+        cls.daysOfWeek?.some(day => dayMap[day] === selectedDay)
+    );
+
+    // Lọc theo ngày
+    const filteredByDate = classes.filter(cls =>
+        cls.daysOfWeek?.some(day => dayMap[day] === getDayOfWeekVN(selectedDate))
     );
 
     return (
@@ -92,30 +129,36 @@ export default function StudentSchedule() {
                             </div>
 
                             <div className="space-y-4">
-                                {filteredSchedules.map((schedule) => (
-                                    <div
-                                        key={schedule.id}
-                                        className="p-4 border rounded-lg space-y-2"
-                                    >
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <h3 className="font-semibold">{schedule.className}</h3>
-                                                <p className="text-sm text-gray-500">
-                                                    Giáo viên: {schedule.teacher}
-                                                </p>
-                                                <p className="text-sm text-gray-500">
-                                                    Trình độ: {schedule.level}
-                                                </p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="font-medium">
-                                                    {schedule.startTime} - {schedule.endTime}
-                                                </p>
-                                                <p className="text-sm text-gray-500">{schedule.room}</p>
+                                {loading ? (
+                                    <div>Đang tải...</div>
+                                ) : filteredSchedules.length === 0 ? (
+                                    <div>Không có lớp nào vào {selectedDay}.</div>
+                                ) : (
+                                    filteredSchedules.map((cls) => (
+                                        <div
+                                            key={cls.classId}
+                                            className="p-4 border rounded-lg space-y-2"
+                                        >
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="font-semibold">{cls.className}</h3>
+                                                    <p className="text-sm text-gray-500">
+                                                        Giáo viên: {teacherMap[cls.teacherId]?.fullName || cls.teacherId}
+                                                    </p>
+                                                    <p className="text-sm text-gray-500">
+                                                        Trình độ: Khối {cls.grade}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="font-medium">
+                                                        {cls.startTime} - {cls.endTime}
+                                                    </p>
+                                                    <p className="text-sm text-gray-500">{cls.roomName}</p>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))
+                                )}
                             </div>
                         </div>
                     </CardContent>
@@ -141,17 +184,23 @@ export default function StudentSchedule() {
                                 Lịch học ngày {format(selectedDate, "dd/MM/yyyy", { locale: vi })}
                             </h3>
                             <div className="space-y-2">
-                                {filteredSchedules.map((schedule) => (
-                                    <div
-                                        key={schedule.id}
-                                        className="flex justify-between items-center text-sm"
-                                    >
-                                        <span>{schedule.className}</span>
-                                        <span>
-                                            {schedule.startTime} - {schedule.endTime}
-                                        </span>
-                                    </div>
-                                ))}
+                                {loading ? (
+                                    <div>Đang tải...</div>
+                                ) : filteredByDate.length === 0 ? (
+                                    <div>Không có lớp nào vào ngày này.</div>
+                                ) : (
+                                    filteredByDate.map((cls) => (
+                                        <div
+                                            key={cls.classId}
+                                            className="flex justify-between items-center text-sm"
+                                        >
+                                            <span>{cls.className}</span>
+                                            <span>
+                                                {cls.startTime} - {cls.endTime}
+                                            </span>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
                     </CardContent>

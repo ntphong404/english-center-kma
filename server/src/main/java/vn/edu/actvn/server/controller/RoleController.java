@@ -65,6 +65,15 @@ public class RoleController {
                 .build();
     }
 
+    @PostMapping("/{role}/remove-permissions")
+    @Operation(summary = "Remove permissions for a role")
+    public ApiResponse<RoleResponse> removePermissions(@PathVariable String role, @RequestBody Set<Permission> permissions) {
+        return ApiResponse.<RoleResponse>builder()
+                .message("Permissions updated successfully")
+                .result(roleService.removePermission(role, permissions))
+                .build();
+    }
+
     @PutMapping("/{role}/permissions")
     @Operation(summary = "Update all permissions for a role")
     public ApiResponse<RoleResponse> updatePermissions(@PathVariable String role, @RequestBody PermissionRequest permissions) {

@@ -3,24 +3,27 @@ import { ApiResponse } from '../types/api';
 import axiosInstance from '../services/axios';
 
 const attendanceApi = {
+    getAll: (studentId: string, classId: string, date: string, page?: number, size?: number, sort?: string) => {
+        const params: Record<string, any> = {};
+        if (studentId !== undefined) params.studentId = studentId;
+        if (classId !== undefined) params.classId = classId;
+        if (date !== undefined) params.date = date;
+        if (page !== undefined) params.page = page;
+        if (size !== undefined) params.size = size;
+        if (sort !== undefined) params.sort = sort;
+        return axiosInstance.get<ApiResponse<AttendanceResponse[]>>(`/attendances`, { params });
+    },
+
     getById: (id: string) => {
         return axiosInstance.get<ApiResponse<AttendanceResponse>>(`/attendances/${id}`);
     },
 
     getTodayByClass: (classId: string) => {
-        return axiosInstance.get<ApiResponse<AttendanceResponse[]>>(`/attendances/today/${classId}`);
-    },
-
-    getByClass: (classId: string) => {
-        return axiosInstance.get<ApiResponse<AttendanceResponse[]>>(`/attendances/class/${classId}`);
+        return axiosInstance.get<ApiResponse<AttendanceResponse>>(`/attendances/today/${classId}`);
     },
 
     create: (attendance: Partial<AttendanceResponse>) => {
         return axiosInstance.post<ApiResponse<AttendanceResponse>>('/attendances', attendance);
-    },
-
-    update: (id: string, attendance: Partial<AttendanceResponse>) => {
-        return axiosInstance.put<ApiResponse<AttendanceResponse>>(`/attendances/${id}`, attendance);
     },
 
     patch: (id: string, attendance: Partial<AttendanceResponse>) => {

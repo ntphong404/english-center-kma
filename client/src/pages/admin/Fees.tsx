@@ -46,7 +46,7 @@ export default function AdminFees() {
     const fetchFees = async (page: number) => {
         try {
             setIsLoading(true);
-            const response = await tuitionFeeApi.getAll(page, pageSize);
+            const response = await tuitionFeeApi.getAll(undefined, undefined, page, pageSize);
             const content = response.data.result.content;
             const total = response.data.result.page.totalPages;
             const totalElements = response.data.result.page.totalElements;
@@ -124,7 +124,7 @@ export default function AdminFees() {
         if (!selectedFee) return;
 
         try {
-            await tuitionFeeApi.update(selectedFee.tuitionFeeId, {
+            await tuitionFeeApi.patch(selectedFee.tuitionFeeId, {
                 studentId: selectedFee.studentId,
                 classId: selectedFee.classId,
                 yearMonth: selectedFee.yearMonth,

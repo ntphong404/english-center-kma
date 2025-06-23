@@ -1,20 +1,4 @@
-# Multi-stage build
-FROM eclipse-temurin:21-jdk AS build
-WORKDIR /app
-
-# Install dos2unix to handle line ending issues
-RUN apt-get update && apt-get install -y dos2unix && rm -rf /var/lib/apt/lists/*
-
-# Copy source code and Maven wrapper
-COPY . .
-
-# Fix line endings and make mvnw executable
-RUN dos2unix mvnw && chmod +x mvnw
-
-# Build the application with optimizations
-RUN ./mvnw clean package -DskipTests
-
-# Runtime stage
+# Runtime base image
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
@@ -22,9 +6,11 @@ WORKDIR /app
 ENV TZ=Asia/Ho_Chi_Minh
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# Copy the built jar from build stage
-COPY --from=build /app/target/english-center-1.0.0.jar app.jar
+# Copy file JAR đã build sẵn
+COPY target/english-center-1.0.0.jar app.jar
 
+# Expose port
 EXPOSE 8080
 
+# Command chạy ứng dụng
 CMD ["java", "-jar", "app.jar"]

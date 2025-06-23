@@ -1,24 +1,51 @@
-
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { GraduationCap, Users, ClipboardCheck, Calendar } from 'lucide-react';
+import { classApi } from '@/api/classApi';
+import { getUser } from '@/store/userStore';
+import { ClassResponse } from '@/types/entityclass';
+import { useToast } from '@/components/ui/use-toast';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 
-const TeacherDashboard = () => {
-  // Mock data for teacher stats
-  const stats = [
-    { title: 'Lớp học đang dạy', value: '4', icon: <GraduationCap className="h-5 w-5 text-blue-500" /> },
-    { title: 'Tổng số học sinh', value: '58', icon: <Users className="h-5 w-5 text-green-500" /> },
-    { title: 'Buổi dạy tháng này', value: '24', icon: <ClipboardCheck className="h-5 w-5 text-yellow-500" /> },
-    { title: 'Buổi dạy tiếp theo', value: 'Hôm nay', time: '15:00', icon: <Calendar className="h-5 w-5 text-red-500" /> },
-  ];
+export default function TeacherDashboard() {
+  const [classes, setClasses] = useState<ClassResponse[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  // Mock data for upcoming classes
-  const upcomingClasses = [
-    { name: 'Lớp 3.1 - 2024', time: '15:00 - 16:30', date: 'Hôm nay', students: 15, location: 'Phòng 101' },
-    { name: 'Lớp 4.2 - 2024', time: '17:00 - 18:30', date: 'Hôm nay', students: 12, location: 'Phòng 102' },
-    { name: 'Lớp 2.1 - 2024', time: '08:30 - 10:00', date: 'Ngày mai', students: 18, location: 'Phòng 103' },
-    { name: 'Lớp 5.1 - 2024', time: '14:00 - 15:30', date: 'Ngày mai', students: 13, location: 'Phòng 104' },
-  ];
+  useEffect(() => {
+    const fetchClasses = async () => {
+      setLoading(true);
+      const user = getUser();
+      if (user) {
+        try {
+          const res = await classApi.getAll(undefined, user.userId, undefined, undefined, 0, 100);
+          let result = res.data.result;
+          let newClasses: ClassResponse[] = [];
+          if (result && typeof result === 'object' && 'content' in result && Array.isArray(result.content)) {
+            newClasses = result.content;
+          } else if (Array.isArray(result)) {
+            newClasses = result;
+          }
+          setClasses(newClasses);
+        } catch {
+          toast({ title: 'Lỗi', description: 'Không thể tải danh sách lớp.' });
+        }
+      }
+      setLoading(false);
+    };
+    fetchClasses();
+  }, []);
+
+  // Tổng số học sinh
+  const totalStudents = classes.reduce((sum, cls) => sum + (cls.studentIds?.length || 0), 0);
+
+  // Lịch dạy sắp tới: lấy các lớp có ngày bắt đầu >= hôm nay, sắp xếp theo ngày bắt đầu
+  const today = new Date();
+  const upcomingClasses = classes
+    .filter(cls => new Date(cls.startDate) >= today)
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+    .slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -26,18 +53,25 @@ const TeacherDashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              {stat.icon}
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              {stat.time && <p className="text-xs text-blue-500 font-medium">{stat.time}</p>}
-            </CardContent>
-          </Card>
-        ))}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Lớp học đang dạy</CardTitle>
+            <GraduationCap className="h-5 w-5 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{classes.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Tổng số học sinh</CardTitle>
+            <Users className="h-5 w-5 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalStudents}</div>
+          </CardContent>
+        </Card>
+        {/* Có thể thêm các thống kê khác nếu muốn */}
       </div>
 
       {/* Upcoming Classes */}
@@ -55,23 +89,22 @@ const TeacherDashboard = () => {
                 <tr className="border-b">
                   <th className="text-left py-3 px-4 font-medium">Tên lớp</th>
                   <th className="text-left py-3 px-4 font-medium">Thời gian</th>
-                  <th className="text-left py-3 px-4 font-medium">Ngày</th>
-                  <th className="text-left py-3 px-4 font-medium">Số học sinh</th>
-                  <th className="text-left py-3 px-4 font-medium">Địa điểm</th>
+                  <th className="text-left py-3 px-4 font-medium">Ngày bắt đầu</th>
+                  <th className="text-left py-3 px-4 font-medium">Sĩ số</th>
+                  <th className="text-left py-3 px-4 font-medium">Phòng</th>
                 </tr>
               </thead>
               <tbody>
+                {upcomingClasses.length === 0 && (
+                  <tr><td colSpan={5} className="text-center py-4">Không có lớp sắp tới.</td></tr>
+                )}
                 {upcomingClasses.map((cls, index) => (
-                  <tr key={index} className={index !== upcomingClasses.length - 1 ? 'border-b' : ''}>
-                    <td className="py-3 px-4">{cls.name}</td>
-                    <td className="py-3 px-4">{cls.time}</td>
-                    <td className="py-3 px-4">
-                      <span className={cls.date === 'Hôm nay' ? 'text-blue-500 font-medium' : ''}>
-                        {cls.date}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">{cls.students}</td>
-                    <td className="py-3 px-4">{cls.location}</td>
+                  <tr key={cls.classId} className={index !== upcomingClasses.length - 1 ? 'border-b' : ''}>
+                    <td className="py-3 px-4">{cls.className}</td>
+                    <td className="py-3 px-4">{cls.startTime} - {cls.endTime}</td>
+                    <td className="py-3 px-4">{format(new Date(cls.startDate), 'dd/MM/yyyy', { locale: vi })}</td>
+                    <td className="py-3 px-4">{cls.studentIds.length}</td>
+                    <td className="py-3 px-4">{cls.roomName}</td>
                   </tr>
                 ))}
               </tbody>
@@ -80,8 +113,8 @@ const TeacherDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Recent Attendance */}
-      <Card>
+      {/* Recent Attendance - placeholder, cần API thực tế để lấy điểm danh gần đây */}
+      {/* <Card>
         <CardHeader>
           <CardTitle>Điểm danh gần đây</CardTitle>
           <CardDescription>
@@ -90,38 +123,10 @@ const TeacherDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-md">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-medium">Lớp 3.1 - Buổi học ngày 15/05/2024</h3>
-                <span className="text-xs text-gray-500">15:00 - 16:30</span>
-              </div>
-              <p className="text-sm text-gray-600 mb-2">
-                <span className="text-green-500 font-medium">13/15 </span> 
-                học sinh có mặt
-              </p>
-              <p className="text-xs text-gray-500">
-                Vắng: Nguyễn Văn A (ốm), Trần Thị B (việc gia đình)
-              </p>
-            </div>
-            
-            <div className="bg-gray-50 p-4 rounded-md">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-medium">Lớp 4.2 - Buổi học ngày 14/05/2024</h3>
-                <span className="text-xs text-gray-500">17:00 - 18:30</span>
-              </div>
-              <p className="text-sm text-gray-600 mb-2">
-                <span className="text-green-500 font-medium">12/12 </span> 
-                học sinh có mặt
-              </p>
-              <p className="text-xs text-gray-500">
-                Không có học sinh vắng mặt
-              </p>
-            </div>
+            ...
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
-};
-
-export default TeacherDashboard;
+}

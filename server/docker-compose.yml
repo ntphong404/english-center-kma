@@ -1,35 +1,10 @@
 services:
-  mysql:
-    image: mysql:9.3.0
-    container_name: mysql-db
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: english-center-db
-      MYSQL_USER: user
-      MYSQL_PASSWORD: pass
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql-data:/var/lib/mysql
-    networks:
-      - spring-network
-
   springboot-app:
     build: .
-    container_name: spring-app
+    container_name: spring-app-postgres
     ports:
       - "8080:8080"
-    depends_on:
-      - mysql
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/english-center-db
-      SPRING_DATASOURCE_USERNAME: user
-      SPRING_DATASOURCE_PASSWORD: pass
-    networks:
-      - spring-network
-
-volumes:
-  mysql-data:
-
-networks:
-  spring-network:
+      DB_URL: jdbc:postgresql://dpg-d196evjuibrs73bshobg-a.singapore-postgres.render.com:5432/english_center_db
+      DB_USERNAME: phong
+      DB_PASSWORD: t2NkwYCMZMGfkVdxbA1rSdsB83h6bpbY

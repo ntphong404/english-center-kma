@@ -34,32 +34,28 @@ public class StudentService {
     RoleRepository roleRepository;
     PasswordEncoder passwordEncoder;
 
+    @PreAuthorize("hasAuthority('STUDENT_READ') || hasRole('ADMIN')")
     public Student getById(String id) {
         return studentRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
     }
 
-    @PreAuthorize("hasAuthority('STUDENT_READ_ALL')")
-    public List<UserResponse> getAllStudents() {
-        return studentRepository.findAll().stream()
-                .map(userMapper::toStudentResponse)
-                .toList();
-    }
-
-    @PreAuthorize("hasAuthority('STUDENT_READ_ALL')")
-    public Page<UserResponse> getAllStudents(Pageable pageable) {
-        return studentRepository.findAll(pageable)
+    @PreAuthorize("hasAuthority('STUDENT_READ_ALL') || hasRole('ADMIN')")
+    public Page<UserResponse> getAllStudents(String fullName,String email, Pageable pageable) {
+        if (fullName == null) fullName = "";
+        if (email == null)  email = "";
+        return studentRepository.search(fullName, email,pageable)
                 .map(userMapper::toStudentResponse);
     }
 
-    @PreAuthorize("hasAuthority('STUDENT_READ')")
+    @PreAuthorize("hasAuthority('STUDENT_READ') || hasRole('ADMIN')")
     public UserResponse getStudentById(String id) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         return userMapper.toStudentResponse(student);
     }
 
-    @PreAuthorize("hasAuthority('STUDENT_READ')")
+    @PreAuthorize("hasAuthority('STUDENT_READ') || hasRole('ADMIN')")
     public List<UserResponse> getStudentsByIds(List<String> ids) {
         List<Student> students = studentRepository.findAllById(ids);
         if (students.isEmpty()) {
@@ -70,15 +66,7 @@ public class StudentService {
                 .toList();
     }
 
-    @PreAuthorize("hasAuthority('STUDENT_UPDATE')")
-    public UserResponse updateStudent(String studentId, UpdateStudentRequest request) {
-        Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-        userMapper.updateStudent(student, request);
-        return userMapper.toStudentResponse(studentRepository.save(student));
-    }
-
-    @PreAuthorize("hasAuthority('STUDENT_UPDATE')")
+    @PreAuthorize("hasAuthority('STUDENT_UPDATE') || hasRole('ADMIN')")
     public UserResponse patchStudent(String studentId, UpdateStudentRequest request) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
@@ -86,7 +74,7 @@ public class StudentService {
         return userMapper.toStudentResponse(studentRepository.save(student));
     }
 
-    @PreAuthorize("hasAuthority('STUDENT_CREATE')")
+    @PreAuthorize("hasAuthority('STUDENT_CREATE') || hasRole('ADMIN')")
     public UserResponse createStudent(CreateStudentRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new AppException(ErrorCode.USER_EXISTED);
@@ -102,7 +90,7 @@ public class StudentService {
         return userMapper.toUserResponse(userRepository.save(student));
     }
 
-    @PreAuthorize("hasAuthority('STUDENT_DELETE')")
+    @PreAuthorize("hasAuthority('STUDENT_DELETE') || hasRole('ADMIN')")
     public void deleteStudent(String id) {
         studentRepository.deleteById(id);
     }

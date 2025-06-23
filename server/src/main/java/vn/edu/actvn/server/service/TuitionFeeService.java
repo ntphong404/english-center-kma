@@ -35,7 +35,7 @@ public class TuitionFeeService {
     ClassService classService;
     AttendanceRepository attendanceRepository;
 
-    public long countStudentPresentDaysInMonth(String studentId, String classId, LocalDate yearMonth) {
+    private long countStudentPresentDaysInMonth(String studentId, String classId, LocalDate yearMonth) {
         YearMonth month = YearMonth.from(yearMonth);
         LocalDate startDate = month.atDay(1);
         LocalDate endDate = month.atEndOfMonth();
@@ -83,59 +83,22 @@ public class TuitionFeeService {
         return tuitionFeeMapper.toTuitionFeeResponse(savedTuitionFee);
     }
 
-    @PreAuthorize("hasAuthority('TUITION_FEE_READ_ALL')")
-    public Page<TuitionFeeResponse> getAllTuitionFees(Pageable pageable) {
-        return tuitionFeeRepository.findAll(pageable)
+    @PreAuthorize("hasAuthority('TUITION_FEE_READ_ALL') || hasRole('ADMIN')")
+    public Page<TuitionFeeResponse> getAllTuitionFees(String studentId,YearMonth yearMonth,Pageable pageable) {
+        LocalDate yearMonthDate = yearMonth != null ? yearMonth.atDay(1) : null;
+        if (studentId == null) studentId = "";
+        return tuitionFeeRepository.search(studentId, yearMonthDate, pageable)
                 .map(tuitionFeeMapper::toTuitionFeeResponse);
     }
 
-    @PreAuthorize("hasAuthority('TUITION_FEE_READ')")
+    @PreAuthorize("hasAuthority('TUITION_FEE_READ') || hasRole('ADMIN')")
     public TuitionFeeResponse getTuitionFeeById(String id) {
         return tuitionFeeRepository.findById(id)
                 .map(tuitionFeeMapper::toTuitionFeeResponse)
                 .orElseThrow(() -> new AppException(ErrorCode.TUITION_FEE_NOT_EXISTED));
     }
 
-    @PreAuthorize("hasAuthority('TUITION_FEE_READ')")
-    public Page<TuitionFeeResponse> getTuitionFeesByStudentId(Pageable pageable, String studentId) {
-        if (studentService.getById(studentId)== null) {
-            throw new AppException(ErrorCode.USER_NOT_EXISTED);
-        }
-
-        return tuitionFeeRepository.findByStudent_UserId(pageable,studentId)
-                .map(tuitionFeeMapper::toTuitionFeeResponse);
-    }
-
-    @PreAuthorize("hasAuthority('TUITION_FEE_READ')")
-    public TuitionFeeResponse getTuitionFeeByStudentIdAndYearMonth(String studentId, LocalDate yearMonth) {
-        Student student = studentService.getById(studentId);
-
-        return Optional.ofNullable(tuitionFeeRepository.findByStudent_UserIdAndYearMonth(student.getUserId(), yearMonth))
-                .map(tuitionFeeMapper::toTuitionFeeResponse)
-                .orElseThrow(() -> new AppException(ErrorCode.TUITION_FEE_NOT_EXISTED));
-    }
-
-    @PreAuthorize("hasAuthority('TUITION_FEE_UPDATE')")
-    public TuitionFeeResponse updateTuitionFee(String id, UpdateTuitionFeeRequest request) {
-        TuitionFee existingTuitionFee = tuitionFeeRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.TUITION_FEE_NOT_EXISTED));
-
-        if (request.getStudentId() != null && !request.getStudentId().equals(existingTuitionFee.getStudent().getUserId())) {
-            Student newStudent = studentService.getById(request.getStudentId());
-            existingTuitionFee.setStudent(newStudent);
-        }
-
-        if (request.getClassId() != null && !request.getClassId().equals(existingTuitionFee.getEntityClass().getClassId())) {
-            EntityClass newClass = classService.getById(request.getClassId());
-            existingTuitionFee.setEntityClass(newClass);
-        }
-
-        tuitionFeeMapper.update(request, existingTuitionFee);
-        TuitionFee updatedTuitionFee = tuitionFeeRepository.save(existingTuitionFee);
-        return tuitionFeeMapper.toTuitionFeeResponse(updatedTuitionFee);
-    }
-
-    @PreAuthorize("hasAuthority('TUITION_FEE_UPDATE')")
+    @PreAuthorize("hasAuthority('TUITION_FEE_UPDATE') || hasRole('ADMIN')")
     public TuitionFeeResponse partialUpdateTuitionFee(String id, UpdateTuitionFeeRequest request) {
         TuitionFee existingTuitionFee = tuitionFeeRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.TUITION_FEE_NOT_EXISTED));
@@ -155,7 +118,7 @@ public class TuitionFeeService {
         return tuitionFeeMapper.toTuitionFeeResponse(updatedTuitionFee);
     }
 
-    @PreAuthorize("hasAuthority('TUITION_FEE_DELETE')")
+    @PreAuthorize("hasAuthority('TUITION_FEE_DELETE') || hasRole('ADMIN')")
     public void deleteTuitionFee(String id) {
         if (!tuitionFeeRepository.existsById(id)) {
             throw new AppException(ErrorCode.TUITION_FEE_NOT_EXISTED);

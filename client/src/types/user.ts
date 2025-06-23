@@ -4,6 +4,10 @@ export interface User {
     username: string;
     fullName: string | null;
     email: string | null;
+    gender: string | null;
+    phoneNumber: string | null;
+    address: string | null;
+    avatarUrl: string | null;
     dob: string | null;
     role: string;
 }
@@ -32,6 +36,9 @@ export interface UserCreateRequest {
     password: string;
     fullName: string;
     email: string;
+    gender: string;
+    phone: string;
+    address: string;
     dob: string;
 }
 
@@ -40,6 +47,9 @@ export interface CreateTeacherRequest {
     password: string;
     fullName: string;
     email: string;
+    gender: string;
+    phone: string;
+    address: string;
     dob: string;
     salary: number;
 }
@@ -49,6 +59,9 @@ export interface CreateStudentRequest {
     password: string;
     fullName: string;
     email: string;
+    gender: string;
+    phone: string;
+    address: string;
     dob: string;
     classDiscounts: ClassDiscount[];
 }
@@ -57,6 +70,9 @@ export interface CreateStudentRequest {
 export interface UpdateTeacherRequest {
     fullName: string;
     email: string;
+    gender: string;
+    phone: string;
+    address: string;
     dob: string;
     salary: number;
 }
@@ -64,6 +80,9 @@ export interface UpdateTeacherRequest {
 export interface UpdateStudentRequest {
     fullName: string;
     email: string;
+    gender: string;
+    phone: string;
+    address: string;
     dob: string;
     classDiscounts: ClassDiscount[];
 }
@@ -71,5 +90,8 @@ export interface UpdateStudentRequest {
 export interface UserUpdateRequest {
     fullName: string;
     email: string;
+    gender: string;
+    phone: string;
+    address: string;
     dob: string;
 }

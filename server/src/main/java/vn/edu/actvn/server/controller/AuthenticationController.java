@@ -2,10 +2,7 @@ package vn.edu.actvn.server.controller;
 
 import java.text.ParseException;
 
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.nimbusds.jose.JOSEException;
 
@@ -15,14 +12,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import vn.edu.actvn.server.dto.request.auth.AuthenticationRequest;
-import vn.edu.actvn.server.dto.request.auth.IntrospectRequest;
-import vn.edu.actvn.server.dto.request.auth.LogoutRequest;
-import vn.edu.actvn.server.dto.request.auth.RefreshRequest;
+import vn.edu.actvn.server.dto.request.auth.*;
+import vn.edu.actvn.server.dto.request.email.CreateOtp;
 import vn.edu.actvn.server.dto.response.ApiResponse;
 import vn.edu.actvn.server.dto.response.auth.AuthenticationResponse;
 import vn.edu.actvn.server.dto.response.auth.IntrospectResponse;
+import vn.edu.actvn.server.dto.response.email.ForgotPasswordResponse;
 import vn.edu.actvn.server.service.AuthenticationService;
+import vn.edu.actvn.server.service.EmailService;
+import vn.edu.actvn.server.service.OtpService;
+import vn.edu.actvn.server.service.UserService;
 
 @RestController
 @RequestMapping("/auth")
@@ -32,6 +31,9 @@ import vn.edu.actvn.server.service.AuthenticationService;
 public class AuthenticationController {
 
     AuthenticationService authenticationService;
+    UserService userService;
+    OtpService otpService;
+    EmailService emailService;
 
     @PostMapping("/login")
     @Operation(summary = "Login with username and password")
@@ -82,6 +84,35 @@ public class AuthenticationController {
         return ApiResponse.<Integer>builder()
                 .result(rawDeleted)
                 .message("Token database cleared")
+                .build();
+    }
+
+    @PostMapping("/forgot-password")
+    public ApiResponse<String> sendForgotPassword(@RequestParam String email) {
+        CreateOtp otp = emailService.sendForgotPasswordEmail(email);
+        otpService.createOtp(otp);
+        return ApiResponse.<String>builder()
+                .result("Forgot password email sent successfully!")
+                .message("Forgot password email sent successfully!")
+                .build();
+    }
+
+    @PostMapping("/reset-password")
+    public ApiResponse<String> resetPassword(@RequestBody ResetPassword resetPassword) {
+        userService.resetPassword(resetPassword.email(), resetPassword.otpCode(), resetPassword.newPassword());
+        return ApiResponse.<String>builder()
+                .result("Password reset successfully!")
+                .message("Password reset successfully!")
+                .build();
+    }
+
+    @PostMapping("/verify-otp")
+    @Operation(summary = "Verify OTP for password reset")
+    public ApiResponse<String> verifyOtp(@RequestBody VerifyOtp verifyOtp) {
+        otpService.verifyOtp(verifyOtp.email(),  verifyOtp.otpCode());
+        return ApiResponse.<String>builder()
+                .result("OTP verified successfully!")
+                .message("OTP verified successfully!")
                 .build();
     }
 }

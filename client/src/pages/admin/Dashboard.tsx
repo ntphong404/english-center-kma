@@ -2,37 +2,111 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, GraduationCap, DollarSign, Bell } from 'lucide-react';
 import studentApi from '@/api/studentApi';
+import teacherApi from '@/api/teacherApi';
+import paymentApi from '@/api/paymentApi';
+import tuitionFeeApi from '@/api/tuitionFeeApi';
+import { classApi } from '@/api/classApi';
+import { useToast } from '@/components/ui/use-toast';
+import { format, isThisMonth, parseISO } from 'date-fns';
 import { Student } from '@/types/user';
+import { userApi } from '@/api/userApi';
 
 const AdminDashboard = () => {
-  const [students, setStudents] = useState<Student[]>([]);
-
+  const [stats, setStats] = useState([
+    { title: 'Tổng số học sinh', value: '...', icon: <Users className="h-5 w-5 text-blue-500" />, change: '', changeDirection: 'up', changeDescription: '' },
+    { title: 'Tổng số giáo viên', value: '...', icon: <GraduationCap className="h-5 w-5 text-green-500" />, change: '', changeDirection: 'up', changeDescription: '' },
+    { title: 'Tổng thu tháng này', value: '...', icon: <DollarSign className="h-5 w-5 text-yellow-500" />, change: '', changeDirection: 'up', changeDescription: '' },
+    { title: 'Học phí chưa đóng', value: '...', icon: <Bell className="h-5 w-5 text-red-500" />, change: '', changeDirection: 'down', changeDescription: '' },
+  ]);
+  const [upcomingClasses, setUpcomingClasses] = useState<any[]>([]);
+  const { toast } = useToast();
+  const [teacherMap, setTeacherMap] = useState<Record<string, string>>({});
   useEffect(() => {
-    const fetchStudents = async () => {
-      const res = await studentApi.getAll(0, 10, 'fullName,asc');
-      setStudents(res.data.result.content);
-      // Log students after setting state
-      res.data.result.content.forEach((student) => {
-        console.log(student.fullName);
-      });
-    };
-    fetchStudents();
-  }, []); // Remove students from dependency array
-  // Mock data for dashboard stats
-  const stats = [
-    { title: 'Tổng số học sinh', value: '215', icon: <Users className="h-5 w-5 text-blue-500" />, change: '+12%', changeDirection: 'up', changeDescription: 'so với tháng trước' },
-    { title: 'Tổng số giáo viên', value: '18', icon: <GraduationCap className="h-5 w-5 text-green-500" />, change: '+2', changeDirection: 'up', changeDescription: 'giáo viên mới' },
-    { title: 'Tổng thu tháng này', value: '52.500.000đ', icon: <DollarSign className="h-5 w-5 text-yellow-500" />, change: '+8%', changeDirection: 'up', changeDescription: 'so với tháng trước' },
-    { title: 'Học phí chưa đóng', value: '15.800.000đ', icon: <Bell className="h-5 w-5 text-red-500" />, change: '32', changeDirection: 'down', changeDescription: 'học sinh cần nhắc' },
-  ];
+    const fetchStats = async () => {
+      try {
+        // Tổng số học sinh
+        const stuRes = await studentApi.getAll(undefined, undefined, 0, 1);
+        let totalStudents = 0;
+        if (stuRes.data?.result?.page?.totalElements !== undefined) {
+          totalStudents = stuRes.data.result.page.totalElements;
+        } else if (Array.isArray(stuRes.data?.result)) {
+          totalStudents = stuRes.data.result.length;
+        }
 
-  // Mock data for upcoming classes
-  const upcomingClasses = [
-    { name: 'Lớp 3.1 - 2024', grade: 3, teacher: 'Nguyễn Thị Hồng', students: 15, time: '15:00 - 16:30', date: 'Hôm nay' },
-    { name: 'Lớp 4.2 - 2024', grade: 4, teacher: 'Trần Minh Tuấn', students: 12, time: '17:00 - 18:30', date: 'Hôm nay' },
-    { name: 'Lớp 2.1 - 2024', grade: 2, teacher: 'Lê Thị Mai', students: 18, time: '08:30 - 10:00', date: 'Ngày mai' },
-    { name: 'Lớp 5.1 - 2024', grade: 5, teacher: 'Phạm Văn Hoàng', students: 14, time: '14:00 - 15:30', date: 'Ngày mai' },
-  ];
+        // Tổng số giáo viên
+        const teaRes = await teacherApi.getAll(undefined, undefined, 0, 1);
+        let totalTeachers = 0;
+        if (teaRes.data?.result?.page?.totalElements !== undefined) {
+          totalTeachers = teaRes.data.result.page.totalElements;
+        } else if (Array.isArray(teaRes.data?.result)) {
+          totalTeachers = teaRes.data.result.length;
+        }
+
+        // Tổng thu tháng này
+        const payRes = await paymentApi.getAll(undefined, undefined, 0, 1000);
+        let payments = [];
+        if (Array.isArray(payRes.data?.result)) {
+          payments = payRes.data.result;
+        } else if (payRes.data?.result?.content) {
+          payments = payRes.data.result.content;
+        }
+        const totalPaid = payments
+          .filter((p) => p.tuitionFee && isThisMonth(parseISO(p.tuitionFee.yearMonth + '-01')))
+          .reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+
+        // Học phí chưa đóng
+        const feeRes = await tuitionFeeApi.getAll(undefined, undefined, 0, 1000);
+        let fees = [];
+        if (Array.isArray(feeRes.data?.result)) {
+          fees = feeRes.data.result;
+        } else if (feeRes.data?.result?.content) {
+          fees = feeRes.data.result.content;
+        }
+        const totalUnpaid = fees
+          .filter((f) => f.remainingAmount > 0)
+          .reduce((sum, f) => sum + (f.remainingAmount || 0), 0);
+
+        setStats([
+          { title: 'Tổng số học sinh', value: totalStudents.toString(), icon: <Users className="h-5 w-5 text-blue-500" />, change: '', changeDirection: 'up', changeDescription: '' },
+          { title: 'Tổng số giáo viên', value: totalTeachers.toString(), icon: <GraduationCap className="h-5 w-5 text-green-500" />, change: '', changeDirection: 'up', changeDescription: '' },
+          { title: 'Tổng thu tháng này', value: totalPaid.toLocaleString('vi-VN') + 'đ', icon: <DollarSign className="h-5 w-5 text-yellow-500" />, change: '', changeDirection: 'up', changeDescription: '' },
+          { title: 'Học phí chưa đóng', value: totalUnpaid.toLocaleString('vi-VN') + 'đ', icon: <Bell className="h-5 w-5 text-red-500" />, change: '', changeDirection: 'down', changeDescription: '' },
+        ]);
+      } catch (e) {
+        console.error('Lỗi fetchStats:', e);
+        toast({ title: 'Lỗi', description: 'Không thể tải thống kê.' });
+      }
+    };
+    const fetchUpcoming = async () => {
+      try {
+        const res = await classApi.getAll(undefined, undefined, undefined, undefined, 0, 5, 'startDate,ASC');
+        const arr = res.data.result.content || [];
+        // Lấy danh sách teacherId duy nhất
+        const teacherIds = Array.from(new Set(arr.map((cls: any) => cls.teacherId).filter(Boolean)));
+        // Gọi userApi để lấy tên giáo viên
+        let teacherMap: Record<string, string> = {};
+        if (teacherIds.length > 0) {
+          const teacherReqs = await Promise.all(teacherIds.map(id => userApi.getById(id)));
+          teacherReqs.forEach((res, idx) => {
+            teacherMap[teacherIds[idx]] = res.data.result.fullName || res.data.result.username || teacherIds[idx];
+          });
+        }
+        setTeacherMap(teacherMap);
+        setUpcomingClasses(arr.map((cls: any) => ({
+          name: cls.className,
+          grade: cls.grade,
+          teacher: teacherMap[cls.teacherId] || cls.teacherId,
+          students: cls.studentIds?.length || 0,
+          time: (cls.startTime || '') + (cls.endTime ? ' - ' + cls.endTime : ''),
+          date: format(new Date(cls.startDate), 'dd/MM/yyyy'),
+        })));
+      } catch {
+        setUpcomingClasses([]);
+      }
+    };
+    fetchStats();
+    fetchUpcoming();
+  }, [toast]);
 
   return (
     <div className="space-y-6">

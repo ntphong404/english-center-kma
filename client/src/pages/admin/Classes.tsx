@@ -102,7 +102,7 @@ export default function AdminClasses() {
 
     const fetchTeachers = async () => {
         try {
-            const response = await teacherApi.getAll(0, 100); // Fetch all teachers
+            const response = await teacherApi.getAll(undefined, undefined, 0, 100); // Fetch all teachers
             const teacherMap = new Map<string, Teacher>();
             response.data.result.content.forEach(teacher => {
                 teacherMap.set(teacher.userId, teacher);
@@ -119,7 +119,7 @@ export default function AdminClasses() {
 
     const fetchClasses = async () => {
         try {
-            const response = await classApi.getAll(currentPage - 1, pageSize);
+            const response = await classApi.getAll(undefined, undefined, undefined, undefined, currentPage - 1, pageSize);
             const pageResponse = response.data.result;
             if (pageResponse) {
                 setClasses(pageResponse.content);
@@ -133,7 +133,7 @@ export default function AdminClasses() {
 
     const fetchStudents = async (page: number) => {
         try {
-            const response = await studentApi.getAll(page - 1, STUDENT_PAGE_SIZE, 'userId,ASC');
+            const response = await studentApi.getAll(undefined, undefined, page - 1, STUDENT_PAGE_SIZE, 'userId,ASC');
             const pageResponse = response.data.result;
             if (pageResponse) {
                 setStudents(pageResponse.content);
@@ -262,7 +262,7 @@ export default function AdminClasses() {
 
     const handleUpdate = async (id: string, formData: ClassUpdateRequest) => {
         try {
-            await classApi.update(id, formData);
+            await classApi.patch(id, formData);
             toast({
                 title: "Thành công",
                 description: "Cập nhật lớp học thành công",

@@ -27,10 +27,6 @@ export const userApi = {
         return axiosInstance.post<ApiResponse<User>>('/users', user);
     },
 
-    update: (userId: string, user: Partial<User>) => {
-        return axiosInstance.put<ApiResponse<User>>(`/users/${userId}`, user);
-    },
-
     patch: (userId: string, user: Partial<User>) => {
         return axiosInstance.patch<ApiResponse<User>>(`/users/${userId}`, user);
     },
@@ -46,13 +42,10 @@ export const userApi = {
         });
     },
 
-    uploadImage: (file: File) => {
+    changeAvatar: (image: File) => {
         const formData = new FormData();
-        formData.append('file', file);
-        return axiosInstance.post<ApiResponse<string>>('/upload', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
+        formData.append('image', image);
+        return axiosInstance.post<ApiResponse<User>>('/users/change-avatar', formData);
     },
+
 };

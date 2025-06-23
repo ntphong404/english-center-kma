@@ -27,24 +27,24 @@ public class RoleService {
     RoleRepository roleRepository;
     RoleMapper roleMapper;
 
-    @PreAuthorize("hasAuthority('ROLE_CREATE')")
+    @PreAuthorize("hasAuthority('ROLE_CREATE') || hasRole('ADMIN')")
     public RoleResponse create(RoleRequest request) {
         var role = roleMapper.toRole(request);
         role = roleRepository.save(role);
         return roleMapper.toRoleResponse(role);
     }
 
-    @PreAuthorize("hasAuthority('ROLE_READ')")
+    @PreAuthorize("hasAuthority('ROLE_READ') || hasRole('ADMIN')")
     public List<RoleResponse> getAll() {
         return roleRepository.findAll().stream().map(roleMapper::toRoleResponse).toList();
     }
 
-    @PreAuthorize("hasAuthority('ROLE_DELETE')")
+    @PreAuthorize("hasAuthority('ROLE_DELETE') || hasRole('ADMIN')")
     public void delete(String role) {
         roleRepository.deleteById(role);
     }
 
-    @PreAuthorize("hasAuthority('ROLE_UPDATE')")
+    @PreAuthorize("hasAuthority('ROLE_UPDATE') || hasRole('ADMIN')")
     public RoleResponse addPermission(String roleName, Set<Permission> permissions) {
         Role role = roleRepository.findById(roleName)
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
@@ -60,13 +60,24 @@ public class RoleService {
         return roleMapper.toRoleResponse(role);
     }
 
-    @PreAuthorize("hasAuthority('ROLE_UPDATE')")
+    @PreAuthorize("hasAuthority('ROLE_UPDATE') || hasRole('ADMIN')")
     public RoleResponse updatePermissions(String roleName, Set<Permission> permissions) {
         Role role = roleRepository.findById(roleName)
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
 
         // Replace all permissions
         role.setPermissions(permissions);
+
+        role = roleRepository.save(role);
+        return roleMapper.toRoleResponse(role);
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_UPDATE') || hasRole('ADMIN')")
+    public RoleResponse removePermission(String roleName, Set<Permission> permissions) {
+        Role role = roleRepository.findById(roleName)
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
+
+        role.getPermissions().removeAll(permissions);
 
         role = roleRepository.save(role);
         return roleMapper.toRoleResponse(role);

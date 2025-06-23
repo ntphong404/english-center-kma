@@ -38,13 +38,26 @@ public class ClassService {
     StudentRepository studentRepository;
     ClassMapper classMapper;
 
-    @PreAuthorize("hasAuthority('CLASS_READ')")
     public EntityClass getById(String id) {
         return classRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.CLASS_NOT_EXISTED));
     }
 
-    @PreAuthorize("hasAuthority('CLASS_CREATE')")
+    public Page<ClassResponse> getClasses(String studentId,String teacherId,
+                                          String className,Integer grade,Pageable pageable) {
+        if(studentId == null) studentId ="";
+        if(teacherId == null) teacherId = "";
+        if(className == null) className = "";
+        if(grade == null) grade = 0;
+//        System.out.println("Searching classes with studentId: " + studentId +
+//                ", teacherId: " + teacherId +
+//                ", className: " + className +
+//                ", grade: " + grade);
+        return classRepository.search(studentId, teacherId, className, grade, pageable)
+                .map(classMapper::toClassResponse);
+    }
+
+    @PreAuthorize("hasAuthority('CLASS_CREATE') || hasRole('ADMIN')")
     public ClassResponse createClass(CreateClassRequest createClassRequest) {
         EntityClass entityClass = classMapper.toEntityClass(createClassRequest);
         Teacher teacher = teacherRepository.findById(createClassRequest.getTeacherId())
@@ -52,30 +65,13 @@ public class ClassService {
         entityClass.setTeacher(teacher);
         entityClass.setStatus(EntityClass.Status.OPEN);
         entityClass.setStudents(new ArrayList<>());
-
 //        if(createClassRequest.getStudentIds() != null && !createClassRequest.getStudentIds().isEmpty()) {
 //            addStudents(entityClass, createClassRequest.getStudentIds());
 //        }
-
         return classMapper.toClassResponse(classRepository.save(entityClass));
     }
 
-    @PreAuthorize("hasAuthority('CLASS_UPDATE')")
-    public ClassResponse updateClass(String classId, ClassUpdateRequest classUpdateRequest) {
-        EntityClass entityClass = findClassById(classId);
-        if (isClosed(entityClass)) {
-            throw new AppException(ErrorCode.CLASS_ALREADY_CLOSED);
-        }
-        Teacher teacher = teacherRepository.findById(classUpdateRequest.getTeacherId())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-        entityClass.setTeacher(teacher);
-        entityClass.setStudents(new ArrayList<>());
-
-        classMapper.updateEntityClass(classUpdateRequest, entityClass);
-        return classMapper.toClassResponse(classRepository.save(entityClass));
-    }
-
-    @PreAuthorize("hasAuthority('CLASS_UPDATE')")
+    @PreAuthorize("hasAuthority('CLASS_UPDATE') || hasRole('ADMIN')")
     public ClassResponse patchClass(String classId, ClassUpdateRequest classUpdateRequest) {
         EntityClass entityClass = findClassById(classId);
         if (isClosed(entityClass)) {
@@ -90,39 +86,14 @@ public class ClassService {
         return classMapper.toClassResponse(classRepository.save(entityClass));
     }
 
-    @PreAuthorize("hasAuthority('CLASS_READ_ALL')")
-    public List<ClassResponse> getClasses() {
-        return classRepository.findAll().stream()
-                .map(classMapper::toClassResponse)
-                .toList();
-    }
-
-    @PreAuthorize("hasAuthority('CLASS_READ_ALL')")
-    public Page<ClassResponse> getClasses(Pageable pageable) {
-        return classRepository.findAll(pageable)
-                .map(classMapper::toClassResponse);
-    }
-
-    @PreAuthorize("hasAuthority('CLASS_READ')")
-    public List<ClassResponse> getClassesByTeacherId(String teacherId) {
-        return classRepository.findByTeacher_UserId(teacherId).stream()
-                .map(classMapper::toClassResponse).toList();
-    }
-
-    @PreAuthorize("hasAuthority('CLASS_READ')")
-    public Page<ClassResponse> getClassesByTeacherId(String teacherId, Pageable pageable) {
-        return classRepository.findByTeacher_UserId(teacherId, pageable)
-                .map(classMapper::toClassResponse);
-    }
-
-    @PreAuthorize("hasAuthority('CLASS_READ')")
+    @PreAuthorize("hasAuthority('CLASS_READ') || hasRole('ADMIN')")
     public ClassResponse getClassById(String classId) {
         return classMapper.toClassResponse(classRepository.findById(classId)
                 .orElseThrow(() -> new AppException(ErrorCode.CLASS_NOT_EXISTED)));
     }
 
-    @PreAuthorize("hasAuthority('CLASS_DELETE')")
-    public void deleteClass(String classId) {
+    @PreAuthorize("hasAuthority('CLASS_DELETE') || hasRole('ADMIN')")
+    public void closeClass(String classId) {
         EntityClass entityClass = classRepository.findById(classId)
                 .orElseThrow(() -> new AppException(ErrorCode.CLASS_NOT_EXISTED));
         if (entityClass.getStatus() == EntityClass.Status.CLOSED) {
@@ -132,7 +103,7 @@ public class ClassService {
         classRepository.save(entityClass);
     }
 
-    @PreAuthorize("hasAuthority('CLASS_UPDATE')")
+    @PreAuthorize("hasAuthority('CLASS_UPDATE') || hasRole('ADMIN')")
     public ClassResponse addStudents(String classId, List<String> studentIds) {
         EntityClass entityClass = findClassById(classId);
         if (isClosed(entityClass)) {
@@ -151,7 +122,7 @@ public class ClassService {
         return classMapper.toClassResponse(classRepository.save(entityClass));
     }
 
-    @PreAuthorize("hasAuthority('CLASS_UPDATE')")
+    @PreAuthorize("hasAuthority('CLASS_UPDATE') || hasRole('ADMIN')")
     public ClassResponse removeStudents(String classId, String studentId) {
         EntityClass entityClass = findClassById(classId);
         if (isClosed(entityClass)) {

@@ -3,9 +3,9 @@ import { ApiResponse, PageResponse } from '../types/api';
 import axiosInstance from '../services/axios';
 
 const parentApi = {
-    getAll: (page: number = 0, size: number = 10, sort: string = 'userId,ASC') => {
+    getAll: (fullName?: string, email?: string, page: number = 0, size: number = 10, sort: string = 'userId,ASC') => {
         return axiosInstance.get<ApiResponse<PageResponse<Parent>>>('/parents', {
-            params: { page, size, sort }
+            params: { fullName, email, page, size, sort }
         });
     },
 
@@ -15,10 +15,6 @@ const parentApi = {
 
     create: (parent: UserCreateRequest) => {
         return axiosInstance.post<ApiResponse<Parent>>('/parents', parent);
-    },
-
-    update: (id: string, parent: UserUpdateRequest) => {
-        return axiosInstance.put<ApiResponse<Parent>>(`/parents/${id}`, parent);
     },
 
     patch: (id: string, parent: Partial<UserUpdateRequest>) => {

@@ -27,7 +27,7 @@ const toastVariants = cva(
   {
     variants: {
       variant: {
-        default: "border bg-background text-foreground",
+        default: "border bg-background",
         destructive:
           "destructive group border-destructive bg-destructive text-destructive-foreground",
       },
@@ -41,7 +41,7 @@ const toastVariants = cva(
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
-    VariantProps<typeof toastVariants>
+  VariantProps<typeof toastVariants>
 >(({ className, variant, ...props }, ref) => {
   return (
     <ToastPrimitives.Root
@@ -114,6 +114,28 @@ type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
 
 type ToastActionElement = React.ReactElement<typeof ToastAction>
 
+const ToastProgress = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "absolute bottom-0 left-0 h-1 w-full bg-secondary/20 overflow-hidden",
+      className
+    )}
+    {...props}
+  >
+    <div
+      className="h-full bg-primary animate-progress origin-left"
+      style={{
+        animationDuration: 'var(--duration)',
+      }}
+    />
+  </div>
+))
+ToastProgress.displayName = "ToastProgress"
+
 export {
   type ToastProps,
   type ToastActionElement,
@@ -124,4 +146,5 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
+  ToastProgress,
 }

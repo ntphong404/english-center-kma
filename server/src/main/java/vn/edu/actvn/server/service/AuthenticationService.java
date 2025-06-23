@@ -228,7 +228,6 @@ public class AuthenticationService {
         return stringJoiner.toString();
     }
 
-    @PreAuthorize("hasAuthority('USER_UPDATE')")
     @Transactional
     @Scheduled(cron = "0 0 0 * * *")
     public int clearTokenDatabase() {

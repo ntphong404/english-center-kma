@@ -13,6 +13,7 @@ import {
     BookOpen,
     Clock,
     MessageSquare,
+    ClipboardCheck,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -49,9 +50,8 @@ const ParentLayout = () => {
         { icon: <LayoutDashboard size={18} />, label: 'Tổng quan', path: '/parent/dashboard' },
         { icon: <Users size={18} />, label: 'Quản lý con', path: '/parent/children' },
         { icon: <Calendar size={18} />, label: 'Lịch học', path: '/parent/schedule' },
-        { icon: <Clock size={18} />, label: 'Thời khóa biểu', path: '/parent/timetable' },
-        { icon: <BookOpen size={18} />, label: 'Lớp học', path: '/parent/classes' },
         { icon: <DollarSign size={18} />, label: 'Học phí', path: '/parent/fees' },
+        { icon: <ClipboardCheck size={18} />, label: 'Điểm danh', path: '/parent/attendance' },
         { icon: <Settings size={18} />, label: 'Cài đặt', path: '/parent/settings' },
     ];
 

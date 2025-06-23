@@ -11,6 +11,9 @@ public enum Permission {
     USER_UPDATE("USER_UPDATE"),
     USER_DELETE("USER_DELETE"),
 
+    // AUTH permissions
+
+
     // CLASS permissions
     CLASS_READ("CLASS_READ"),
     CLASS_READ_ALL("CLASS_READ_ALL"),
@@ -64,7 +67,16 @@ public enum Permission {
 
     // IMAGE permissions
     IMAGE_AVATAR_UPLOAD("IMAGE_AVATAR_UPLOAD"),
-    IMAGE_BANNER_UPLOAD("IMAGE_BANNER_UPLOAD");
+    IMAGE_BANNER_UPLOAD("IMAGE_BANNER_UPLOAD"),
+
+    // BANNER permissions
+    BANNER_READ("BANNER_READ"),
+    BANNER_READ_ALL("BANNER_READ_ALL"),
+    BANNER_CREATE("BANNER_CREATE"),
+    BANNER_UPDATE("BANNER_UPDATE"),
+    BANNER_DELETE("BANNER_DELETE")
+
+    ;
 
     private final String permission;
 

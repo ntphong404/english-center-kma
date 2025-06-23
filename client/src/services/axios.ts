@@ -33,6 +33,12 @@ axiosInstance.interceptors.request.use(
         if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
         }
+
+        // Nếu data là FormData, không set Content-Type để browser tự set multipart boundary
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
+        }
+
         return config;
     },
     (error) => {

@@ -5,9 +5,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import vn.edu.actvn.server.dto.request.user.CreateTeacherRequest;
@@ -35,43 +37,36 @@ public class TeacherService {
     UserMapper userMapper;
     UserRepository userRepository;
 
-    public List<UserResponse> getAllTeachers() {
-        return teacherRepository.findAll().stream()
-                .map(userMapper::toTeacherResponse)
-                .toList();
-    }
-
-    @PreAuthorize("hasAuthority('TEACHER_READ_ALL')")
-    public Page<UserResponse> getAllTeachers(Pageable pageable) {
-        return teacherRepository.findAll(pageable)
+    @PreAuthorize("hasAuthority('TEACHER_READ_ALL') || hasRole('ADMIN')")
+    public Page<UserResponse> getAllTeachers(String fullName, String email, Pageable pageable) {
+        if(fullName==null) fullName="";
+        if(email==null) email="";
+        return teacherRepository.search(fullName,email,pageable)
                 .map(userMapper::toTeacherResponse);
     }
 
-    @PreAuthorize("hasAuthority('TEACHER_READ')")
+    @PreAuthorize("hasAuthority('TEACHER_READ') || hasRole('ADMIN')")
     public UserResponse getTeacherById(String id) {
         Teacher teacher = teacherRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         return userMapper.toTeacherResponse(teacher);
     }
 
-    @PreAuthorize("hasAuthority('TEACHER_UPDATE')")
-    public UserResponse updateTeacher(String teacherId,UpdateTeacherRequest request) {
-        Teacher teacher = teacherRepository.findById(teacherId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-        userMapper.updateTeacher(teacher, request);
-        return userMapper.toTeacherResponse(teacherRepository.save(teacher));
-    }
-
-    @PreAuthorize("hasAuthority('TEACHER_UPDATE')")
+    @PreAuthorize("hasAuthority('TEACHER_UPDATE') || hasRole('ADMIN')")
     public UserResponse patchTeacher(String teacherId,UpdateTeacherRequest request) {
+        var context = SecurityContextHolder.getContext();
+        String role = context.getAuthentication().getAuthorities().iterator().next().getAuthority();
+        if(request.getSalary()!=null && !role.equals("ROLE_ADMIN")) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
         Teacher teacher = teacherRepository.findById(teacherId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         userMapper.patchTeacher(teacher, request);
         return userMapper.toTeacherResponse(teacherRepository.save(teacher));
     }
 
-    @PreAuthorize("hasAuthority('TEACHER_CREATE')")
-    public UserResponse createTeacher(CreateTeacherRequest request) {
+    @PreAuthorize("hasAuthority('TEACHER_CREATE') || hasRole('ADMIN')")
+    public UserResponse createTeacher(@NotNull CreateTeacherRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
@@ -86,7 +81,7 @@ public class TeacherService {
         return userMapper.toUserResponse(userRepository.save(teacher));
     }
 
-    @PreAuthorize("hasAuthority('TEACHER_DELETE')")
+    @PreAuthorize("hasAuthority('TEACHER_DELETE') || hasRole('ADMIN')")
     public void deleteTeacher(String id) {
         teacherRepository.deleteById(id);
     }

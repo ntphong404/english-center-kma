@@ -15,7 +15,7 @@ import vn.edu.actvn.server.dto.response.attendance.AttendanceResponse;
 import vn.edu.actvn.server.entity.Attendance;
 import vn.edu.actvn.server.service.AttendanceService;
 
-import java.util.List;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/attendances")
@@ -35,22 +35,6 @@ public class AttendanceController {
                 .build();
     }
 
-    @GetMapping("/class/{classId}")
-    public ApiResponse<Page<AttendanceResponse>> getAllByClassId(
-            @PathVariable String classId,
-            @ParameterObject @PageableDefault(
-                    page = 0,
-                    size = 10,
-                    sort = "date",
-                    direction = Sort.Direction.ASC
-            ) Pageable pageable
-    ) {
-        return ApiResponse.<Page<AttendanceResponse>>builder()
-                .result(attendanceService.getAllByClassId(classId, pageable))
-                .message("Fetched all attendances")
-                .build();
-    }
-
     @GetMapping("/{id}")
     @Operation(summary = "Get attendance by ID")
     public ApiResponse<AttendanceResponse> getById(@PathVariable String id) {
@@ -60,17 +44,8 @@ public class AttendanceController {
                 .build();
     }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "Update attendance")
-    public ApiResponse<AttendanceResponse> update(@PathVariable String id, @RequestBody AttendanceUpdateRequest request) {
-        return ApiResponse.<AttendanceResponse>builder()
-                .result(attendanceService.update(id, request))
-                .message("Updated attendance")
-                .build();
-    }
-
     @PatchMapping("/{id}")
-    @Operation(summary = "Partially update an attendance", description = "Update one or more fields of an attendance record")
+    @Operation(summary = "Partially update an attendance")
     public ApiResponse<AttendanceResponse> partialUpdateAttendance(
             @PathVariable("id") String id,
             @RequestBody AttendanceUpdateRequest request
@@ -91,4 +66,32 @@ public class AttendanceController {
                 .build();
     }
 
+    @GetMapping("/count/student")
+    @Operation(summary = "Get attendance count by student ID and status")
+    public ApiResponse<Long> getAttendanceCountByStudentIdAndStatus(
+            @RequestParam ("classId") String classId,
+            @RequestParam ("studentId") String studentId,
+            @RequestParam ("status") Attendance.Status status
+    ) {
+        long count = attendanceService.countByStudentIdAndStatus(classId, studentId, status);
+        return ApiResponse.<Long>builder()
+                .result(count)
+                .message("Fetched attendance count by student ID and status")
+                .build();
+    }
+
+    @GetMapping
+    @Operation(summary = "Get all attendances with pagination and sorting")
+    public ApiResponse<Page<AttendanceResponse>> getAllAttendances(
+            @RequestParam(value = "studentId", required = false) String studentId,
+            @RequestParam(value = "classId", required = false) String classId,
+            @RequestParam(value = "date", required = false) LocalDate date,
+            @ParameterObject @PageableDefault(sort = "date", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        Page<AttendanceResponse> attendances = attendanceService.getAll(studentId,classId, date, pageable);
+        return ApiResponse.<Page<AttendanceResponse>>builder()
+                .result(attendances)
+                .message("Fetched all attendances")
+                .build();
+    }
 }

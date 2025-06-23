@@ -3,6 +3,7 @@ package vn.edu.actvn.server.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,22 +28,19 @@ public class StudentController {
     @GetMapping
     @Operation(summary = "Get all students")
     public ApiResponse<Page<UserResponse>> getAllStudents(
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "10") int size,
-            @RequestParam(value = "sort", defaultValue = "username,asc") String sort
+            @RequestParam(value = "fullName", required = false) String fullName,
+            @RequestParam(value = "email", required = false) String email,
+            @ParameterObject Pageable pageable
     ) {
-        Sort pageSort;
-        String[] sortPart = sort.split(",");
-        String direction = sortPart.length > 1 ? sortPart[1] : "asc";
-        String sortField = sortPart[0].trim();
-        Sort.Direction sortDirection = Sort.Direction.fromString(direction.toUpperCase());
-        String actualSortField = "fullName".equalsIgnoreCase(sortField) ? "lastName" : sortField;
-
-        pageSort = Sort.by(sortDirection, actualSortField);
-
-        Pageable pageable = PageRequest.of(page, size, pageSort);
+        if (pageable.getSort().isSorted()) {
+            Sort.Order order = pageable.getSort().iterator().next();
+            String sortField = order.getProperty();
+            Sort.Direction sortDirection = order.getDirection();
+            String actualSortField = "fullName".equalsIgnoreCase(sortField) ? "lastName" : sortField;
+            pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(sortDirection, actualSortField));
+        }
         return ApiResponse.<Page<UserResponse>>builder()
-                .result(studentService.getAllStudents(pageable))
+                .result(studentService.getAllStudents(fullName, email,pageable))
                 .message("Fetched all students")
                 .build();
     }
@@ -74,15 +72,6 @@ public class StudentController {
                 .build();
     }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "Update student information")
-    public ApiResponse<UserResponse> updateStudent(@PathVariable String id, @RequestBody UpdateStudentRequest request) {
-        return ApiResponse.<UserResponse>builder()
-                .result(studentService.updateStudent(id, request))
-                .message("Student updated successfully")
-                .build();
-    }
-
     @PatchMapping("/{id}")
     @Operation(summary = "Partially update student information")
     public ApiResponse<UserResponse> patchStudent(@PathVariable String id, @RequestBody UpdateStudentRequest request) {
@@ -101,4 +90,6 @@ public class StudentController {
                 .message("Student deleted successfully")
                 .build();
     }
+
 }
+

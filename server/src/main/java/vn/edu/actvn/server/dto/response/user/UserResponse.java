@@ -20,8 +20,12 @@ import vn.edu.actvn.server.entity.ClassDiscount;
 public class UserResponse {
     String userId;
     String username;
-    String fullName;
-    String email;
+    String fullName="";
+    String email="";
+    String gender="";
+    String address="";
+    String phoneNumber="";
+    String avatarUrl="";
 
     LocalDate dob;
     String role;

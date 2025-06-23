@@ -3,6 +3,8 @@ package vn.edu.actvn.server.dto.response.role;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -11,4 +13,6 @@ import lombok.experimental.FieldDefaults;
 public class RoleResponse {
     String name;
     String description;
+
+    List<String> permissions;
 }

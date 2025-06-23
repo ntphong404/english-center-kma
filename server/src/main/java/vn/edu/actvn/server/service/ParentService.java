@@ -37,34 +37,22 @@ public class ParentService {
     StudentRepository studentRepository;
     PasswordEncoder passwordEncoder;
 
-    public List<UserResponse> getAllParents() {
-        return parentRepository.findAll().stream()
-                .map(userMapper::toParentResponse)
-                .toList();
-    }
-
-    @PreAuthorize("hasAuthority('PARENT_READ_ALL')")
-    public Page<UserResponse> getAllParents(Pageable pageable) {
-        return parentRepository.findAll(pageable)
+    @PreAuthorize("hasAuthority('PARENT_READ_ALL') || hasRole('ADMIN')")
+    public Page<UserResponse> getAllParents(String fullName,String email, Pageable pageable) {
+        if (fullName == null) fullName = "";
+        if (email == null)  email = "";
+        return parentRepository.search(fullName, email,pageable)
                 .map(userMapper::toParentResponse);
     }
 
-    @PreAuthorize("hasAuthority('PARENT_READ')")
+    @PreAuthorize("hasAuthority('PARENT_READ') || hasRole('ADMIN')")
     public UserResponse getParentById(String id) {
         Parent parent = parentRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         return userMapper.toParentResponse(parent);
     }
 
-    @PreAuthorize("hasAuthority('PARENT_UPDATE')")
-    public UserResponse updateParent(String parentId, UpdateParentRequest request) {
-        Parent parent = parentRepository.findById(parentId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-        userMapper.updateParent(parent, request);
-        return userMapper.toParentResponse(parentRepository.save(parent));
-    }
-
-    @PreAuthorize("hasAuthority('PARENT_UPDATE')")
+    @PreAuthorize("hasAuthority('PARENT_UPDATE') || hasRole('ADMIN')")
     public UserResponse patchParent(String parentId, UpdateParentRequest request) {
         Parent parent = parentRepository.findById(parentId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
@@ -72,7 +60,7 @@ public class ParentService {
         return userMapper.toParentResponse(parentRepository.save(parent));
     }
 
-    @PreAuthorize("hasAuthority('PARENT_CREATE')")
+    @PreAuthorize("hasAuthority('PARENT_CREATE') || hasRole('ADMIN')")
     public UserResponse createParent(CreateParentRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new AppException(ErrorCode.USER_EXISTED);
@@ -88,7 +76,7 @@ public class ParentService {
         return userMapper.toUserResponse(userRepository.save(parent));
     }
 
-@PreAuthorize("hasAuthority('PARENT_UPDATE')")
+    @PreAuthorize("hasAuthority('PARENT_UPDATE') || hasRole('ADMIN')")
     public UserResponse addStudent(String parentId, String studentId) {
         Parent parent = parentRepository.findById(parentId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
@@ -111,7 +99,7 @@ public class ParentService {
         return userMapper.toParentResponse(parentRepository.save(parent));
     }
 
-    @PreAuthorize("hasAuthority('PARENT_UPDATE')")
+    @PreAuthorize("hasAuthority('PARENT_UPDATE') || hasRole('ADMIN')")
     public UserResponse removeStudent(String parentId, String studentId) {
         Parent parent = parentRepository.findById(parentId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
@@ -131,7 +119,7 @@ public class ParentService {
         return userMapper.toParentResponse(parentRepository.save(parent));
     }
 
-    @PreAuthorize("hasAuthority('PARENT_DELETE')")
+    @PreAuthorize("hasAuthority('PARENT_DELETE') || hasRole('ADMIN')")
     public void deleteParent(String id) {
         parentRepository.deleteById(id);
     }

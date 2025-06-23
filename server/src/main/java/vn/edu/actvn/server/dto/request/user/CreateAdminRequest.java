@@ -21,8 +21,10 @@ public class CreateAdminRequest {
     String password;
 
     String fullName;
-
     String email;
+    String gender;
+    String address;
+    String phoneNumber;
 
     @DobConstraint(min = 10, message = "INVALID_DOB")
     LocalDate dob;

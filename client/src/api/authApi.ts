@@ -1,4 +1,4 @@
-import { LoginRequest, LoginResponse, LogoutRequest } from '../types/auth';
+import { LoginRequest, LoginResponse, LogoutRequest, VerifyOtpRequest, ResetPasswordRequest } from '../types/auth';
 import { ApiResponse } from '../types/api';
 import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
@@ -38,6 +38,18 @@ const authApi = {
     clearTokens: () => {
         return axios.post<ApiResponse<void>>(`${API_URL}/auth/clear`).then(response => response.data.result);
     },
+
+    forgotPassword: (email: string) => {
+        return axios.post<ApiResponse<void>>(`${API_URL}/auth/forgot-password`, null, { params: { email } }).then(response => response.data.result);
+    },
+
+    verifyOtp: (data: VerifyOtpRequest) => {
+        return axios.post<ApiResponse<void>>(`${API_URL}/auth/verify-otp`, data).then(response => response.data.result);
+    },
+
+    resetPassword: (data: ResetPasswordRequest) => {
+        return axios.post<ApiResponse<void>>(`${API_URL}/auth/reset-password`, data).then(response => response.data.result);
+    }
 };
 
 export default authApi;

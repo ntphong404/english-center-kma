@@ -3,9 +3,9 @@ import { ApiResponse, PageResponse } from '../types/api';
 import axiosInstance from '../services/axios';
 
 const teacherApi = {
-    getAll: (page: number = 0, size: number = 10, sort: string = 'userId,ASC') => {
+    getAll: (fullName?: string, email?: string, page: number = 0, size: number = 10, sort: string = 'userId,ASC') => {
         return axiosInstance.get<ApiResponse<PageResponse<Teacher>>>('/teachers', {
-            params: { page, size, sort }
+            params: { fullName, email, page, size, sort }
         });
     },
 
@@ -15,10 +15,6 @@ const teacherApi = {
 
     create: (teacher: CreateTeacherRequest) => {
         return axiosInstance.post<ApiResponse<Teacher>>('/teachers', teacher);
-    },
-
-    update: (id: string, teacher: UpdateTeacherRequest) => {
-        return axiosInstance.put<ApiResponse<Teacher>>(`/teachers/${id}`, teacher);
     },
 
     patch: (id: string, teacher: Partial<UpdateTeacherRequest>) => {

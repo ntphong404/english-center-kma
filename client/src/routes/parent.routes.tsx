@@ -2,18 +2,19 @@ import { RouteObject, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import ParentLayout from '@/layouts/ParentLayout';
 import { ProtectedRoute } from './ProtectedRoute';
+import ParentAttendance from '@/pages/parent/Attendance';
+import ParentChildren from '@/pages/parent/Children';
+import ParentFees from '@/pages/parent/Fees';
+import ParentSchedule from '@/pages/parent/Schedule';
+import ParentSettings from '@/pages/parent/Settings';
+import ParentTimetable from '@/pages/parent/Timetable';
+import ParentProfile from '@/pages/parent/Profile';
 
 // Loading component
 const Loading = () => <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
 // Parent pages
 const ParentDashboard = lazy(() => import('@/pages/parent/Dashboard'));
-const ParentChildren = lazy(() => import('@/pages/parent/Children'));
-const ParentSchedule = lazy(() => import('@/pages/parent/Schedule'));
-const ParentTimetable = lazy(() => import('@/pages/parent/Timetable'));
-const ParentClasses = lazy(() => import('@/pages/parent/Classes'));
-const ParentFees = lazy(() => import('@/pages/parent/Fees'));
-const ParentSettings = lazy(() => import('@/pages/parent/Settings'));
 
 export const parentRoutes: RouteObject = {
     path: '/parent',
@@ -29,59 +30,35 @@ export const parentRoutes: RouteObject = {
         },
         {
             path: 'dashboard',
-            element: (
-                <Suspense fallback={<Loading />}>
-                    <ParentDashboard />
-                </Suspense>
-            ),
+            element: <ParentDashboard />,
         },
         {
             path: 'children',
-            element: (
-                <Suspense fallback={<Loading />}>
-                    <ParentChildren />
-                </Suspense>
-            ),
+            element: <ParentChildren />,
         },
         {
-            path: 'schedule',
-            element: (
-                <Suspense fallback={<Loading />}>
-                    <ParentSchedule />
-                </Suspense>
-            ),
-        },
-        {
-            path: 'timetable',
-            element: (
-                <Suspense fallback={<Loading />}>
-                    <ParentTimetable />
-                </Suspense>
-            ),
-        },
-        {
-            path: 'classes',
-            element: (
-                <Suspense fallback={<Loading />}>
-                    <ParentClasses />
-                </Suspense>
-            ),
+            path: 'attendance',
+            element: <ParentAttendance />,
         },
         {
             path: 'fees',
-            element: (
-                <Suspense fallback={<Loading />}>
-                    <ParentFees />
-                </Suspense>
-            ),
+            element: <ParentFees />,
+        },
+        {
+            path: 'schedule',
+            element: <ParentSchedule />,
+        },
+        {
+            path: 'timetable',
+            element: <ParentTimetable />,
         },
         {
             path: 'settings',
-            element: (
-                <Suspense fallback={<Loading />}>
-                    <ParentSettings />
-                </Suspense>
-            ),
+            element: <ParentSettings />,
         },
+        {
+            path: 'profile',
+            element: <ParentProfile />,
+        }
     ],
 }; 

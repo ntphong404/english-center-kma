@@ -96,19 +96,19 @@ export default function AdminUsers() {
             let response;
             switch (activeTab) {
                 case 'STUDENT':
-                    response = await studentApi.getAll(currentPage, ITEMS_PER_PAGE, 'fullName,asc');
+                    response = await studentApi.getAll(undefined, undefined, currentPage, ITEMS_PER_PAGE, 'fullName,asc');
                     setStudents(response.data.result.content);
                     setTotalPages(response.data.result.page.totalPages);
                     setTotalElements(response.data.result.page.totalElements);
                     break;
                 case 'TEACHER':
-                    response = await teacherApi.getAll(currentPage, ITEMS_PER_PAGE, 'fullName,asc');
+                    response = await teacherApi.getAll(undefined, undefined, currentPage, ITEMS_PER_PAGE, 'fullName,asc');
                     setTeachers(response.data.result.content);
                     setTotalPages(response.data.result.page.totalPages);
                     setTotalElements(response.data.result.page.totalElements);
                     break;
                 case 'PARENT':
-                    response = await parentApi.getAll(currentPage, ITEMS_PER_PAGE, 'fullName,asc');
+                    response = await parentApi.getAll(undefined, undefined, currentPage, ITEMS_PER_PAGE, 'fullName,asc');
                     setParents(response.data.result.content);
                     setTotalPages(response.data.result.page.totalPages);
                     setTotalElements(response.data.result.page.totalElements);
@@ -156,6 +156,9 @@ export default function AdminUsers() {
                 password: newUser.password || "",
                 fullName: newUser.fullName || "",
                 email: newUser.email || "",
+                gender: "MALE", // Default value
+                phone: "", // Default value
+                address: "", // Default value
                 dob: newUser.dob || new Date().toISOString().split('T')[0],
             };
 
@@ -260,16 +263,16 @@ export default function AdminUsers() {
             let response;
             switch (activeTab) {
                 case 'STUDENT':
-                    response = await studentApi.update(selectedUserId, selectedUser as UpdateStudentRequest);
+                    response = await studentApi.patch(selectedUserId, selectedUser as UpdateStudentRequest);
                     break;
                 case 'TEACHER':
-                    response = await teacherApi.update(selectedUserId, selectedUser as UpdateTeacherRequest);
+                    response = await teacherApi.patch(selectedUserId, selectedUser as UpdateTeacherRequest);
                     break;
                 case 'PARENT':
-                    response = await parentApi.update(selectedUserId, selectedUser);
+                    response = await parentApi.patch(selectedUserId, selectedUser as UserUpdateRequest);
                     break;
                 case 'ADMIN':
-                    response = await userApi.update(selectedUserId, selectedUser);
+                    response = await userApi.patch(selectedUserId, selectedUser);
                     break;
             }
 
@@ -318,7 +321,7 @@ export default function AdminUsers() {
 
     const fetchAvailableStudents = async (page: number) => {
         try {
-            const response = await studentApi.getAll(page - 1, STUDENT_PAGE_SIZE, 'userId,ASC');
+            const response = await studentApi.getAll(undefined, undefined, page - 1, STUDENT_PAGE_SIZE, 'userId,ASC');
             const pageResponse = response.data.result;
             if (pageResponse) {
                 setAvailableStudents(pageResponse.content);
@@ -598,9 +601,12 @@ export default function AdminUsers() {
                                         onClick={() => {
                                             setSelectedUserId(user.userId);
                                             setSelectedUser({
-                                                fullName: user.fullName,
-                                                email: user.email,
-                                                dob: user.dob,
+                                                fullName: user.fullName || "",
+                                                email: user.email || "",
+                                                gender: user.gender || "MALE",
+                                                phone: user.phone || "",
+                                                address: user.address || "",
+                                                dob: user.dob || "",
                                             });
                                             setIsEditDialogOpen(true);
                                         }}

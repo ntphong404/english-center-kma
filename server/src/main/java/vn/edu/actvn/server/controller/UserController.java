@@ -16,11 +16,14 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.multipart.MultipartFile;
 import vn.edu.actvn.server.dto.request.user.CreateAdminRequest;
 import vn.edu.actvn.server.dto.request.user.UpdateAdminRequest;
 import vn.edu.actvn.server.dto.response.ApiResponse;
+import vn.edu.actvn.server.dto.response.upload.UploadResponse;
 import vn.edu.actvn.server.dto.response.user.UserResponse;
 import vn.edu.actvn.server.dto.request.user.ChangePasswordRequest;
+import vn.edu.actvn.server.service.ImageUploadService;
 import vn.edu.actvn.server.service.UserService;
 
 @RestController
@@ -31,6 +34,7 @@ import vn.edu.actvn.server.service.UserService;
 @Tag(name = "User API", description = "Endpoints for user management and information")
 public class UserController {
         UserService userService;
+        private final ImageUploadService imageUploadService;
 
         @PostMapping
         @Operation(summary = "Create a new user")
@@ -141,6 +145,24 @@ public class UserController {
                 return ApiResponse.<String>builder()
                                 .result("Password has been changed")
                                 .message("Password change successful")
+                                .build();
+        }
+
+        @PostMapping(value = "/change-avatar",consumes = "multipart/form-data")
+        @Operation(summary = "Change current user's avatar")
+        public ApiResponse<UserResponse> changeAvatar(
+                @RequestParam MultipartFile image
+        ) {
+                String avatarUrl = "";
+                String publicId = "";
+                if (image != null && !image.isEmpty()) {
+                        UploadResponse uploadResponse = imageUploadService.uploadAvatar(image);
+                        avatarUrl = uploadResponse.getUrl();
+                        publicId = uploadResponse.getPublicId();
+                }
+                return ApiResponse.<UserResponse>builder()
+                                .result(userService.changeAvatar(avatarUrl,publicId))
+                                .message("Avatar change successful")
                                 .build();
         }
 }

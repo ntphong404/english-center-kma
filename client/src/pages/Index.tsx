@@ -16,6 +16,7 @@ const Index = () => {
     usernameInitial: string;
     fullName: string;
     role: string;
+    avatarUrl: string;
   } | null>(null);
 
   const updateUserData = () => {
@@ -26,7 +27,8 @@ const Index = () => {
         setUserData({
           usernameInitial: parsedUser.username.charAt(0).toUpperCase(),
           fullName: parsedUser.fullName,
-          role: parsedUser.role.toLowerCase()
+          role: parsedUser.role.toLowerCase(),
+          avatarUrl: parsedUser.avatarUrl
         });
       } catch (error) {
         console.error('Error parsing user data:', error);
@@ -102,6 +104,7 @@ const Index = () => {
                 usernameInitial={userData.usernameInitial}
                 role={userData.role}
                 fullName={userData.fullName}
+                avatarUrl={userData.avatarUrl}
               />
             ) : (
               <Link to="/login">

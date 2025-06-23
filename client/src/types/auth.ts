@@ -21,3 +21,14 @@ export interface ChangePasswordRequest {
     oldPassword: string;
     newPassword: string;
 }
+
+export interface VerifyOtpRequest {
+    email: string;
+    otpCode: string;
+}
+
+export interface ResetPasswordRequest {
+    email: string;
+    otpCode: string;
+    newPassword: string;
+}

@@ -36,7 +36,10 @@ public enum ErrorCode {
     TODAY_NOT_VALID_FOR_ATTENDANCE(400,"Today not valid for attendance" ,HttpStatus.BAD_REQUEST ),
     FAILED_TO_UPLOAD_IMAGE(400,"Failded to upload image" ,HttpStatus.BAD_REQUEST ),
     PAYMENT_NOT_EXISTED(404,"Payment not existed" ,HttpStatus.NOT_FOUND ),
-    PAYMENT_AMOUNT_INVALID(400, "Payment amount invalid",HttpStatus.BAD_REQUEST );
+    PAYMENT_AMOUNT_INVALID(400, "Payment amount invalid",HttpStatus.BAD_REQUEST ),
+    RESOURCE_NOT_FOUND(404,"Resource not found" , HttpStatus.NOT_FOUND),
+    FAILED_TO_SEND_EMAIL(400,"Failed to send email" ,HttpStatus.BAD_REQUEST ),
+    INVALID_OTP(400,"Invalid otp" ,HttpStatus.BAD_REQUEST );
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {
         this.code = code;

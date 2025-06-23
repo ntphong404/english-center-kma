@@ -1,139 +1,184 @@
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import parentApi from '@/api/parentApi';
+import studentApi from '@/api/studentApi';
+import { classApi } from '@/api/classApi';
+import tuitionFeeApi from '@/api/tuitionFeeApi';
+import { Student } from '@/types/user';
+import { TuitionFeeResponse } from '@/types/tuitionfee';
+import { ClassResponse } from '@/types/entityclass';
+import { PageResponse } from '@/types/api';
 
-interface Fee {
-    id: string;
-    childId: string;
-    childName: string;
-    month: string;
-    className: string;
-    amount: number;
-    status: 'paid' | 'pending';
-    paidDate?: string;
-    dueDate: string;
+interface EnhancedTuitionFee extends TuitionFeeResponse {
+    className?: string;
+    studentName?: string;
 }
 
-const fees: Fee[] = [
-    {
-        id: '1',
-        childId: '1',
-        childName: 'Nguyễn Văn An',
-        month: '04/2024',
-        className: 'Tiếng Anh Giao Tiếp A1',
-        amount: 2000000,
-        status: 'paid',
-        paidDate: '01/04/2024',
-        dueDate: '05/04/2024',
-    },
-    {
-        id: '2',
-        childId: '1',
-        childName: 'Nguyễn Văn An',
-        month: '05/2024',
-        className: 'Tiếng Anh Giao Tiếp A1',
-        amount: 2000000,
-        status: 'pending',
-        dueDate: '05/05/2024',
-    },
-    {
-        id: '3',
-        childId: '2',
-        childName: 'Nguyễn Thị Bình',
-        month: '04/2024',
-        className: 'Tiếng Anh Giao Tiếp B1',
-        amount: 2500000,
-        status: 'paid',
-        paidDate: '02/04/2024',
-        dueDate: '05/04/2024',
-    },
-    {
-        id: '4',
-        childId: '2',
-        childName: 'Nguyễn Thị Bình',
-        month: '05/2024',
-        className: 'Tiếng Anh Giao Tiếp B1',
-        amount: 2500000,
-        status: 'pending',
-        dueDate: '05/05/2024',
-    },
-];
-
-const children = Array.from(new Set(fees.map(f => f.childId))).map(childId => {
-    const fee = fees.find(f => f.childId === childId);
-    return { id: childId, name: fee?.childName || '' };
-});
-
-const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
-
 export default function ParentFees() {
+    const [loading, setLoading] = useState(true);
+    const [children, setChildren] = useState<Student[]>([]);
+    const [tuitionFees, setTuitionFees] = useState<Record<string, EnhancedTuitionFee[]>>({});
+    const [classes, setClasses] = useState<Record<string, ClassResponse>>({});
+
+    useEffect(() => {
+        async function fetchData() {
+            setLoading(true);
+            try {
+                // Lấy danh sách học sinh của phụ huynh
+                const user = localStorage.getItem('user');
+                if (!user) return;
+                const { userId } = JSON.parse(user);
+                const parentRes = await parentApi.getById(userId);
+                const studentIds = parentRes.data.result.studentIds || [];
+
+                if (studentIds.length === 0) {
+                    setChildren([]);
+                    setLoading(false);
+                    return;
+                }
+
+                // Lấy thông tin chi tiết của học sinh
+                const studentsRes = await studentApi.getByIds(studentIds);
+                const students = studentsRes.data.result || [];
+                setChildren(students);
+
+                // Lấy học phí cho từng học sinh
+                const feesMap: Record<string, EnhancedTuitionFee[]> = {};
+                const classesMap: Record<string, ClassResponse> = {};
+
+                for (const student of students) {
+                    const feesRes = await tuitionFeeApi.getAll(student.userId, undefined, 0, 100, 'yearMonth,DESC');
+                    const fees = feesRes.data.result.content || [];
+
+                    // Lấy thông tin lớp học cho mỗi học phí
+                    for (const fee of fees) {
+                        if (!classesMap[fee.classId]) {
+                            try {
+                                const classRes = await classApi.getById(fee.classId);
+                                classesMap[fee.classId] = classRes.data.result;
+                            } catch (error) {
+                                console.error(`Error fetching class ${fee.classId}:`, error);
+                            }
+                        }
+                    }
+
+                    // Sắp xếp theo tháng giảm dần
+                    const sortedFees = fees.sort((a, b) => b.yearMonth.localeCompare(a.yearMonth));
+                    feesMap[student.userId] = sortedFees;
+                }
+
+                setTuitionFees(feesMap);
+                setClasses(classesMap);
+            } catch (error) {
+                console.error('Error fetching fees:', error);
+            }
+            setLoading(false);
+        }
+
+        fetchData();
+    }, []);
+
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND'
+        }).format(amount);
+    };
+
+    const formatYearMonth = (yearMonth: string) => {
+        const [year, month] = yearMonth.split('-');
+        return `${month}/${year}`;
+    };
+
+    if (loading) {
+        return <div>Đang tải...</div>;
+    }
+
     return (
         <div className="space-y-8">
             <h1 className="text-2xl font-bold">Học phí</h1>
-            {children.map(child => {
-                const childFees = fees.filter(f => f.childId === child.id);
-                const totalPaid = childFees.filter(f => f.status === 'paid').reduce((sum, f) => sum + f.amount, 0);
-                const totalPending = childFees.filter(f => f.status === 'pending').reduce((sum, f) => sum + f.amount, 0);
-                return (
-                    <Card key={child.id} className="mb-6">
-                        <CardHeader>
-                            <CardTitle>{child.name}</CardTitle>
-                            <CardDescription>Lịch sử đóng học phí</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex gap-6 mb-4">
-                                <div>
-                                    <div className="text-sm text-gray-500">Đã đóng</div>
-                                    <div className="text-lg font-bold text-green-600">{formatCurrency(totalPaid)}</div>
+            {children.length === 0 ? (
+                <Card>
+                    <CardContent className="pt-6">
+                        Không có thông tin học phí
+                    </CardContent>
+                </Card>
+            ) : (
+                children.map(child => {
+                    const childFees = tuitionFees[child.userId] || [];
+                    const totalPaid = childFees.reduce((sum, f) => sum + (f.amount - f.remainingAmount), 0);
+                    const totalPending = childFees.reduce((sum, f) => sum + f.remainingAmount, 0);
+
+                    return (
+                        <Card key={child.userId} className="mb-6">
+                            <CardHeader>
+                                <CardTitle>{child.fullName || child.username}</CardTitle>
+                                <CardDescription>Lịch sử đóng học phí</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex gap-6 mb-4">
+                                    <div>
+                                        <div className="text-sm text-gray-500">Đã đóng</div>
+                                        <div className="text-lg font-bold text-green-600">{formatCurrency(totalPaid)}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-sm text-gray-500">Còn nợ</div>
+                                        <div className="text-lg font-bold text-yellow-600">{formatCurrency(totalPending)}</div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div className="text-sm text-gray-500">Còn nợ</div>
-                                    <div className="text-lg font-bold text-yellow-600">{formatCurrency(totalPending)}</div>
-                                </div>
-                            </div>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Tháng</TableHead>
-                                        <TableHead>Lớp</TableHead>
-                                        <TableHead>Số tiền</TableHead>
-                                        <TableHead>Trạng thái</TableHead>
-                                        <TableHead>Hạn nộp</TableHead>
-                                        <TableHead>Ngày đóng</TableHead>
-                                        <TableHead className="text-right">Thao tác</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {childFees.map(fee => (
-                                        <TableRow key={fee.id}>
-                                            <TableCell>{fee.month}</TableCell>
-                                            <TableCell>{fee.className}</TableCell>
-                                            <TableCell>{formatCurrency(fee.amount)}</TableCell>
-                                            <TableCell>
-                                                {fee.status === 'paid' ? (
-                                                    <Badge className="bg-green-500">Đã đóng</Badge>
-                                                ) : (
-                                                    <Badge className="bg-yellow-500">Chờ đóng</Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>{fee.dueDate}</TableCell>
-                                            <TableCell>{fee.paidDate || '-'}</TableCell>
-                                            <TableCell className="text-right">
-                                                {fee.status === 'paid' && (
-                                                    <Button variant="ghost" size="icon"><Download className="h-4 w-4" /></Button>
-                                                )}
-                                            </TableCell>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Tháng</TableHead>
+                                            <TableHead>Lớp</TableHead>
+                                            <TableHead>Học phí</TableHead>
+                                            <TableHead>Đã đóng</TableHead>
+                                            <TableHead>Còn nợ</TableHead>
+                                            <TableHead>Trạng thái</TableHead>
+                                            <TableHead className="text-right">Thao tác</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                );
-            })}
+                                    </TableHeader>
+                                    <TableBody>
+                                        {childFees.map(fee => {
+                                            const paidAmount = fee.amount - fee.remainingAmount;
+
+                                            return (
+                                                <TableRow key={fee.tuitionFeeId}>
+                                                    <TableCell>{formatYearMonth(fee.yearMonth)}</TableCell>
+                                                    <TableCell>{classes[fee.classId]?.className || 'Chưa cập nhật'}</TableCell>
+                                                    <TableCell>{formatCurrency(fee.amount)}</TableCell>
+                                                    <TableCell>{formatCurrency(paidAmount)}</TableCell>
+                                                    <TableCell>{formatCurrency(fee.remainingAmount)}</TableCell>
+                                                    <TableCell>
+                                                        {fee.remainingAmount === 0 ? (
+                                                            <Badge className="bg-green-500">Đã đóng</Badge>
+                                                        ) : fee.remainingAmount === fee.amount ? (
+                                                            <Badge className="bg-yellow-500">Chưa đóng</Badge>
+                                                        ) : (
+                                                            <Badge className="bg-blue-500">Đã đóng một phần</Badge>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        {fee.remainingAmount === 0 && (
+                                                            <Button variant="ghost" size="icon" title="Tải biên lai">
+                                                                <Download className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    );
+                })
+            )}
         </div>
     );
 } 

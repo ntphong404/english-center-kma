@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     Card,
     CardContent,
@@ -9,8 +9,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Save } from "lucide-react";
+import teacherApi from '@/api/teacherApi';
+import { getUser } from '@/store/userStore';
+import { useToast } from '@/components/ui/use-toast';
+import { Switch } from "@/components/ui/switch";
 
 interface TeacherSettings {
     name: string;
@@ -45,19 +48,60 @@ const defaultSettings: TeacherSettings = {
 };
 
 export default function TeacherSettings() {
-    const [settings, setSettings] = useState<TeacherSettings>(defaultSettings);
+    const [settings, setSettings] = useState({
+        name: '',
+        email: '',
+        dob: '',
+    });
+    const [loading, setLoading] = useState(false);
+    const { toast } = useToast();
 
-    const handleSave = () => {
-        // TODO: Implement save functionality
-        console.log("Saving settings:", settings);
+    useEffect(() => {
+        const fetchTeacher = async () => {
+            const user = getUser();
+            if (user) {
+                try {
+                    const res = await teacherApi.getById(user.userId);
+                    const teacher = res.data.result;
+                    setSettings({
+                        name: teacher.fullName || '',
+                        email: teacher.email || '',
+                        dob: teacher.dob || '',
+                    });
+                } catch {
+                    toast({ title: 'Lỗi', description: 'Không thể tải thông tin giáo viên.' });
+                }
+            }
+        };
+        fetchTeacher();
+    }, []);
+
+    const handleSave = async () => {
+        const user = getUser();
+        if (user) {
+            setLoading(true);
+            try {
+                await teacherApi.patch(user.userId, {
+                    fullName: settings.name,
+                    email: settings.email,
+                    dob: settings.dob,
+                    salary: 0, // hoặc lấy từ API nếu muốn cho phép sửa
+                });
+                toast({ title: 'Thành công', description: 'Đã cập nhật thông tin.' });
+            } catch {
+                toast({ title: 'Lỗi', description: 'Cập nhật thất bại.' });
+            } finally {
+                setLoading(false);
+            }
+        }
     };
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Cài đặt tài khoản</h2>
-                <Button onClick={handleSave}>
-                    <Save className="mr-2 h-4 w-4" /> Lưu thay đổi
+                <Button onClick={handleSave} disabled={loading}>
+                    <Save className="mr-2 h-4 w-4" /> {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
                 </Button>
             </div>
 
@@ -95,30 +139,19 @@ export default function TeacherSettings() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="phone">Số điện thoại</Label>
+                                <Label htmlFor="dob">Ngày sinh</Label>
                                 <Input
-                                    id="phone"
-                                    value={settings.phone}
+                                    id="dob"
+                                    type="date"
+                                    value={settings.dob || ''}
                                     onChange={(e) =>
-                                        setSettings({ ...settings, phone: e.target.value })
-                                    }
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="bio">Tiểu sử</Label>
-                                <Input
-                                    id="bio"
-                                    value={settings.bio}
-                                    onChange={(e) =>
-                                        setSettings({ ...settings, bio: e.target.value })
+                                        setSettings({ ...settings, dob: e.target.value })
                                     }
                                 />
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-
                 <Card>
                     <CardHeader>
                         <CardTitle>Thông báo</CardTitle>
@@ -135,20 +168,8 @@ export default function TeacherSettings() {
                                         Nhận thông báo qua email
                                     </p>
                                 </div>
-                                <Switch
-                                    checked={settings.notifications.email}
-                                    onCheckedChange={(checked) =>
-                                        setSettings({
-                                            ...settings,
-                                            notifications: {
-                                                ...settings.notifications,
-                                                email: checked,
-                                            },
-                                        })
-                                    }
-                                />
+                                <Switch checked={true} disabled />
                             </div>
-
                             <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">
                                     <Label>Thông báo qua SMS</Label>
@@ -156,20 +177,8 @@ export default function TeacherSettings() {
                                         Nhận thông báo qua tin nhắn SMS
                                     </p>
                                 </div>
-                                <Switch
-                                    checked={settings.notifications.sms}
-                                    onCheckedChange={(checked) =>
-                                        setSettings({
-                                            ...settings,
-                                            notifications: {
-                                                ...settings.notifications,
-                                                sms: checked,
-                                            },
-                                        })
-                                    }
-                                />
+                                <Switch checked={false} disabled />
                             </div>
-
                             <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">
                                     <Label>Thông báo đẩy</Label>
@@ -177,23 +186,11 @@ export default function TeacherSettings() {
                                         Nhận thông báo đẩy trên ứng dụng
                                     </p>
                                 </div>
-                                <Switch
-                                    checked={settings.notifications.push}
-                                    onCheckedChange={(checked) =>
-                                        setSettings({
-                                            ...settings,
-                                            notifications: {
-                                                ...settings.notifications,
-                                                push: checked,
-                                            },
-                                        })
-                                    }
-                                />
+                                <Switch checked={true} disabled />
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-
                 <Card>
                     <CardHeader>
                         <CardTitle>Bảo mật</CardTitle>
@@ -210,36 +207,11 @@ export default function TeacherSettings() {
                                         Yêu cầu xác thực hai yếu tố khi đăng nhập
                                     </p>
                                 </div>
-                                <Switch
-                                    checked={settings.security.twoFactor}
-                                    onCheckedChange={(checked) =>
-                                        setSettings({
-                                            ...settings,
-                                            security: {
-                                                ...settings.security,
-                                                twoFactor: checked,
-                                            },
-                                        })
-                                    }
-                                />
+                                <Switch checked={false} disabled />
                             </div>
-
                             <div className="space-y-2">
                                 <Label htmlFor="sessionTimeout">Thời gian hết hạn phiên (phút)</Label>
-                                <Input
-                                    id="sessionTimeout"
-                                    type="number"
-                                    value={settings.security.sessionTimeout}
-                                    onChange={(e) =>
-                                        setSettings({
-                                            ...settings,
-                                            security: {
-                                                ...settings.security,
-                                                sessionTimeout: parseInt(e.target.value),
-                                            },
-                                        })
-                                    }
-                                />
+                                <Input id="sessionTimeout" type="number" value={30} disabled />
                             </div>
                         </div>
                     </CardContent>
