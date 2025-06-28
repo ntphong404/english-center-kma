@@ -79,7 +79,7 @@ const AdminDashboard = () => {
     };
     const fetchUpcoming = async () => {
       try {
-        const res = await classApi.getAll(undefined, undefined, undefined, undefined, 0, 5, 'startDate,ASC');
+        const res = await classApi.getAll("upcoming", undefined, undefined, undefined, 0, 5, 'startDate,ASC');
         const arr = res.data.result.content || [];
         // Lấy danh sách teacherId duy nhất
         const teacherIds = Array.from(new Set(arr.map((cls: any) => cls.teacherId).filter(Boolean)));

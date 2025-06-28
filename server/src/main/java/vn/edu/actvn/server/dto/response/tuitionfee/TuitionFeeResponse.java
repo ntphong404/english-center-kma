@@ -19,5 +19,6 @@ public class TuitionFeeResponse {
     @JsonFormat(pattern = "yyyy-MM")
     YearMonth yearMonth; // 2025-06
     BigDecimal amount; // 1.000.000
+    Integer discount;
     BigDecimal remainingAmount; // 500.000
 }
