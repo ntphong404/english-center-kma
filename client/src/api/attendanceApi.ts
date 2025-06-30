@@ -1,5 +1,5 @@
 import { AttendanceResponse } from '../types/attendance';
-import { ApiResponse } from '../types/api';
+import { ApiResponse, PageResponse } from '../types/api';
 import axiosInstance from '../services/axios';
 
 const attendanceApi = {
@@ -11,7 +11,7 @@ const attendanceApi = {
         if (page !== undefined) params.page = page;
         if (size !== undefined) params.size = size;
         if (sort !== undefined) params.sort = sort;
-        return axiosInstance.get<ApiResponse<AttendanceResponse[]>>(`/attendances`, { params });
+        return axiosInstance.get<ApiResponse<PageResponse<AttendanceResponse[]>>>(`/attendances`, { params });
     },
 
     getById: (id: string) => {

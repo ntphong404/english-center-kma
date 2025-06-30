@@ -12,7 +12,8 @@ public enum Permission {
     USER_DELETE("USER_DELETE"),
 
     // AUTH permissions
-
+    CHANGE_PASSWORD("CHANGE_PASSWORD"),
+    CHANGE_AVATAR("CHANGE_AVATAR"),
 
     // CLASS permissions
     CLASS_READ("CLASS_READ"),

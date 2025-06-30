@@ -12,9 +12,11 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.springframework.stereotype.Component;
 import vn.edu.actvn.server.dto.response.ApiResponse;
 import vn.edu.actvn.server.exception.ErrorCode;
 
+@Component
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
     @Override
     public void commence(

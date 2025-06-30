@@ -1,0 +1,1699 @@
+{
+	"info": {
+		"_postman_id": "6300d19b-5dc0-4c50-b178-3a0a9e183c50",
+		"name": "ENGLISH CENTER API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "43332342",
+		"_collection_link": "https://lively-firefly-950605.postman.co/workspace/Team-Workspace~b1203e2d-ba98-4cf0-8ab4-b4e299d8d929/collection/43332342-6300d19b-5dc0-4c50-b178-3a0a9e183c50?action=share&source=collection_link&creator=43332342"
+	},
+	"item": [
+		{
+			"name": "Auth (Public)",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const jsonData = pm.response.json();",
+									"pm.environment.set(\"accessToken\", jsonData.result?.accessToken);",
+									"pm.environment.set(\"refreshToken\", jsonData.result?.refreshToken);",
+									"pm.environment.set(\"userId\", jsonData.result?.user.userId);",
+									"pm.environment.set(\"email\", jsonData.result?.user.email);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{  \"username\": \"admin\", \"password\": \"admin\" }\n// {  \"username\": \"student1\", \"password\": \"student1\" }\n// {  \"username\": \"teacher1\", \"password\": \"teacher1\" }\n// {  \"username\": \"parent1\", \"password\": \"parent1\" }"
+						},
+						"url": "{{base_url}}/auth/login"
+					},
+					"response": []
+				},
+				{
+					"name": "Introspect Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"{{accessToken}}\"\n}"
+						},
+						"url": "{{base_url}}/auth/introspect"
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": "{{base_url}}/auth/refresh"
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\",\n    \"accessToken\": \"{{accessToken}}\"\n}"
+						},
+						"url": "{{base_url}}/auth/logout"
+					},
+					"response": []
+				},
+				{
+					"name": "Clear Tokens",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/auth/clear"
+					},
+					"response": []
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/forgot-password?email={{email}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"forgot-password"
+							],
+							"query": [
+								{
+									"key": "email",
+									"value": "{{email}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"auth": {
+				"type": "noauth"
+			}
+		},
+		{
+			"name": "Banner Courses",
+			"item": [
+				{
+					"name": "Get All Banner Courses (Public)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/banner-courses/all"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Banner Course by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/banner-courses/{{bannerId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Banner Course",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "image",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "title",
+									"value": "Sample Title",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Sample Description",
+									"type": "text"
+								}
+							]
+						},
+						"url": "{{base_url}}/banner-courses"
+					},
+					"response": []
+				},
+				{
+					"name": "Patch Banner Course",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "image",
+									"type": "file",
+									"src": [],
+									"disabled": true
+								},
+								{
+									"key": "title",
+									"value": "Updated Title",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Updated Description",
+									"type": "text"
+								}
+							]
+						},
+						"url": "{{base_url}}/banner-courses/{{bannerId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Banner Course",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{base_url}}/banner-courses/{{bannerId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Banner Courses (with pagination)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/banner-courses?page=0&size=10&sort=title,asc",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"banner-courses"
+							],
+							"query": [
+								{
+									"key": "title",
+									"value": "{{title}}",
+									"disabled": true
+								},
+								{
+									"key": "description",
+									"value": "{{description}}",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "sort",
+									"value": "title,asc"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "User",
+			"item": [
+				{
+					"name": "Create User (Public)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  // user fields\n}"
+						},
+						"url": "{{base_url}}/users"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/users"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Users by Role Name",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/role/:roleName",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"role",
+								":roleName"
+							],
+							"variable": [
+								{
+									"key": "roleName"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/:userId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								":userId"
+							],
+							"variable": [
+								{
+									"key": "userId"
+								}
+							]
+						},
+						"description": "Use {{userId}} for :userId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/users/me",
+						"description": "Get current logged-in user's info"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{base_url}}/users/{{userId}}",
+						"description": "Delete user by id, use {{userId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Update User (PUT)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  // user update fields\n}"
+						},
+						"url": "{{base_url}}/users/{{userId}}",
+						"description": "Update user by id, use {{userId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Patch User",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  // user patch fields\n}"
+						},
+						"url": "{{base_url}}/users/{{userId}}",
+						"description": "Patch user by id, use {{userId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"oldPassword\": \"\",\n  \"newPassword\": \"\"\n}"
+						},
+						"url": "{{base_url}}/users/change-password",
+						"description": "Change current user's password"
+					},
+					"response": []
+				},
+				{
+					"name": "Change Avatar",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "image",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": "{{base_url}}/users/change-avatar",
+						"description": "Change current user's avatar"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Attendance",
+			"item": [
+				{
+					"name": "Get Today's Attendance",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const jsonData = pm.response.json();",
+									"if (jsonData.result?.attendanceId) {",
+									"  pm.environment.set(\"attendanceId\", jsonData.result.attendanceId);",
+									"}",
+									"if (jsonData.result?.studentAttendances) {",
+									"  pm.environment.set(\"studentAttendances\", JSON.stringify(jsonData.result.studentAttendances));",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/attendances/today/{{classId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Attendance by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/attendances/{{attendanceId}}",
+						"description": "Use {{attendanceId}} for :id"
+					},
+					"response": []
+				},
+				{
+					"name": "Partially Update Attendance",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"studentAttendances\": {{studentAttendances}}\n}"
+						},
+						"url": "{{base_url}}/attendances/{{attendanceId}}",
+						"description": "Use {{attendanceId}} for :id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Attendance",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/attendances/{{attendanceId}}",
+						"description": "Use {{attendanceId}} for :id"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Attendance Count by Student and Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/attendances/count/student?classId={{classId}}&studentId={{studentId}}&status={{status}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"attendances",
+								"count",
+								"student"
+							],
+							"query": [
+								{
+									"key": "classId",
+									"value": "{{classId}}"
+								},
+								{
+									"key": "studentId",
+									"value": "{{studentId}}"
+								},
+								{
+									"key": "status",
+									"value": "{{status}}"
+								}
+							]
+						},
+						"description": "Use {{classId}}, {{studentId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Attendances",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/attendances?sort=date,desc&classId={{classId}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"attendances"
+							],
+							"query": [
+								{
+									"key": "sort",
+									"value": "date,desc"
+								},
+								{
+									"key": "classId",
+									"value": "{{classId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Parent",
+			"item": [
+				{
+					"name": "Get All Parents",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/parents"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Parent by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/parents/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"parents",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id"
+								}
+							]
+						},
+						"description": "Use {{parentId}} for :id"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Parent",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  // parent fields\n}"
+						},
+						"url": "{{base_url}}/parents"
+					},
+					"response": []
+				},
+				{
+					"name": "Patch Parent",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  // parent update fields\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/parents/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"parents",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id"
+								}
+							]
+						},
+						"description": "Use {{parentId}} for :id"
+					},
+					"response": []
+				},
+				{
+					"name": "Add Student to Parent",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{studentId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/parents/:parentId/add-student",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"parents",
+								":parentId",
+								"add-student"
+							],
+							"variable": [
+								{
+									"key": "parentId"
+								}
+							]
+						},
+						"description": "Use {{parentId}}, {{studentId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Student from Parent",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{studentId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/parents/:parentId/remove-student",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"parents",
+								":parentId",
+								"remove-student"
+							],
+							"variable": [
+								{
+									"key": "parentId"
+								}
+							]
+						},
+						"description": "Use {{parentId}}, {{studentId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Parent",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/parents/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"parents",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id"
+								}
+							]
+						},
+						"description": "Use {{parentId}} for :id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payment",
+			"item": [
+				{
+					"name": "Create Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  // payment fields\n}"
+						},
+						"url": "{{base_url}}/payments"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Payments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/payments?studentId=9710b9b2-d11d-4218-be13-ee49e0da3734&yearMonth=2025-05",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"payments"
+							],
+							"query": [
+								{
+									"key": "studentId",
+									"value": "9710b9b2-d11d-4218-be13-ee49e0da3734"
+								},
+								{
+									"key": "yearMonth",
+									"value": "2025-05"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Payment by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/payments/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"payments",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id"
+								}
+							]
+						},
+						"description": "Use {{paymentId}} for :id"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Payment",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  // payment update fields\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/payments/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"payments",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id"
+								}
+							]
+						},
+						"description": "Use {{paymentId}} for :id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Payment",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/payments/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"payments",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id"
+								}
+							]
+						},
+						"description": "Use {{paymentId}} for :id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Role",
+			"item": [
+				{
+					"name": "Create Role",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  // role fields\n}"
+						},
+						"url": "{{base_url}}/roles"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Roles",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/roles"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Role",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/roles/:role",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"roles",
+								":role"
+							],
+							"variable": [
+								{
+									"key": "role"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Permissions to Role",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n  \"PERMISSION_1\",\n  \"PERMISSION_2\"\n]"
+						},
+						"url": {
+							"raw": "{{base_url}}/roles/:role/permissions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"roles",
+								":role",
+								"permissions"
+							],
+							"variable": [
+								{
+									"key": "role"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Permissions from Role",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n  \"PERMISSION_1\",\n  \"PERMISSION_2\"\n]"
+						},
+						"url": {
+							"raw": "{{base_url}}/roles/:role/remove-permissions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"roles",
+								":role",
+								"remove-permissions"
+							],
+							"variable": [
+								{
+									"key": "role"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update All Permissions for Role",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"permissions\": [\n    \"PERMISSION_1\",\n    \"PERMISSION_2\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/roles/:role/permissions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"roles",
+								":role",
+								"permissions"
+							],
+							"variable": [
+								{
+									"key": "role"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Student",
+			"item": [
+				{
+					"name": "Get All Students",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/students"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Student by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/students/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"students",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{userId}}"
+								}
+							]
+						},
+						"description": "Use {{studentId}} for :id"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Students by IDs",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"ids\": [\"id1\", \"id2\"]\n}"
+						},
+						"url": "{{base_url}}/students/studentIds"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Student",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  // student fields\n}"
+						},
+						"url": "{{base_url}}/students"
+					},
+					"response": []
+				},
+				{
+					"name": "Patch Student",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"address\":\"Hải Phòng\"\n//   \"phoneNumber\":\"03565657776\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/students/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"students",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{userId}}"
+								}
+							]
+						},
+						"description": "Use {{studentId}} for :id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Student",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/students/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"students",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id"
+								}
+							]
+						},
+						"description": "Use {{studentId}} for :id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Teacher",
+			"item": [
+				{
+					"name": "Get All Teachers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/teachers"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Teacher by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teachers/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teachers",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id"
+								}
+							]
+						},
+						"description": "Use {{teacherId}} for :id"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Teacher",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  // teacher fields\n}"
+						},
+						"url": "{{base_url}}/teachers"
+					},
+					"response": []
+				},
+				{
+					"name": "Patch Teacher",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  // teacher update fields\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/teachers/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teachers",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id"
+								}
+							]
+						},
+						"description": "Use {{teacherId}} for :id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Teacher",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teachers/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teachers",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id"
+								}
+							]
+						},
+						"description": "Use {{teacherId}} for :id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "TuitionFee",
+			"item": [
+				{
+					"name": "Create Tuition Fee",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  // tuition fee fields\n}"
+						},
+						"url": "{{base_url}}/tuition-fees"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Tuition Fees",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/tuition-fees?studentId=9710b9b2-d11d-4218-be13-ee49e0da3734&yearMonth=2025-06",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"tuition-fees"
+							],
+							"query": [
+								{
+									"key": "studentId",
+									"value": "9710b9b2-d11d-4218-be13-ee49e0da3734"
+								},
+								{
+									"key": "yearMonth",
+									"value": "2025-06"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tuition Fee by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/tuition-fees/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"tuition-fees",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id"
+								}
+							]
+						},
+						"description": "Use {{tuitionFeeId}} for :id"
+					},
+					"response": []
+				},
+				{
+					"name": "Patch Tuition Fee",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  // tuition fee update fields\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/tuition-fees/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"tuition-fees",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id"
+								}
+							]
+						},
+						"description": "Use {{tuitionFeeId}} for :id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Tuition Fee",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/tuition-fees/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"tuition-fees",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id"
+								}
+							]
+						},
+						"description": "Use {{tuitionFeeId}} for :id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Upload",
+			"item": [
+				{
+					"name": "Upload Avatar",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": "{{base_url}}/upload/avatar"
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Banner",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": "{{base_url}}/upload/banner"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Class",
+			"item": [
+				{
+					"name": "Get All Class",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/classes"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Class by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/classes/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"classes",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{classId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Teacher Payment",
+			"item": [
+				{
+					"name": "Get All",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teacher-payments?teacherId={{userId}}&month=6&year=2025&page=0&sort=createdAt,desc&size=100",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teacher-payments"
+							],
+							"query": [
+								{
+									"key": "teacherId",
+									"value": "{{userId}}"
+								},
+								{
+									"key": "month",
+									"value": "6"
+								},
+								{
+									"key": "year",
+									"value": "2025"
+								},
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "sort",
+									"value": "createdAt,desc"
+								},
+								{
+									"key": "size",
+									"value": "100"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teacher-payments/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teacher-payments",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{teacherPaymentId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "New Request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const jsonData = pm.response.json();\r",
+									"pm.environment.set(\"teacherPaymentId\",jsonData.result?.id)"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"teacherId\":\"{{userId}}\",\r\n    \"month\":\"{{month}}\",\r\n    \"year\":\"2025\",\r\n    \"amount\":\"{{amount}}\",\r\n    \"paidAmount\":\"{{paidAmount}}\",\r\n    \"note\":\"Lương tháng {{month}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/teacher-payments"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": {
+			"token": "{{accessToken}}"
+		}
+	}
+}

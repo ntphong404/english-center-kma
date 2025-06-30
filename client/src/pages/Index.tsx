@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,38 +10,19 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import AvatarMenu from '@/components/AvatarMenu';
 import authApi from '@/api/authApi';
+import { getUser, useUserDataListener } from '@/store/userStore';
+import { User } from '@/types/user';
 
 const Index = () => {
-  const [userData, setUserData] = useState<{
-    usernameInitial: string;
-    fullName: string;
-    role: string;
-    avatarUrl: string;
-  } | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const updateUserData = () => {
-    const user = localStorage.getItem('user');
-    if (user) {
-      try {
-        const parsedUser = JSON.parse(user);
-        setUserData({
-          usernameInitial: parsedUser.username.charAt(0).toUpperCase(),
-          fullName: parsedUser.fullName,
-          role: parsedUser.role.toLowerCase(),
-          avatarUrl: parsedUser.avatarUrl
-        });
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        setUserData(null);
-      }
-    } else {
-      setUserData(null);
-    }
-  };
+  // Callback để cập nhật trạng thái đăng nhập
+  const updateLoginState = useCallback((user: User | null) => {
+    setIsLoggedIn(!!user);
+  }, []);
 
-  useEffect(() => {
-    updateUserData();
-  }, [userData]);
+  // Lắng nghe thay đổi user data
+  useUserDataListener(updateLoginState);
 
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -66,9 +47,6 @@ const Index = () => {
 
   const handleLogout = async () => {
     try {
-      // Clear user data first
-      setUserData(null);
-
       // Clear localStorage
       localStorage.removeItem('user');
       localStorage.removeItem('accessToken');
@@ -85,7 +63,6 @@ const Index = () => {
     } catch (error) {
       console.error('Logout error:', error);
       // Even if the API call fails, we still want to clear local data
-      setUserData(null);
       localStorage.removeItem('user');
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
@@ -99,13 +76,8 @@ const Index = () => {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">English Center</h1>
           <nav>
-            {userData ? (
-              <AvatarMenu
-                usernameInitial={userData.usernameInitial}
-                role={userData.role}
-                fullName={userData.fullName}
-                avatarUrl={userData.avatarUrl}
-              />
+            {isLoggedIn ? (
+              <AvatarMenu />
             ) : (
               <Link to="/login">
                 <Button variant="outline" size="sm">

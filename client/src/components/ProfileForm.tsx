@@ -367,7 +367,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
                                             <AvatarImage src={formData.avatar} alt={formData.fullName} />
                                         ) : (
                                             <AvatarFallback className="text-lg">
-                                                {formData.fullName ? formData.fullName.split(' ').map(n => n[0]).join('') : 'U'}
+                                                {formData.fullName ? formData.fullName.charAt(0).toUpperCase() : 'UKN'}
                                             </AvatarFallback>
                                         )}
                                     </Avatar>

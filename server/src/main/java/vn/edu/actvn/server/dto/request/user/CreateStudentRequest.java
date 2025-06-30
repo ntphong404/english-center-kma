@@ -1,10 +1,14 @@
 package vn.edu.actvn.server.dto.request.user;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import vn.edu.actvn.server.entity.ClassDiscount;
 import vn.edu.actvn.server.validator.DobConstraint;
+import vn.edu.actvn.server.validator.GenderConstraint;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -22,9 +26,16 @@ public class CreateStudentRequest {
     String password;
 
     String fullName;
+
+    @Email
     String email;
+
+    @GenderConstraint
+    @NotBlank
     String gender;
+
     String address;
+    @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "INVALID_PHONE_NUMBER")
     String phoneNumber;
 
     @DobConstraint(min = 10, message = "INVALID_DOB")

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import parentApi from '@/api/parentApi';
 import studentApi from '@/api/studentApi';
@@ -18,6 +19,7 @@ import { TuitionFeeResponse } from '@/types/tuitionfee';
 import { ClassResponse } from '@/types/entityclass';
 import { PageResponse } from '@/types/api';
 import { PaymentCreateRequest } from '@/types/payment';
+import { TablePagination } from '@/components/ui/table-pagination';
 
 interface EnhancedTuitionFee extends TuitionFeeResponse {
     className?: string;
@@ -27,9 +29,6 @@ interface EnhancedTuitionFee extends TuitionFeeResponse {
 interface ChildFeeSummary {
     totalUnpaid: number;
     unpaidMonths: number;
-    overdueMonths: number;
-    totalOriginalAmount: number;
-    totalDiscountAmount: number;
     totalPaidAmount: number;
     fees: EnhancedTuitionFee[];
 }
@@ -40,12 +39,24 @@ export default function ParentFees() {
     const [tuitionFees, setTuitionFees] = useState<Record<string, EnhancedTuitionFee[]>>({});
     const [classes, setClasses] = useState<Record<string, ClassResponse>>({});
     const [feeSummaries, setFeeSummaries] = useState<Record<string, ChildFeeSummary>>({});
-    
+    const [selectedMonths, setSelectedMonths] = useState<Record<string, string>>({});
+    const [selectedYears, setSelectedYears] = useState<Record<string, string>>({});
+    const [availableMonths, setAvailableMonths] = useState<Record<string, string[]>>({});
+
     // Payment dialog states
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
     const [selectedFee, setSelectedFee] = useState<TuitionFeeResponse | null>(null);
     const [paymentAmount, setPaymentAmount] = useState('');
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+    // Helper for years
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: currentYear - 2020 + 1 }, (_, i) => (2020 + i).toString());
+    const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+    const monthLabels = months.map((m, i) => `Tháng ${i + 1}`);
+
+    const [pages, setPages] = useState<Record<string, number>>({}); // current page per student
+    const [totalPages, setTotalPages] = useState<Record<string, number>>({});
 
     const fetchData = async () => {
         setLoading(true);
@@ -72,6 +83,7 @@ export default function ParentFees() {
             const feesMap: Record<string, EnhancedTuitionFee[]> = {};
             const classesMap: Record<string, ClassResponse> = {};
             const summariesMap: Record<string, ChildFeeSummary> = {};
+            const monthsMap: Record<string, Set<string>> = {};
 
             for (const student of students) {
                 const feesRes = await tuitionFeeApi.getAll(student.userId, undefined, 0, 100, 'yearMonth,DESC');
@@ -87,6 +99,8 @@ export default function ParentFees() {
                             console.error(`Error fetching class ${fee.classId}:`, error);
                         }
                     }
+                    if (!monthsMap[student.userId]) monthsMap[student.userId] = new Set();
+                    monthsMap[student.userId].add(fee.yearMonth);
                 }
 
                 // Sắp xếp theo tháng giảm dần
@@ -96,35 +110,22 @@ export default function ParentFees() {
                 // Tính toán tổng hợp cho từng con
                 const totalUnpaid = sortedFees.reduce((sum, fee) => sum + fee.remainingAmount, 0);
                 const unpaidMonths = sortedFees.filter(fee => fee.remainingAmount > 0).length;
-                
-                // Tính số tháng quá hạn (giả sử quá hạn nếu là tháng trước tháng hiện tại)
-                const currentDate = new Date();
-                const currentYearMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-                const overdueMonths = sortedFees.filter(fee => 
-                    fee.remainingAmount > 0 && fee.yearMonth < currentYearMonth
-                ).length;
-
-                // Tính toán các khoản tiền
-                const totalOriginalAmount = sortedFees.reduce((sum, fee) => {
-                    const original = fee.discount ? fee.amount / (1 - fee.discount / 100) : fee.amount;
-                    return sum + original;
-                }, 0);
-                const totalDiscountAmount = sortedFees.reduce((sum, fee) => {
-                    const original = fee.discount ? fee.amount / (1 - fee.discount / 100) : fee.amount;
-                    return sum + (original - fee.amount);
-                }, 0);
                 const totalPaidAmount = sortedFees.reduce((sum, fee) => sum + (fee.amount - fee.remainingAmount), 0);
 
                 summariesMap[student.userId] = {
                     totalUnpaid,
                     unpaidMonths,
-                    overdueMonths,
-                    totalOriginalAmount,
-                    totalDiscountAmount,
                     totalPaidAmount,
                     fees: sortedFees
                 };
             }
+
+            // Sắp xếp các tháng cho từng học sinh
+            const monthsObj: Record<string, string[]> = {};
+            for (const studentId in monthsMap) {
+                monthsObj[studentId] = Array.from(monthsMap[studentId]).sort((a, b) => b.localeCompare(a));
+            }
+            setAvailableMonths(monthsObj);
 
             setTuitionFees(feesMap);
             setClasses(classesMap);
@@ -135,9 +136,43 @@ export default function ParentFees() {
         setLoading(false);
     };
 
+    // Fetch fees for a student with filters and pagination
+    const fetchStudentFees = async (studentId: string, year: string, month: string, page: number) => {
+        let yearMonth: string | undefined = undefined;
+        if (month !== 'all') {
+            yearMonth = `${year}-${month}`;
+        }
+        const res = await tuitionFeeApi.getAll(studentId, yearMonth, page, 5, 'yearMonth,DESC');
+        const content = res.data.result.content || [];
+        const total = res.data.result.page.totalPages;
+        return { content, total };
+    };
+
+    // Fetch all students' fees (first load or when children change)
+    const fetchAllFees = async (students: Student[], selectedMonths: Record<string, string>, selectedYears: Record<string, string>, pages: Record<string, number>) => {
+        const feesMap: Record<string, EnhancedTuitionFee[]> = {};
+        const totalPagesMap: Record<string, number> = {};
+        for (const student of students) {
+            const month = selectedMonths[student.userId] || 'all';
+            const year = selectedYears[student.userId] || currentYear.toString();
+            const page = pages[student.userId] || 0;
+            const { content, total } = await fetchStudentFees(student.userId, year, month, page);
+            feesMap[student.userId] = content;
+            totalPagesMap[student.userId] = total;
+        }
+        setTuitionFees(feesMap);
+        setTotalPages(totalPagesMap);
+    };
+
     useEffect(() => {
         fetchData();
     }, []);
+
+    // Khi thay đổi tháng/năm/page cho từng học sinh
+    useEffect(() => {
+        if (children.length === 0) return;
+        fetchAllFees(children, selectedMonths, selectedYears, pages);
+    }, [children, selectedMonths, selectedYears, pages]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('vi-VN', {
@@ -151,10 +186,16 @@ export default function ParentFees() {
         return `${month}/${year}`;
     };
 
-    const isOverdue = (yearMonth: string) => {
-        const currentDate = new Date();
-        const currentYearMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-        return yearMonth < currentYearMonth;
+    // Filter fees by month/year
+    const getFilteredFees = (fees: EnhancedTuitionFee[], studentId: string) => {
+        const selectedMonth = selectedMonths[studentId] || 'all';
+        const selectedYear = selectedYears[studentId] || currentYear.toString();
+        return fees.filter(fee => {
+            const [year, month] = fee.yearMonth.split('-');
+            const matchYear = year === selectedYear;
+            const matchMonth = selectedMonth === 'all' ? true : month === selectedMonth;
+            return matchYear && matchMonth;
+        });
     };
 
     const handlePaymentClick = (fee: TuitionFeeResponse) => {
@@ -203,7 +244,7 @@ export default function ParentFees() {
             setIsPaymentDialogOpen(false);
             setSelectedFee(null);
             setPaymentAmount('');
-            
+
             // Refresh lại dữ liệu học phí
             await fetchData();
         } catch (error) {
@@ -255,7 +296,12 @@ export default function ParentFees() {
                 children.map(child => {
                     const summary = feeSummaries[child.userId];
                     const childFees = tuitionFees[child.userId] || [];
-                    const unpaidFees = childFees.filter(fee => fee.remainingAmount > 0);
+                    const filteredFees = getFilteredFees(childFees, child.userId);
+                    const unpaidFees = filteredFees.filter(fee => fee.remainingAmount > 0);
+                    // Tổng tiền chưa đóng cho filter
+                    const totalUnpaidFiltered = filteredFees.reduce((sum, fee) => sum + fee.remainingAmount, 0);
+                    const totalPaidFiltered = filteredFees.reduce((sum, fee) => sum + (fee.amount - fee.remainingAmount), 0);
+                    const unpaidMonthsFiltered = filteredFees.filter(fee => fee.remainingAmount > 0).length;
 
                     return (
                         <Card key={child.userId} className="border-l-4 border-l-blue-500">
@@ -270,17 +316,47 @@ export default function ParentFees() {
                                             Email: {child.email || 'Chưa cập nhật'}
                                         </CardDescription>
                                     </div>
-                                    {summary.totalUnpaid > 0 && (
-                                        <div className="text-right">
-                                            <div className="text-sm text-gray-500">Tổng nợ</div>
-                                            <div className="text-2xl font-bold text-red-600">
-                                                {formatCurrency(summary.totalUnpaid)}
-                                            </div>
+                                    <div className="flex flex-col items-end gap-2">
+                                        <div className="flex items-center space-x-2 mt-2">
+                                            <Label htmlFor={`month-select-${child.userId}`} className="text-sm font-medium">Chọn thời gian:</Label>
+                                            <Select
+                                                value={selectedMonths[child.userId] || 'all'}
+                                                onValueChange={val => {
+                                                    setSelectedMonths(prev => ({ ...prev, [child.userId]: val }));
+                                                    setPages(prev => ({ ...prev, [child.userId]: 0 }));
+                                                }}
+                                            >
+                                                <SelectTrigger className="w-36">
+                                                    <SelectValue placeholder="Tất cả tháng" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">Tất cả tháng</SelectItem>
+                                                    {months.map((month, idx) => (
+                                                        <SelectItem key={month} value={month}>{monthLabels[idx]}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Select
+                                                value={selectedYears[child.userId] || currentYear.toString()}
+                                                onValueChange={val => {
+                                                    setSelectedYears(prev => ({ ...prev, [child.userId]: val }));
+                                                    setPages(prev => ({ ...prev, [child.userId]: 0 }));
+                                                }}
+                                            >
+                                                <SelectTrigger className="w-28">
+                                                    <SelectValue placeholder="Năm" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {years.map(year => (
+                                                        <SelectItem key={year} value={year}>{year}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                             </CardHeader>
-                            
+
                             <CardContent>
                                 {/* Thống kê tổng quan */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -289,79 +365,30 @@ export default function ParentFees() {
                                             <Calendar className="h-5 w-5 text-blue-600 mr-2" />
                                             <div>
                                                 <div className="text-sm text-blue-600 font-medium">Tháng chưa đóng</div>
-                                                <div className="text-xl font-bold text-blue-800">{summary.unpaidMonths}</div>
+                                                <div className="text-xl font-bold text-blue-800">{unpaidMonthsFiltered}</div>
                                             </div>
                                         </div>
                                     </div>
-                                    
-                                    <div className="bg-yellow-50 rounded-lg p-4">
-                                        <div className="flex items-center">
-                                            <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
-                                            <div>
-                                                <div className="text-sm text-yellow-600 font-medium">Tháng quá hạn</div>
-                                                <div className="text-xl font-bold text-yellow-800">{summary.overdueMonths}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="bg-red-50 rounded-lg p-4">
-                                        <div className="flex items-center">
-                                            <DollarSign className="h-5 w-5 text-red-600 mr-2" />
-                                            <div>
-                                                <div className="text-sm text-red-600 font-medium">Tổng nợ</div>
-                                                <div className="text-xl font-bold text-red-800">
-                                                    {formatCurrency(summary.totalUnpaid)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                {/* Thống kê tài chính */}
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                                    <div className="bg-gray-50 rounded-lg p-4">
-                                        <div className="flex items-center">
-                                            <DollarSign className="h-5 w-5 text-gray-600 mr-2" />
-                                            <div>
-                                                <div className="text-sm text-gray-600 font-medium">Tổng tiền gốc</div>
-                                                <div className="text-lg font-bold text-gray-800">
-                                                    {formatCurrency(summary.totalOriginalAmount)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
                                     <div className="bg-green-50 rounded-lg p-4">
                                         <div className="flex items-center">
                                             <DollarSign className="h-5 w-5 text-green-600 mr-2" />
                                             <div>
-                                                <div className="text-sm text-green-600 font-medium">Tiền đã giảm</div>
-                                                <div className="text-lg font-bold text-green-800">
-                                                    {formatCurrency(summary.totalDiscountAmount)}
+                                                <div className="text-sm text-green-600 font-medium">Tiền đã đóng</div>
+                                                <div className="text-xl font-bold text-green-800">
+                                                    {formatCurrency(totalPaidFiltered)}
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                    
-                                    <div className="bg-blue-50 rounded-lg p-4">
-                                        <div className="flex items-center">
-                                            <DollarSign className="h-5 w-5 text-blue-600 mr-2" />
-                                            <div>
-                                                <div className="text-sm text-blue-600 font-medium">Tiền đã đóng</div>
-                                                <div className="text-lg font-bold text-blue-800">
-                                                    {formatCurrency(summary.totalPaidAmount)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
+
                                     <div className="bg-red-50 rounded-lg p-4">
                                         <div className="flex items-center">
                                             <DollarSign className="h-5 w-5 text-red-600 mr-2" />
                                             <div>
-                                                <div className="text-sm text-red-600 font-medium">Tiền còn nợ</div>
-                                                <div className="text-lg font-bold text-red-800">
-                                                    {formatCurrency(summary.totalUnpaid)}
+                                                <div className="text-sm text-red-600 font-medium">Tổng tiền chưa đóng</div>
+                                                <div className="text-xl font-bold text-red-800">
+                                                    {formatCurrency(totalUnpaidFiltered)}
                                                 </div>
                                             </div>
                                         </div>
@@ -378,7 +405,7 @@ export default function ParentFees() {
                                             </Badge>
                                         )}
                                     </div>
-                                    
+
                                     <div className="border rounded-lg overflow-hidden">
                                         <Table>
                                             <TableHeader>
@@ -386,7 +413,7 @@ export default function ParentFees() {
                                                     <TableHead className="font-semibold">Tháng</TableHead>
                                                     <TableHead className="font-semibold">Lớp học</TableHead>
                                                     <TableHead className="font-semibold text-right">Tiền gốc</TableHead>
-                                                    <TableHead className="font-semibold text-right">Tiền giảm</TableHead>
+                                                    <TableHead className="font-semibold text-right">Giảm giá (%)</TableHead>
                                                     <TableHead className="font-semibold text-right">Học phí</TableHead>
                                                     <TableHead className="font-semibold text-right">Đã đóng</TableHead>
                                                     <TableHead className="font-semibold text-right">Còn nợ</TableHead>
@@ -395,50 +422,33 @@ export default function ParentFees() {
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {childFees.length === 0 ? (
+                                                {filteredFees.length === 0 ? (
                                                     <TableRow>
                                                         <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                                                            Chưa có thông tin học phí
+                                                            {(selectedMonths[child.userId] || 'all') === 'all' ? 'Chưa có thông tin học phí' : 'Không có dữ liệu cho thời gian đã chọn'}
                                                         </TableCell>
                                                     </TableRow>
                                                 ) : (
-                                                    childFees.map(fee => {
+                                                    filteredFees.map(fee => {
                                                         const paidAmount = fee.amount - fee.remainingAmount;
-                                                        const isOverdueMonth = isOverdue(fee.yearMonth);
                                                         const originalAmount = fee.discount ? fee.amount / (1 - fee.discount / 100) : fee.amount;
-                                                        const discountAmount = originalAmount - fee.amount;
 
                                                         return (
-                                                            <TableRow 
+                                                            <TableRow
                                                                 key={fee.tuitionFeeId}
                                                                 className={fee.remainingAmount > 0 ? 'bg-red-50/30' : ''}
                                                             >
                                                                 <TableCell className="font-medium">
-                                                                    <div className="flex items-center">
-                                                                        {formatYearMonth(fee.yearMonth)}
-                                                                        {isOverdueMonth && fee.remainingAmount > 0 && (
-                                                                            <Badge variant="destructive" className="ml-2 text-xs">
-                                                                                Quá hạn
-                                                                            </Badge>
-                                                                        )}
-                                                                    </div>
+                                                                    {formatYearMonth(fee.yearMonth)}
                                                                 </TableCell>
                                                                 <TableCell>
                                                                     {classes[fee.classId]?.className || 'Chưa cập nhật'}
                                                                 </TableCell>
                                                                 <TableCell className="text-right">
-                                                                    <span className="text-gray-600 font-medium">
-                                                                        {formatCurrency(originalAmount)}
-                                                                    </span>
+                                                                    {formatCurrency(originalAmount)}
                                                                 </TableCell>
                                                                 <TableCell className="text-right">
-                                                                    {discountAmount > 0 ? (
-                                                                        <span className="text-green-600 font-medium">
-                                                                            -{formatCurrency(discountAmount)}
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className="text-gray-400">0 ₫</span>
-                                                                    )}
+                                                                    {fee.discount ? `${fee.discount}%` : '0%'}
                                                                 </TableCell>
                                                                 <TableCell className="text-right font-medium">
                                                                     {formatCurrency(fee.amount)}
@@ -474,17 +484,17 @@ export default function ParentFees() {
                                                                 </TableCell>
                                                                 <TableCell className="text-center">
                                                                     {fee.remainingAmount === 0 ? (
-                                                                        <Button 
-                                                                            variant="ghost" 
-                                                                            size="icon" 
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
                                                                             title="Tải biên lai"
                                                                             className="hover:bg-green-100 hover:text-green-700"
                                                                         >
                                                                             <Download className="h-4 w-4" />
                                                                         </Button>
                                                                     ) : (
-                                                                        <Button 
-                                                                            variant="outline" 
+                                                                        <Button
+                                                                            variant="outline"
                                                                             size="sm"
                                                                             className="text-red-600 border-red-300 hover:bg-red-50"
                                                                             onClick={() => handlePaymentClick(fee)}
@@ -500,6 +510,17 @@ export default function ParentFees() {
                                             </TableBody>
                                         </Table>
                                     </div>
+                                    {/* Pagination */}
+                                    {totalPages[child.userId] > 1 && (
+                                        <div className="flex justify-end mt-2">
+                                            <TablePagination
+                                                currentPage={pages[child.userId] || 0}
+                                                totalPages={totalPages[child.userId]}
+                                                totalItems={childFees.length}
+                                                onPageChange={page => setPages(prev => ({ ...prev, [child.userId]: page }))}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -516,7 +537,7 @@ export default function ParentFees() {
                             Đóng học phí
                         </DialogTitle>
                     </DialogHeader>
-                    
+
                     {selectedFee && (
                         <div className="space-y-4">
                             <div className="bg-gray-50 rounded-lg p-4">

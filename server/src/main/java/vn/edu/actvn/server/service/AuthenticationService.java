@@ -37,8 +37,7 @@ import vn.edu.actvn.server.entity.User;
 import vn.edu.actvn.server.exception.AppException;
 import vn.edu.actvn.server.exception.ErrorCode;
 import vn.edu.actvn.server.mapper.UserMapper;
-import vn.edu.actvn.server.repository.InvalidatedTokenRepository;
-import vn.edu.actvn.server.repository.UserRepository;
+import vn.edu.actvn.server.repository.*;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +47,9 @@ public class AuthenticationService {
     UserRepository userRepository;
     InvalidatedTokenRepository invalidatedTokenRepository;
     UserMapper userMapper;
+    TeacherRepository teacherRepository;
+    StudentRepository studentRepository;
+    ParentRepository parentRepository;
 
     @NonFinal
     @Value("${jwt.signerKey}")
@@ -76,10 +78,25 @@ public class AuthenticationService {
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
-        var user = userRepository
-                .findByUsername(request.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-
+        User user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
+        switch (user.getRole().getName()) {
+            case "STUDENT" -> {
+                user = studentRepository.findById(user.getUserId())
+                        .orElseThrow(()->new AppException(ErrorCode.USER_NOT_EXISTED));
+            }
+            case "TEACHER" -> {
+                user = teacherRepository.findById(user.getUserId())
+                        .orElseThrow(()->new AppException(ErrorCode.USER_NOT_EXISTED));
+            }
+            case "PARENT" -> {
+                user = parentRepository.findById(user.getUserId())
+                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+            }
+            case "ADMIN" -> {
+            }
+            default -> throw new AppException(ErrorCode.USER_NOT_EXISTED);
+        }
         boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
 
         if (!authenticated)

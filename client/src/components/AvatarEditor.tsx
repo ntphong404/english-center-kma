@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera, Check, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { userApi } from '@/api/userApi';
-import { getUser } from '@/store/userStore';
+import { getUser, setUser } from '@/store/userStore';
 import Cropper from 'react-easy-crop';
 
 interface AvatarEditorProps {
@@ -112,6 +112,14 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({
         try {
             const croppedFile = await getCroppedImg(previewUrl, croppedAreaPixels);
             const res = await userApi.changeAvatar(croppedFile);
+
+            // Cập nhật user data trong localStorage
+            const currentUser = getUser();
+            if (currentUser && res.data.result) {
+                const updatedUser = { ...currentUser, avatarUrl: res.data.result.avatarUrl };
+                setUser(updatedUser);
+            }
+
             toast({ title: "Thành công", description: "Đã cập nhật ảnh đại diện." });
             onAvatarChange(croppedFile, res.data.result.avatarUrl || undefined);
             handleClose();

@@ -20,6 +20,7 @@ import vn.edu.actvn.server.mapper.UserMapper;
 import vn.edu.actvn.server.repository.RoleRepository;
 import vn.edu.actvn.server.repository.StudentRepository;
 import vn.edu.actvn.server.repository.UserRepository;
+import vn.edu.actvn.server.utils.RandomAvatar;
 
 import java.util.List;
 
@@ -87,6 +88,7 @@ public class StudentService {
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
         student.setRole(role);
 
+        student.setAvatarUrl(RandomAvatar.getRandomAvatar(student.getGender().equals("MALE")));
         return userMapper.toUserResponse(userRepository.save(student));
     }
 
@@ -95,3 +97,4 @@ public class StudentService {
         studentRepository.deleteById(id);
     }
 }
+

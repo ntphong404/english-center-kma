@@ -13,23 +13,28 @@ import vn.edu.actvn.server.entity.Student;
 public interface UserMapper {
 
     default User toUser(Object request) {
-            return toAdmin((CreateAdminRequest) request);
+        return toAdmin((CreateAdminRequest) request);
     }
 
     @Mapping(target = "role", ignore = true)
-    User toAdmin(CreateAdminRequest request);
+    @Mapping(target = "gender", expression = "java(request.getGender() != null ? request.getGender().toUpperCase() : null)")    User toAdmin(CreateAdminRequest request);
 
     @Mapping(target = "role", ignore = true)
-    Parent toParent(CreateParentRequest request);
+    @Mapping(target = "gender", expression = "java(request.getGender() != null ? request.getGender().toUpperCase() : null)")    Parent toParent(CreateParentRequest request);
 
     @Mapping(target = "role", ignore = true)
-    Teacher toTeacher(CreateTeacherRequest request);
+    @Mapping(target = "gender", expression = "java(request.getGender() != null ? request.getGender().toUpperCase() : null)")    Teacher toTeacher(CreateTeacherRequest request);
 
     @Mapping(target = "role", ignore = true)
-    Student toStudent(CreateStudentRequest request);
+    @Mapping(target = "gender", expression = "java(request.getGender() != null ? request.getGender().toUpperCase() : null)")    Student toStudent(CreateStudentRequest request);
 
     default UserResponse toUserResponse(User user) {
-            return toAdminResponse(user);
+        return switch (user) {
+            case Parent parent -> toParentResponse(parent);
+            case Teacher teacher -> toTeacherResponse(teacher);
+            case Student student -> toStudentResponse(student);
+            case null, default -> toAdminResponse(user);
+        };
     }
 
     void updateAdmin(@MappingTarget User user, UpdateAdminRequest request);

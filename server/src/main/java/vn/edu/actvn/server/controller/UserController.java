@@ -131,7 +131,7 @@ public class UserController {
         @PatchMapping("/{userId}")
         @Operation(summary = "Update user information")
         public ApiResponse<UserResponse> patchUser(@PathVariable String userId,
-                        @RequestBody UpdateAdminRequest request) {
+                        @RequestBody @Valid UpdateAdminRequest request) {
                 return ApiResponse.<UserResponse>builder()
                                 .result(userService.patchUser(userId, request))
                                 .message("User updated successfully")

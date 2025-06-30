@@ -2,6 +2,7 @@ package vn.edu.actvn.server.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -65,7 +66,7 @@ public class StudentController {
 
     @PostMapping
     @Operation(summary = "Create a new student")
-    public ApiResponse<UserResponse> createStudent(@RequestBody CreateStudentRequest request) {
+    public ApiResponse<UserResponse> createStudent(@RequestBody @Valid CreateStudentRequest request) {
         return ApiResponse.<UserResponse>builder()
                 .result(studentService.createStudent(request))
                 .message("Student created successfully")
@@ -74,7 +75,7 @@ public class StudentController {
 
     @PatchMapping("/{id}")
     @Operation(summary = "Partially update student information")
-    public ApiResponse<UserResponse> patchStudent(@PathVariable String id, @RequestBody UpdateStudentRequest request) {
+    public ApiResponse<UserResponse> patchStudent(@PathVariable String id, @RequestBody @Valid UpdateStudentRequest request) {
         return ApiResponse.<UserResponse>builder()
                 .result(studentService.patchStudent(id, request))
                 .message("Student partially updated successfully")

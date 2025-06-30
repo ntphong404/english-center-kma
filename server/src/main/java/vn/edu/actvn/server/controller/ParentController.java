@@ -2,6 +2,7 @@ package vn.edu.actvn.server.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -54,7 +55,7 @@ public class ParentController {
 
     @PostMapping
     @Operation(summary = "Create a new parent")
-    public ApiResponse<UserResponse> createParent(@RequestBody CreateParentRequest request) {
+    public ApiResponse<UserResponse> createParent(@RequestBody @Valid CreateParentRequest request) {
         return ApiResponse.<UserResponse>builder()
                 .result(parentService.createParent(request))
                 .message("Parent created successfully")
@@ -64,7 +65,7 @@ public class ParentController {
 
     @PatchMapping("/{id}")
     @Operation(summary = "Partially update parent information")
-    public ApiResponse<UserResponse> patchParent(@PathVariable String id, @RequestBody UpdateParentRequest request) {
+    public ApiResponse<UserResponse> patchParent(@PathVariable String id, @RequestBody @Valid UpdateParentRequest request) {
         return ApiResponse.<UserResponse>builder()
                 .result(parentService.patchParent(id, request))
                 .message("Parent partially updated successfully")

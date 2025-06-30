@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import vn.edu.actvn.server.dto.request.user.CreateParentRequest;
 import vn.edu.actvn.server.dto.request.user.UpdateParentRequest;
 import vn.edu.actvn.server.dto.response.user.UserResponse;
@@ -22,6 +23,7 @@ import vn.edu.actvn.server.repository.ParentRepository;
 import vn.edu.actvn.server.repository.RoleRepository;
 import vn.edu.actvn.server.repository.StudentRepository;
 import vn.edu.actvn.server.repository.UserRepository;
+import vn.edu.actvn.server.utils.RandomAvatar;
 
 import java.util.List;
 
@@ -53,6 +55,7 @@ public class ParentService {
     }
 
     @PreAuthorize("hasAuthority('PARENT_UPDATE') || hasRole('ADMIN')")
+    @Transactional
     public UserResponse patchParent(String parentId, UpdateParentRequest request) {
         Parent parent = parentRepository.findById(parentId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
@@ -61,6 +64,7 @@ public class ParentService {
     }
 
     @PreAuthorize("hasAuthority('PARENT_CREATE') || hasRole('ADMIN')")
+    @Transactional
     public UserResponse createParent(CreateParentRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new AppException(ErrorCode.USER_EXISTED);
@@ -73,10 +77,12 @@ public class ParentService {
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
         parent.setRole(role);
 
+        parent.setAvatarUrl(RandomAvatar.getRandomAvatar(parent.getGender().equals("MALE")));
         return userMapper.toUserResponse(userRepository.save(parent));
     }
 
     @PreAuthorize("hasAuthority('PARENT_UPDATE') || hasRole('ADMIN')")
+    @Transactional
     public UserResponse addStudent(String parentId, String studentId) {
         Parent parent = parentRepository.findById(parentId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));

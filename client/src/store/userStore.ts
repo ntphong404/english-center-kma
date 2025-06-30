@@ -1,8 +1,14 @@
 import { User } from '@/types/user';
+import React from 'react';
+
+// Custom event for user data changes
+const USER_DATA_CHANGED_EVENT = 'userDataChanged';
 
 // Lưu thông tin user
 export const setUser = (user: User) => {
     localStorage.setItem('user', JSON.stringify(user));
+    // Dispatch custom event to notify components
+    window.dispatchEvent(new CustomEvent(USER_DATA_CHANGED_EVENT, { detail: user }));
 };
 
 // Lấy thông tin user
@@ -29,4 +35,24 @@ export const updateUser = (userData: Partial<User>) => {
 // Xóa thông tin user
 export const removeUser = () => {
     localStorage.removeItem('user');
+    // Dispatch custom event to notify components
+    window.dispatchEvent(new CustomEvent(USER_DATA_CHANGED_EVENT, { detail: null }));
+};
+
+// Hook để lắng nghe thay đổi user data
+export const useUserDataListener = (callback: (user: User | null) => void) => {
+    React.useEffect(() => {
+        const handleUserDataChange = (event: CustomEvent) => {
+            callback(event.detail);
+        };
+
+        window.addEventListener(USER_DATA_CHANGED_EVENT, handleUserDataChange as EventListener);
+
+        // Initial call with current user data
+        callback(getUser());
+
+        return () => {
+            window.removeEventListener(USER_DATA_CHANGED_EVENT, handleUserDataChange as EventListener);
+        };
+    }, [callback]);
 }; 

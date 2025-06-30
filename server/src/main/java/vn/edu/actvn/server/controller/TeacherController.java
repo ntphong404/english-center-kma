@@ -2,6 +2,7 @@ package vn.edu.actvn.server.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springdoc.core.annotations.ParameterObject;
@@ -54,7 +55,7 @@ public class TeacherController {
 
     @PostMapping
     @Operation(summary = "Create a new teacher")
-    public ApiResponse<UserResponse> createTeacher(@RequestBody CreateTeacherRequest request) {
+    public ApiResponse<UserResponse> createTeacher(@RequestBody @Valid CreateTeacherRequest request) {
         return ApiResponse.<UserResponse>builder()
                 .result(teacherService.createTeacher(request))
                 .message("Teacher created successfully")
@@ -63,7 +64,7 @@ public class TeacherController {
 
     @PatchMapping("/{id}")
     @Operation(summary = "Partially update teacher information")
-    public ApiResponse<UserResponse> patchTeacher(@PathVariable String id, @RequestBody UpdateTeacherRequest request) {
+    public ApiResponse<UserResponse> patchTeacher(@PathVariable String id, @RequestBody @Valid UpdateTeacherRequest request) {
         return ApiResponse.<UserResponse>builder()
                 .result(teacherService.patchTeacher(id, request))
                 .message("Teacher partially updated successfully")

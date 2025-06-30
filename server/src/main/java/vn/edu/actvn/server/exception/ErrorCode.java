@@ -8,15 +8,11 @@ import lombok.Getter;
 @Getter
 public enum ErrorCode {
     UNCATEGORIZED_EXCEPTION(500, "Uncategorized error", HttpStatus.INTERNAL_SERVER_ERROR),
-    INVALID_KEY(400, "Invalid key", HttpStatus.BAD_REQUEST),
     USER_EXISTED(409, "User already exists", HttpStatus.CONFLICT),
-    USERNAME_INVALID(400, "Username must be at least {min} characters", HttpStatus.BAD_REQUEST),
-    INVALID_PASSWORD(400, "Password must be at least {min} characters", HttpStatus.BAD_REQUEST),
     USER_NOT_EXISTED(404, "User not found", HttpStatus.NOT_FOUND),
     UNAUTHENTICATED(401, "Unauthenticated", HttpStatus.UNAUTHORIZED),
-    UNAUTHORIZED(403, "You do not have permission", HttpStatus.FORBIDDEN),
+    UNAUTHORIZED(403, "Unauthorized", HttpStatus.FORBIDDEN),
 
-    INVALID_DOB(400, "Your age must be at least {min}", HttpStatus.BAD_REQUEST),
     ROLE_NOT_EXISTED(404, "Role not existed", HttpStatus.BAD_REQUEST),
 
     CLASS_NOT_EXISTED(404, "Class not existed", HttpStatus.BAD_REQUEST),
@@ -39,7 +35,16 @@ public enum ErrorCode {
     PAYMENT_AMOUNT_INVALID(400, "Payment amount invalid",HttpStatus.BAD_REQUEST ),
     RESOURCE_NOT_FOUND(404,"Resource not found" , HttpStatus.NOT_FOUND),
     FAILED_TO_SEND_EMAIL(400,"Failed to send email" ,HttpStatus.BAD_REQUEST ),
-    INVALID_OTP(400,"Invalid otp" ,HttpStatus.BAD_REQUEST );
+    INVALID_OTP(400,"Invalid otp" ,HttpStatus.BAD_REQUEST ),
+
+    INVALID_KEY(400, "Invalid key", HttpStatus.BAD_REQUEST),
+    USERNAME_INVALID(400, "Username must be at least {min} characters", HttpStatus.BAD_REQUEST),
+    INVALID_PASSWORD(400, "Password must be at least {min} characters", HttpStatus.BAD_REQUEST),
+    INVALID_DOB(400, "Your age must be at least {min}", HttpStatus.BAD_REQUEST),
+    GENDER_INVALID(400,"Gender must be one of {'MALE','FEMALE'}" , HttpStatus.BAD_REQUEST),
+
+    ALREADY_PAID(400,"Already paid" , HttpStatus.BAD_REQUEST),
+    INVALID_AMOUNT(400,"Invalid amount" , HttpStatus.BAD_REQUEST);
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {
         this.code = code;

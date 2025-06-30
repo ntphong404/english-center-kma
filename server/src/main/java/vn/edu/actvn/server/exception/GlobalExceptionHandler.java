@@ -7,11 +7,16 @@ import jakarta.validation.ConstraintViolation;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import vn.edu.actvn.server.dto.response.ApiResponse;
 
 @ControllerAdvice
@@ -21,7 +26,7 @@ public class GlobalExceptionHandler {
     private static final String MIN_ATTRIBUTE = "min";
 
     @ExceptionHandler(value = Exception.class)
-    ResponseEntity<ApiResponse> handlingRuntimeException(RuntimeException exception) {
+    ResponseEntity<ApiResponse> handlingRuntimeException(Exception exception) {
         log.error("Exception: ", exception);
         ApiResponse apiResponse = new ApiResponse();
 
@@ -29,6 +34,35 @@ public class GlobalExceptionHandler {
         apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
 
         return ResponseEntity.badRequest().body(apiResponse);
+    }
+
+//    @ExceptionHandler(AuthenticationServiceException.class)
+//    public ResponseEntity<ApiResponse> handleAuthenticationServiceException(AuthenticationServiceException ex) {
+//        ErrorCode errorCode = ErrorCode.UNAUTHORIZED;
+//        log.error("Authentication service exception: {}", ex.getMessage());
+//        return ResponseEntity.status(errorCode.getStatusCode())
+//                .body(ApiResponse.builder()
+//                        .code(errorCode.getCode())
+//                        .message("Authentication failed: " + ex.getMessage())
+//                        .build());
+//    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        ApiResponse apiResponse = new ApiResponse();
+        apiResponse.setCode(ex.getStatusCode().value());
+        apiResponse.setMessage("HTTP method not supported: " + ex.getMethod());
+        log.error("Method not supported: {}", ex.getMessage());
+        return ResponseEntity.status(ex.getStatusCode()).body(apiResponse);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse> handleNoResourceFoundException(NoResourceFoundException ex) {
+        ApiResponse apiResponse = new ApiResponse();
+        apiResponse.setCode(ex.getStatusCode().value());
+        apiResponse.setMessage("API not found: " + ex.getResourcePath());
+        log.error("No resource found: {}", ex.getMessage());
+        return ResponseEntity.status(404).body(apiResponse);
     }
 
     @ExceptionHandler(value = AppException.class)
@@ -84,9 +118,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(apiResponse);
     }
 
+
     private String mapAttribute(String message, Map<String, Object> attributes) {
         String minValue = String.valueOf(attributes.get(MIN_ATTRIBUTE));
 
         return message.replace("{" + MIN_ATTRIBUTE + "}", minValue);
     }
 }
+

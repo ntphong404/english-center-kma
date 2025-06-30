@@ -26,6 +26,7 @@ import vn.edu.actvn.server.mapper.UserMapper;
 import vn.edu.actvn.server.repository.OtpRepository;
 import vn.edu.actvn.server.repository.RoleRepository;
 import vn.edu.actvn.server.repository.UserRepository;
+import vn.edu.actvn.server.utils.RandomAvatar;
 
 @Service
 @RequiredArgsConstructor
@@ -51,6 +52,7 @@ public class UserService {
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
         user.setRole(role);
 
+        user.setAvatarUrl(RandomAvatar.getRandomAvatar(user.getGender().equals("MALE")));
         return userMapper.toUserResponse(userRepository.save(user));
     }
 
@@ -104,7 +106,7 @@ public class UserService {
                 .map(userMapper::toUserResponse);
     }
 
-    @PreAuthorize("hasAnyAuthority('CHANGE_PASSWORD') || hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CHANGE_PASSWORD') || hasRole('ADMIN')")
     public void changePassword(ChangePasswordRequest request) {
         var context = SecurityContextHolder.getContext();
         String name = context.getAuthentication().getName();
@@ -125,7 +127,7 @@ public class UserService {
         otpService.setUsedOtp(email);
     }
 
-    @PreAuthorize("hasAnyAuthority('CHANGE_AVATAR') || hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CHANGE_AVATAR') || hasRole('ADMIN')")
     public UserResponse changeAvatar(String avatarUrl,String publicId) {
         var context = SecurityContextHolder.getContext();
         String name = context.getAuthentication().getName();
@@ -139,4 +141,5 @@ public class UserService {
         return userMapper.toUserResponse(userRepository.save(user));
     }
 }
+
 
