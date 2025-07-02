@@ -75,7 +75,7 @@ const Children: React.FC = () => {
                             // Lấy tất cả lớp mà học sinh này đang học
                             let classList: ClassResponse[] = [];
                             try {
-                                const classRes = await classApi.getAll(undefined, undefined, student.userId, undefined, 0, 100);
+                                const classRes = await classApi.getAll(undefined, undefined, student.userId, undefined, "OPEN", 0, 100);
                                 if (classRes.data.code === 200) {
                                     const pageResult = classRes.data.result as any;
                                     classList = pageResult.content || pageResult;
@@ -204,6 +204,28 @@ const Children: React.FC = () => {
         return days.map(day => dayMap[day] || day).join(', ');
     };
 
+    // Khi mở dialog, load điểm danh tất cả lớp của học sinh đó song song
+    const preloadAllAttendanceData = async (student: StudentWithClasses) => {
+        const promises = (student.classDiscounts || []).map(async (classDiscount) => {
+            const key = `${student.userId}-${classDiscount.classId}`;
+            if (attendanceData[key]) return;
+            try {
+                const response = await attendanceApi.getAll(student.userId, classDiscount.classId, '', 0, 100);
+                if (response.data.code === 200) {
+                    const pageResponse = response.data.result as any;
+                    const attendanceList = pageResponse.content || pageResponse;
+                    setAttendanceData(prev => ({
+                        ...prev,
+                        [key]: attendanceList
+                    }));
+                }
+            } catch (error) {
+                // ignore lỗi từng lớp
+            }
+        });
+        await Promise.all(promises);
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -296,10 +318,11 @@ const Children: React.FC = () => {
                                     <div className="text-sm text-gray-600">
                                         <span className="font-medium">Số lớp đăng ký:</span> {student.classDiscounts?.length || 0}
                                     </div>
-                                    <Dialog open={isDialogOpen && selectedStudent?.userId === student.userId} onOpenChange={(open) => {
+                                    <Dialog open={isDialogOpen && selectedStudent?.userId === student.userId} onOpenChange={async (open) => {
                                         setIsDialogOpen(open);
                                         if (open) {
                                             setSelectedStudent(student);
+                                            await preloadAllAttendanceData(student);
                                         } else {
                                             setSelectedStudent(null);
                                         }

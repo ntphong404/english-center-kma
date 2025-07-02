@@ -19,92 +19,25 @@ import { Check, X, Clock } from "lucide-react";
 import parentApi from "@/api/parentApi";
 import studentApi from "@/api/studentApi";
 import { Student } from "@/types/user";
-
-// Mock data danh sách lớp học của học sinh
-const classes = [
-    {
-        id: "class1",
-        name: "Tiếng Anh 3B",
-        size: 12,
-        room: "TA1-201",
-        startDate: "10/06/2025",
-        time: "07:30:00 - 09:30:00",
-        days: ["Monday", "Wednesday"],
-    },
-    {
-        id: "class2",
-        name: "Tiếng Anh 4B",
-        size: 10,
-        room: "TA1-202",
-        startDate: "12/06/2025",
-        time: "09:30:00 - 11:30:00",
-        days: ["Tuesday", "Thursday"],
-    },
-    {
-        id: "class3",
-        name: "Tiếng Anh 5A",
-        size: 15,
-        room: "TA1-301",
-        startDate: "15/06/2025",
-        time: "13:00:00 - 15:00:00",
-        days: ["Friday", "Sunday"],
-    },
-    {
-        id: "class4",
-        name: "Tiếng Anh 5C",
-        size: 10,
-        room: "TA1-403",
-        startDate: "17/06/2025",
-        time: "07:30:00 - 09:30:00",
-        days: ["Tuesday", "Friday", "Sunday"],
-    },
-];
-
-// Mock data điểm danh theo từng lớp
-const attendanceByClass: Record<string, any[]> = {
-    class1: [
-        { id: "1", date: "01/06/2025", status: "present" },
-        { id: "2", date: "03/06/2025", status: "absent", note: "Có phép" },
-        { id: "3", date: "05/06/2025", status: "present" },
-    ],
-    class2: [
-        { id: "1", date: "02/06/2025", status: "present" },
-        { id: "2", date: "04/06/2025", status: "present" },
-    ],
-    class3: [
-        { id: "1", date: "01/06/2025", status: "present" },
-        { id: "2", date: "03/06/2025", status: "present" },
-        { id: "3", date: "05/06/2025", status: "absent" },
-    ],
-    class4: [
-        { id: "1", date: "10/06/2025", status: "present" },
-        { id: "2", date: "12/06/2025", status: "present" },
-        { id: "3", date: "14/06/2025", status: "absent", note: "Nghỉ ốm" },
-        { id: "4", date: "16/06/2025", status: "present" },
-    ],
-};
+import { getUser } from '@/store/userStore';
+import attendanceApi from '@/api/attendanceApi';
+import { classApi } from '@/api/classApi';
 
 export default function StudentAttendance() {
     const [loading, setLoading] = useState(true);
     const [children, setChildren] = useState<Student[]>([]);
-    const [selectedClassId, setSelectedClassId] = useState(classes[0].id);
-    const selectedClass = classes.find((cls) => cls.id === selectedClassId)!;
-    const attendanceRecords = attendanceByClass[selectedClassId] || [];
-
-    const attendanceStats = {
-        total: attendanceRecords.length,
-        present: attendanceRecords.filter((r) => r.status === "present").length,
-        absent: attendanceRecords.filter((r) => r.status === "absent").length,
-    };
+    const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+    const [classes, setClasses] = useState<any[]>([]);
+    const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+    const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
 
     useEffect(() => {
         async function fetchChildren() {
             setLoading(true);
             try {
-                const user = localStorage.getItem('user');
-                if (!user) return;
-                const { userId } = JSON.parse(user);
-                const parentRes = await parentApi.getById(userId);
+                const user = getUser();
+                if (!user?.userId) return;
+                const parentRes = await parentApi.getById(user.userId);
                 const studentIds = parentRes.data.result.studentIds || [];
                 if (studentIds.length === 0) {
                     setChildren([]);
@@ -114,6 +47,9 @@ export default function StudentAttendance() {
                 const studentsRes = await studentApi.getByIds(studentIds);
                 const students: Student[] = studentsRes.data.result || [];
                 setChildren(students);
+                if (students.length > 0) {
+                    setSelectedStudentId(students[0].userId);
+                }
             } catch (err) {
                 setChildren([]);
             }
@@ -122,86 +58,198 @@ export default function StudentAttendance() {
         fetchChildren();
     }, []);
 
+    useEffect(() => {
+        async function fetchClasses() {
+            if (!selectedStudentId) return;
+            setLoading(true);
+            try {
+                const res = await classApi.getAll(undefined, undefined, selectedStudentId, undefined, "OPEN", 0, 100);
+                const classList = res.data.result.content || [];
+                setClasses(classList);
+                if (classList.length > 0) {
+                    setSelectedClassId(classList[0].classId);
+                } else {
+                    setSelectedClassId(null);
+                }
+            } catch {
+                setClasses([]);
+                setSelectedClassId(null);
+            }
+            setLoading(false);
+        }
+        fetchClasses();
+    }, [selectedStudentId]);
+
+    useEffect(() => {
+        async function fetchAttendance() {
+            if (!selectedStudentId || !selectedClassId) {
+                setAttendanceRecords([]);
+                return;
+            }
+            setLoading(true);
+            try {
+                const res = await attendanceApi.getAll(selectedStudentId, selectedClassId, '', 0, 100);
+                const result = res.data.result;
+                let records: any[] = [];
+                if (result && typeof result === 'object' && 'content' in result && Array.isArray(result.content)) {
+                    records = result.content;
+                } else if (Array.isArray(result)) {
+                    records = result;
+                }
+                // Lấy điểm danh của học sinh này trong từng buổi
+                const mapped = records.map((att: any) => {
+                    const studentAtt = att.studentAttendances.find((sa: any) => sa.studentId === selectedStudentId);
+                    return {
+                        id: att.attendanceId,
+                        date: att.date,
+                        status: studentAtt?.status || 'UNKNOWN',
+                        note: studentAtt?.note || ''
+                    };
+                });
+                setAttendanceRecords(mapped);
+            } catch {
+                setAttendanceRecords([]);
+            }
+            setLoading(false);
+        }
+        fetchAttendance();
+    }, [selectedStudentId, selectedClassId]);
+
+    const attendanceStats = {
+        total: attendanceRecords.length,
+        present: attendanceRecords.filter((r) => r.status === "PRESENT").length,
+        absent: attendanceRecords.filter((r) => r.status === "ABSENT").length,
+    };
+
     const getStatusBadge = (status: string) => {
         switch (status) {
-            case "present":
+            case "PRESENT":
                 return (
                     <Badge className="bg-green-500">
                         <Check className="h-3 w-3 mr-1" /> Có mặt
                     </Badge>
                 );
-            case "absent":
+            case "ABSENT":
                 return (
                     <Badge className="bg-red-500">
                         <X className="h-3 w-3 mr-1" /> Vắng mặt
                     </Badge>
                 );
             default:
-                return null;
+                return (
+                    <Badge className="bg-gray-400">
+                        <Clock className="h-3 w-3 mr-1" /> Chưa điểm danh
+                    </Badge>
+                );
         }
     };
 
     return (
         <div className="space-y-6 p-6">
             <div className="flex flex-col md:flex-row gap-6">
-                {/* Danh sách lớp */}
+                {/* Danh sách học sinh */}
                 <div className="md:w-1/4 w-full">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Danh sách lớp</CardTitle>
-                            <CardDescription>Chọn lớp để xem thông tin và điểm danh</CardDescription>
+                            <CardTitle>Danh sách học sinh</CardTitle>
+                            <CardDescription>Chọn học sinh để xem lớp và điểm danh</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="flex flex-col gap-3">
-                                {classes.map((cls) => (
+                                {children.map((child) => (
                                     <button
-                                        key={cls.id}
-                                        className={`rounded-lg px-4 py-2 text-left border ${selectedClassId === cls.id ? "bg-primary text-white" : "bg-white text-black"}`}
-                                        onClick={() => setSelectedClassId(cls.id)}
+                                        key={child.userId}
+                                        className={`rounded-full px-5 py-2 font-semibold border transition-all duration-150 shadow-sm ${selectedStudentId === child.userId ? "bg-blue-700 text-white" : "bg-white text-gray-700 hover:bg-blue-50"}`}
+                                        onClick={() => setSelectedStudentId(child.userId)}
                                     >
-                                        {cls.name}
+                                        {child.fullName || child.username}
                                     </button>
                                 ))}
                             </div>
                         </CardContent>
                     </Card>
                 </div>
-
-                {/* Thông tin lớp và điểm danh */}
-                <div className="md:w-3/4 w-full">
+                {/* Danh sách lớp */}
+                <div className="md:w-1/4 w-full">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Thông tin lớp: {selectedClass.name}</CardTitle>
+                            <CardTitle>Danh sách lớp</CardTitle>
+                            <CardDescription>Chọn lớp để xem điểm danh</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="mb-4 space-y-1">
-                                <div>Sĩ số: {selectedClass.size}</div>
-                                <div>Phòng: {selectedClass.room}</div>
-                                <div>Ngày bắt đầu: {selectedClass.startDate}</div>
-                                <div>Thời gian học: {selectedClass.time}</div>
-                                <div>Các ngày học: {selectedClass.days.join(", ")}</div>
+                            <div className="flex flex-col gap-3">
+                                {classes.map((cls) => (
+                                    <button
+                                        key={cls.classId}
+                                        className={`rounded-full px-5 py-2 font-semibold border transition-all duration-150 shadow-sm ${selectedClassId === cls.classId ? "bg-blue-700 text-white" : "bg-white text-gray-700 hover:bg-blue-50"}`}
+                                        onClick={() => setSelectedClassId(cls.classId)}
+                                    >
+                                        {cls.className}
+                                    </button>
+                                ))}
                             </div>
-                            <div className="flex gap-6 mb-6">
-                                <div className="font-medium">Số buổi học: <span className="text-primary font-bold">{attendanceStats.total}</span></div>
-                                <div className="font-medium">Có mặt: <span className="text-green-600 font-bold">{attendanceStats.present}</span></div>
-                                <div className="font-medium">Vắng mặt: <span className="text-red-600 font-bold">{attendanceStats.absent}</span></div>
+                        </CardContent>
+                    </Card>
+                </div>
+                {/* Thông tin lớp và điểm danh */}
+                <div className="md:w-2/4 w-full">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Thông tin lớp: {classes.find(cls => cls.classId === selectedClassId)?.className || ''}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="mb-4 space-y-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <div className="text-gray-500">Sĩ số:</div>
+                                    <div className="font-semibold">{classes.find(cls => cls.classId === selectedClassId)?.size || '-'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-gray-500">Phòng:</div>
+                                    <div className="font-semibold">{classes.find(cls => cls.classId === selectedClassId)?.roomName || '-'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-gray-500">Ngày bắt đầu:</div>
+                                    <div className="font-semibold">{classes.find(cls => cls.classId === selectedClassId)?.startDate || '-'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-gray-500">Thời gian học:</div>
+                                    <div className="font-semibold">{classes.find(cls => cls.classId === selectedClassId) ? `${classes.find(cls => cls.classId === selectedClassId)?.startTime} - ${classes.find(cls => cls.classId === selectedClassId)?.endTime}` : '-'}</div>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <div className="text-gray-500">Các ngày học:</div>
+                                    <div className="font-semibold">{classes.find(cls => cls.classId === selectedClassId)?.daysOfWeek?.join(", ") || '-'}</div>
+                                </div>
+                            </div>
+                            <div className="flex gap-4 justify-center mb-6">
+                                <div className="bg-blue-100 rounded-lg px-4 py-2 text-center">
+                                    <div className="text-sm text-gray-500">Số buổi học</div>
+                                    <div className="text-xl font-bold text-blue-700">{attendanceStats.total}</div>
+                                </div>
+                                <div className="bg-green-100 rounded-lg px-4 py-2 text-center">
+                                    <div className="text-sm text-gray-500">Có mặt</div>
+                                    <div className="text-xl font-bold text-green-700">{attendanceStats.present}</div>
+                                </div>
+                                <div className="bg-red-100 rounded-lg px-4 py-2 text-center">
+                                    <div className="text-sm text-gray-500">Vắng mặt</div>
+                                    <div className="text-xl font-bold text-red-700">{attendanceStats.absent}</div>
+                                </div>
                             </div>
                             <div>
                                 <div className="font-semibold mb-2">Lịch sử điểm danh</div>
-                                <Table>
+                                <Table className="rounded-lg border bg-white shadow mt-4">
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Ngày</TableHead>
-                                            <TableHead>Trạng thái</TableHead>
-                                            <TableHead>Ghi chú</TableHead>
+                                            <TableHead className="text-center">Ngày</TableHead>
+                                            <TableHead className="text-center">Trạng thái</TableHead>
+                                            <TableHead className="text-center">Ghi chú</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {attendanceRecords.map((record) => (
-                                            <TableRow key={record.id}>
-                                                <TableCell>{record.date}</TableCell>
-                                                <TableCell>{getStatusBadge(record.status)}</TableCell>
-                                                <TableCell>{record.note || "-"}</TableCell>
+                                            <TableRow key={record.id} className="hover:bg-blue-50">
+                                                <TableCell className="text-center">{record.date}</TableCell>
+                                                <TableCell className="text-center">{getStatusBadge(record.status)}</TableCell>
+                                                <TableCell className="text-center text-gray-400 italic">{record.note || "—"}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>

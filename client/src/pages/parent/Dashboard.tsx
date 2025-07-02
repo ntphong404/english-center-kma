@@ -65,7 +65,7 @@ const ParentDashboard = () => {
                 const childrenData: ChildData[] = await Promise.all(
                     students.map(async (student) => {
                         // Get all classes for this student
-                        const classesRes = await classApi.getAll(undefined, undefined, student.userId, undefined, undefined, 0, 10);
+                        const classesRes = await classApi.getAll(undefined, undefined, student.userId, undefined, "OPEN", 0, 10);
                         const classes = classesRes.data.result.content || [];
                         const classList = classes.map((cls: any) => ({ classId: cls.classId, className: cls.className }));
 
