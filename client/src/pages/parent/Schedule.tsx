@@ -110,18 +110,18 @@ export default function ParentSchedule() {
                     const res = await parentApi.getById(user.userId);
                     const parent = res.data.result;
                     if (parent.studentIds && Array.isArray(parent.studentIds)) {
-                        // Lấy tên thật từng học sinh
-                        const childList: { id: string, name: string }[] = [];
-                        for (const id of parent.studentIds) {
-                            try {
-                                const stuRes = await studentApi.getById(id);
-                                const student = stuRes.data.result;
-                                childList.push({ id, name: student.fullName || student.username || 'Học sinh' });
-                            } catch {
-                                childList.push({ id, name: 'Học sinh' });
-                            }
+                        // Lấy thông tin tất cả học sinh cùng lúc
+                        try {
+                            const studentsRes = await studentApi.getByIds(parent.studentIds);
+                            const students = studentsRes.data.result || [];
+                            const childList = students.map((student: any) => ({
+                                id: student.userId,
+                                name: student.fullName || student.username || 'Học sinh'
+                            }));
+                            setChildren(childList);
+                        } catch {
+                            setChildren([]);
                         }
-                        setChildren(childList);
                     }
                 } catch (e) {
                     setChildren([]);
@@ -130,6 +130,13 @@ export default function ParentSchedule() {
         }
         fetchChildren();
     }, []);
+
+    // Chọn mặc định là con đầu tiên khi có danh sách children
+    useEffect(() => {
+        if (children.length > 0) {
+            setSelectedChild(children[0].id);
+        }
+    }, [children]);
 
     // Lấy danh sách lịch học từ API
     useEffect(() => {

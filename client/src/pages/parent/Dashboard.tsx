@@ -13,6 +13,7 @@ import { Parent, Student } from '@/types/user';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface ChildData {
     student: Student;
@@ -213,91 +214,109 @@ const ParentDashboard = () => {
         <div className="space-y-8 max-w-5xl mx-auto px-2 md:px-0 p-6">
             <h1 className="text-3xl font-bold mb-8 text-center">Tổng quan học sinh</h1>
 
-            {children.map((child) => (
-                <div key={child.student.userId} className="space-y-6">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
-                        <h2 className="text-2xl font-semibold text-blue-700">{child.student.fullName || child.student.username}</h2>
-                        {child.classes.length > 0 && (
-                            <div className="flex flex-wrap gap-2 items-center">
-                                <span className="text-sm text-gray-500">Lớp đang học:</span>
-                                {child.classes.map(cls => (
-                                    <span key={cls.classId} className="bg-blue-100 text-blue-700 rounded px-2 py-1 text-xs font-medium">{cls.className}</span>
+            <Tabs defaultValue={children[0]?.student.userId} className="w-full">
+                <TabsList
+                    className={`mb-6 bg-blue-50 grid w-full gap-2 grid-cols-${children.length}`}
+                    style={{ minWidth: 0 }}
+                >
+                    {children.map((child) => (
+                        <TabsTrigger
+                            key={child.student.userId}
+                            value={child.student.userId}
+                            className="w-full px-4 py-2 rounded-lg text-base font-semibold data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all"
+                        >
+                            {child.student.fullName || child.student.username}
+                        </TabsTrigger>
+                    ))}
+                </TabsList>
+                {children.map((child) => (
+                    <TabsContent key={child.student.userId} value={child.student.userId}>
+                        <div className="space-y-6">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
+                                <h2 className="text-2xl font-semibold text-blue-700">{child.student.fullName || child.student.username}</h2>
+                                {child.classes.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 items-center">
+                                        <span className="text-sm text-gray-500">Lớp đang học:</span>
+                                        {child.classes.map(cls => (
+                                            <span key={cls.classId} className="bg-blue-100 text-blue-700 rounded px-2 py-1 text-xs font-medium">{cls.className}</span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Stats Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                {getChildStats(child).map((stat, index) => (
+                                    <Card key={index} className="shadow-md border-0">
+                                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                            <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                                            {stat.icon}
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="text-2xl font-bold mb-1">{stat.value}</div>
+                                            <p className="text-xs text-muted-foreground">
+                                                <span className={stat.changeDirection === 'up' ? 'text-green-500' : 'text-red-500'}>
+                                                    {stat.change}
+                                                </span>
+                                                {' '}
+                                                {stat.changeDescription}
+                                            </p>
+                                        </CardContent>
+                                    </Card>
                                 ))}
                             </div>
-                        )}
-                    </div>
 
-                    {/* Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {getChildStats(child).map((stat, index) => (
-                            <Card key={index} className="shadow-md border-0">
-                                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                    <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                                    {stat.icon}
+                            {/* Tuition Info */}
+                            <Card className="mt-4">
+                                <CardHeader>
+                                    <CardTitle>Thông tin học phí</CardTitle>
+                                    <CardDescription>
+                                        Tổng quan về học phí của học sinh
+                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold mb-1">{stat.value}</div>
-                                    <p className="text-xs text-muted-foreground">
-                                        <span className={stat.changeDirection === 'up' ? 'text-green-500' : 'text-red-500'}>
-                                            {stat.change}
-                                        </span>
-                                        {' '}
-                                        {stat.changeDescription}
-                                    </p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <dl className="space-y-2">
+                                                <div className="flex justify-between">
+                                                    <dt className="text-gray-500">Tổng học phí:</dt>
+                                                    <dd className="font-medium">{child.fees.total.toLocaleString('vi-VN')}đ</dd>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <dt className="text-gray-500">Đã đóng:</dt>
+                                                    <dd className="font-medium text-green-600">{child.fees.paid.toLocaleString('vi-VN')}đ</dd>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <dt className="text-gray-500">Còn lại:</dt>
+                                                    <dd className="font-medium text-red-600">{child.fees.remaining.toLocaleString('vi-VN')}đ</dd>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <dt className="text-gray-500">Hạn nộp:</dt>
+                                                    <dd className="font-medium">{child.fees.dueDate || 'Chưa có thông tin'}</dd>
+                                                </div>
+                                            </dl>
+                                        </div>
+                                        <div className="flex flex-col gap-2 justify-center">
+                                            <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate('/parent/fees')}>
+                                                <CreditCard className="mr-2 h-4 w-4" />
+                                                Xem chi tiết học phí
+                                            </Button>
+                                            <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate('/parent/schedule')}>
+                                                <Calendar className="mr-2 h-4 w-4" />
+                                                Xem lịch học
+                                            </Button>
+                                            <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate('/parent/children')}>
+                                                <BookOpen className="mr-2 h-4 w-4" />
+                                                Xem thông tin lớp
+                                            </Button>
+                                        </div>
+                                    </div>
                                 </CardContent>
                             </Card>
-                        ))}
-                    </div>
-
-                    {/* Tuition Info */}
-                    <Card className="mt-4">
-                        <CardHeader>
-                            <CardTitle>Thông tin học phí</CardTitle>
-                            <CardDescription>
-                                Tổng quan về học phí của học sinh
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <dl className="space-y-2">
-                                        <div className="flex justify-between">
-                                            <dt className="text-gray-500">Tổng học phí:</dt>
-                                            <dd className="font-medium">{child.fees.total.toLocaleString('vi-VN')}đ</dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-gray-500">Đã đóng:</dt>
-                                            <dd className="font-medium text-green-600">{child.fees.paid.toLocaleString('vi-VN')}đ</dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-gray-500">Còn lại:</dt>
-                                            <dd className="font-medium text-red-600">{child.fees.remaining.toLocaleString('vi-VN')}đ</dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-gray-500">Hạn nộp:</dt>
-                                            <dd className="font-medium">{child.fees.dueDate || 'Chưa có thông tin'}</dd>
-                                        </div>
-                                    </dl>
-                                </div>
-                                <div className="flex flex-col gap-2 justify-center">
-                                    <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate('/parent/fees')}>
-                                        <CreditCard className="mr-2 h-4 w-4" />
-                                        Xem chi tiết học phí
-                                    </Button>
-                                    <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate('/parent/schedule')}>
-                                        <Calendar className="mr-2 h-4 w-4" />
-                                        Xem lịch học
-                                    </Button>
-                                    <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate('/parent/children')}>
-                                        <BookOpen className="mr-2 h-4 w-4" />
-                                        Xem thông tin lớp
-                                    </Button>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            ))}
+                        </div>
+                    </TabsContent>
+                ))}
+            </Tabs>
         </div>
     );
 };
