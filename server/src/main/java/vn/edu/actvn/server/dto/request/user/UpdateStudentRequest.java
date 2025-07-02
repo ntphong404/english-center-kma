@@ -19,15 +19,15 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UpdateStudentRequest {
     String fullName;
-    @Email(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]")
-    String email;
+    @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")
+    private String email;
     @GenderConstraint
     String gender;
     String address;
     @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "INVALID_PHONE_NUMBER")
     String phoneNumber;
     String avatarUrl;
-    @DobConstraint(min = 5, message = "INVALID_DOB")
+    @DobConstraint
     LocalDate dob;
 
     List<ClassDiscount> classDiscounts;

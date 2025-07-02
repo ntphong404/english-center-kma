@@ -34,6 +34,22 @@ const studentApi = {
             params: { page, size }
         });
     },
+
+    countNoClass: () => {
+        return axiosInstance.get<ApiResponse<number>>('/students/count-no-class');
+    },
+
+    countNoClassByMonth: (month: number, year: number) => {
+        return axiosInstance.get<ApiResponse<number>>('/students/count-no-class-by-month', {
+            params: { month, year }
+        });
+    },
+
+    countByCreatedAt: (month: number, year: number) => {
+        return axiosInstance.get<ApiResponse<number>>('/students/count-by-created-at', {
+            params: { month, year }
+        });
+    }
 };
 
 export default studentApi;

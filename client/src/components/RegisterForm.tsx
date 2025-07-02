@@ -13,7 +13,7 @@ import { toast } from '@/hooks/use-toast';
 const formSchema = z.object({
   fullName: z.string().min(1, { message: 'Vui lòng nhập họ tên' }),
   email: z.string().email({ message: 'Email không hợp lệ' }),
-  phone: z.string().min(10, { message: 'Số điện thoại không hợp lệ' }),
+  phoneNumber: z.string().min(10, { message: 'Số điện thoại không hợp lệ' }),
   childAge: z.string().min(1, { message: 'Vui lòng nhập tuổi của con' }),
   courseInterest: z.string().min(1, { message: 'Vui lòng chọn khóa học quan tâm' }),
   acceptTerms: z.boolean().refine(val => val === true, {
@@ -31,7 +31,7 @@ const RegisterForm = () => {
     defaultValues: {
       fullName: '',
       email: '',
-      phone: '',
+      phoneNumber: '',
       childAge: '',
       courseInterest: '',
       acceptTerms: false,
@@ -40,22 +40,22 @@ const RegisterForm = () => {
 
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
-    
+
     try {
       console.log('Registration data:', data);
-      
+
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Show success message
       toast({
         title: 'Đăng ký thành công',
         description: 'Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất.',
       });
-      
+
       // Reset form
       form.reset();
-      
+
     } catch (error) {
       console.error('Registration failed:', error);
       toast({
@@ -69,7 +69,7 @@ const RegisterForm = () => {
   };
 
   return (
-    <div className="bg-white p-8 rounded-lg shadow-md">      
+    <div className="bg-white p-8 rounded-lg shadow-md">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
@@ -85,7 +85,7 @@ const RegisterForm = () => {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="email"
@@ -99,10 +99,10 @@ const RegisterForm = () => {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
-            name="phone"
+            name="phoneNumber"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Số điện thoại</FormLabel>
@@ -113,7 +113,7 @@ const RegisterForm = () => {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="childAge"
@@ -127,7 +127,7 @@ const RegisterForm = () => {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="courseInterest"
@@ -151,17 +151,17 @@ const RegisterForm = () => {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="acceptTerms"
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                 <FormControl>
-                  <Checkbox 
-                    checked={field.value} 
-                    onCheckedChange={field.onChange} 
-                    disabled={isLoading} 
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={isLoading}
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
@@ -173,7 +173,7 @@ const RegisterForm = () => {
               </FormItem>
             )}
           />
-          
+
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Đang đăng ký...' : 'Đăng ký nhận thông tin'}
           </Button>

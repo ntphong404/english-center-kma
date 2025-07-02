@@ -38,7 +38,7 @@ const StudentDashboard = () => {
       if (!studentId) return;
       setLoading(true);
       try {
-        const res = await classApi.getAll(undefined, undefined, studentId, undefined, 0, 100);
+        const res = await classApi.getAll(undefined, undefined, studentId, undefined, undefined, 0, 100);
         const classList = res.data.result.content;
         setClasses(classList);
         const teacherIds = Array.from(new Set(classList.map(cls => cls.teacherId)));
@@ -60,37 +60,53 @@ const StudentDashboard = () => {
   }, [studentId, toast]);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Xin chào, {getUser()?.fullName || 'học sinh'}</h1>
-      <h2 className="text-2xl font-semibold">Các lớp học của bạn</h2>
+    <div className="space-y-8 p-6">
+      <h1 className="text-3xl font-bold mb-2">Xin chào, {getUser()?.fullName || 'học sinh'}</h1>
+      <h2 className="text-2xl font-semibold mb-6">Các lớp học của bạn</h2>
 
       {loading ? (
-        <div>Đang tải...</div>
+        <div className="text-center text-lg text-gray-500 py-12">Đang tải...</div>
       ) : classes.length === 0 ? (
-        <div>Không có lớp học nào.</div>
+        <div className="flex flex-col items-center justify-center py-16">
+          <BookOpen className="w-16 h-16 text-blue-200 mb-4" />
+          <div className="text-xl font-semibold text-gray-500 mb-2">Bạn chưa có lớp học nào.</div>
+          <div className="text-gray-400">Liên hệ trung tâm để được xếp lớp.</div>
+        </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {classes.map((cls) => (
-            <Card key={cls.classId} className="flex items-center p-4">
-              <div className="flex-shrink-0 mr-4">
+            <Card key={cls.classId} className="transition-shadow hover:shadow-xl border-0 shadow-md bg-white/90">
+              <CardHeader className="pb-2 flex flex-row items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
                   <BookOpen className="w-6 h-6 text-blue-500" />
                 </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-2 flex-grow">
                 <div>
-                  <h3 className="font-semibold">{cls.className}</h3>
+                  <CardTitle className="text-lg font-bold text-blue-700 leading-tight">{cls.className}</CardTitle>
+                  <CardDescription className="text-xs text-gray-400">Mã lớp: {cls.classId}</CardDescription>
                 </div>
-                <div>
-                  <span className="text-sm text-gray-500 flex items-center gap-1"><User size={14} />{teacherMap[cls.teacherId]?.fullName || cls.teacherId}</span>
+              </CardHeader>
+              <CardContent className="pt-0 flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <User size={16} className="text-blue-400" />
+                  <span className="font-medium">GV:</span>
+                  <span>{teacherMap[cls.teacherId]?.fullName || cls.teacherId}</span>
                 </div>
-                <div>
-                  <span className="text-sm text-gray-500 flex items-center gap-1"><MapPin size={14} />{cls.roomName}</span>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <MapPin size={16} className="text-green-400" />
+                  <span className="font-medium">Phòng:</span>
+                  <span>{cls.roomName}</span>
                 </div>
-                <div>
-                  <span className="text-sm text-gray-500 flex items-center gap-1"><Calendar size={14} />{cls.daysOfWeek?.join(', ')} ({cls.startTime?.slice(0, 5)} - {cls.endTime?.slice(0, 5)})</span>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Calendar size={16} className="text-purple-400" />
+                  <span className="font-medium">Lịch:</span>
+                  <span>{cls.daysOfWeek?.join(', ')}</span>
                 </div>
-              </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Clock size={16} className="text-yellow-400" />
+                  <span className="font-medium">Giờ:</span>
+                  <span>{cls.startTime?.slice(0, 5)} - {cls.endTime?.slice(0, 5)}</span>
+                </div>
+              </CardContent>
             </Card>
           ))}
         </div>

@@ -44,14 +44,16 @@ const AdminProfile = () => {
     );
 
     return (
-        <ProfileForm
-            profile={profile}
-            onProfileUpdate={handleProfileUpdate}
-            onAvatarUpdate={handleAvatarUpdate}
-            role="ADMIN"
-            roleIcon={<Shield className="w-4 h-4" />}
-            additionalInfo={additionalInfo}
-        />
+        <div className="p-6">
+            <ProfileForm
+                profile={profile}
+                onProfileUpdate={handleProfileUpdate}
+                onAvatarUpdate={handleAvatarUpdate}
+                role="ADMIN"
+                roleIcon={<Shield className="w-4 h-4" />}
+                additionalInfo={additionalInfo}
+            />
+        </div>
     );
 };
 

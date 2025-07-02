@@ -22,6 +22,7 @@ import vn.edu.actvn.server.repository.StudentRepository;
 import vn.edu.actvn.server.repository.UserRepository;
 import vn.edu.actvn.server.utils.RandomAvatar;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -96,5 +97,16 @@ public class StudentService {
     public void deleteStudent(String id) {
         studentRepository.deleteById(id);
     }
-}
 
+    public Long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end) {
+        return studentRepository.countByCreatedAtBetween(start, end);
+    }
+
+    public Long countStudentsWithNoClassDiscounts() {
+        return studentRepository.countStudentsWithNoClassDiscounts();
+    }
+
+    public Long countStudentsWithNoClassDiscountsByCreatedAtBetween(LocalDateTime start, LocalDateTime end) {
+        return studentRepository.countStudentsWithNoClassDiscountsByCreatedAtBetween(start, end);
+    }
+}

@@ -38,7 +38,7 @@ public class CreateStudentRequest {
     @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "INVALID_PHONE_NUMBER")
     String phoneNumber;
 
-    @DobConstraint(min = 10, message = "INVALID_DOB")
+    @DobConstraint
     LocalDate dob;
 
     List<ClassDiscount> classDiscounts;

@@ -1,4 +1,3 @@
-
 export interface User {
     userId: string;
     username: string;
@@ -37,7 +36,7 @@ export interface UserCreateRequest {
     fullName: string;
     email: string;
     gender: string;
-    phone: string;
+    phoneNumber: string;
     address: string;
     dob: string;
 }
@@ -48,7 +47,7 @@ export interface CreateTeacherRequest {
     fullName: string;
     email: string;
     gender: string;
-    phone: string;
+    phoneNumber: string;
     address: string;
     dob: string;
     salary: number;
@@ -60,7 +59,7 @@ export interface CreateStudentRequest {
     fullName: string;
     email: string;
     gender: string;
-    phone: string;
+    phoneNumber: string;
     address: string;
     dob: string;
     classDiscounts: ClassDiscount[];
@@ -71,7 +70,7 @@ export interface UpdateTeacherRequest {
     fullName: string;
     email: string;
     gender: string;
-    phone: string;
+    phoneNumber: string;
     address: string;
     dob: string;
     salary: number;
@@ -81,7 +80,7 @@ export interface UpdateStudentRequest {
     fullName: string;
     email: string;
     gender: string;
-    phone: string;
+    phoneNumber: string;
     address: string;
     dob: string;
     classDiscounts: ClassDiscount[];
@@ -91,7 +90,7 @@ export interface UserUpdateRequest {
     fullName: string;
     email: string;
     gender: string;
-    phone: string;
+    phoneNumber: string;
     address: string;
     dob: string;
 }

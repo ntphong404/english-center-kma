@@ -17,6 +17,8 @@ import vn.edu.actvn.server.dto.response.ApiResponse;
 import vn.edu.actvn.server.dto.response.user.UserResponse;
 import vn.edu.actvn.server.service.StudentService;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -92,5 +94,44 @@ public class StudentController {
                 .build();
     }
 
-}
+    @GetMapping("/count-by-created-at")
+    @Operation(summary = "Count students by createdAt between start and end (ISO-8601 format)")
+    public ApiResponse<Long> countByCreatedAtByMonth(
+            @RequestParam("year") int year,
+            @RequestParam("month") int month
+    ) {
+        LocalDateTime start = LocalDateTime.of(year, month, 1, 0, 0);
+        LocalDateTime end = start.plusMonths(1).minusNanos(1);
+        Long count = studentService.countByCreatedAtBetween(start, end);
+        return ApiResponse.<Long>builder()
+                .result(count)
+                .message("Counted students by createdAt between")
+                .build();
+    }
 
+    @GetMapping("/count-no-class")
+    @Operation(summary = "Count students with no class (classDiscounts is empty)")
+    public ApiResponse<Long> countStudentsWithNoClassDiscounts() {
+        Long count = studentService.countStudentsWithNoClassDiscounts();
+        return ApiResponse.<Long>builder()
+                .result(count)
+                .message("Counted students with no class")
+                .build();
+    }
+
+    @GetMapping("/count-no-class-by-month")
+    @Operation(summary = "Count students with no class (classDiscounts is empty) by month and year")
+    public ApiResponse<Long> countStudentsWithNoClassDiscountsByMonth(
+            @RequestParam("year") int year,
+            @RequestParam("month") int month
+    ) {
+        LocalDateTime start = LocalDateTime.of(year, month, 1, 0, 0);
+        LocalDateTime end = start.plusMonths(1).minusNanos(1);
+        Long count = studentService.countStudentsWithNoClassDiscountsByCreatedAtBetween(start, end);
+        return ApiResponse.<Long>builder()
+                .result(count)
+                .message("Counted students with no class by month")
+                .build();
+    }
+
+}

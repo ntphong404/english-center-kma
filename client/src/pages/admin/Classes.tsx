@@ -26,7 +26,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Users, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Eye, ArrowDownNarrowWide, ArrowUpWideNarrow } from "lucide-react";
 import { classApi } from '@/api/classApi';
 import teacherApi from '@/api/teacherApi';
 import studentApi from "@/api/studentApi";
@@ -37,6 +37,7 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TablePagination } from "@/components/ui/table-pagination";
+import debounce from "lodash.debounce";
 
 const TIME_SLOTS = [
     { label: "7:30 - 9:30", startTime: "07:30:00", endTime: "09:30:00" },
@@ -84,6 +85,9 @@ export default function AdminClasses() {
     const [studentToRemove, setStudentToRemove] = useState<Student | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [classToDelete, setClassToDelete] = useState<ClassResponse | null>(null);
+    const [searchName, setSearchName] = useState("");
+    const [sortField, setSortField] = useState("className");
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>("asc");
 
     // Form state for new class
     const [newClass, setNewClass] = useState<Partial<CreateClassRequest>>({
@@ -119,7 +123,17 @@ export default function AdminClasses() {
 
     const fetchClasses = async () => {
         try {
-            const response = await classApi.getAll(undefined, undefined, undefined, undefined, currentPage - 1, pageSize);
+            const sortParam = `${sortField},${sortOrder}`;
+            const response = await classApi.getAll(
+                searchName || undefined,
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                currentPage - 1,
+                pageSize,
+                sortParam
+            );
             const pageResponse = response.data.result;
             if (pageResponse) {
                 setClasses(pageResponse.content);
@@ -169,7 +183,7 @@ export default function AdminClasses() {
     useEffect(() => {
         fetchTeachers();
         fetchClasses();
-    }, [currentPage, pageSize]);
+    }, [currentPage, pageSize, searchName, sortField, sortOrder]);
 
     useEffect(() => {
         if (isAddStudentsDialogOpen && selectedClassForStudents) {
@@ -365,222 +379,323 @@ export default function AdminClasses() {
 
     const totalStudentPages = Math.ceil(classStudents.length / STUDENTS_PER_PAGE);
 
+    // Debounce search
+    const handleSearch = debounce((value: string) => {
+        setSearchName(value);
+        setCurrentPage(1);
+    }, 400);
+
+    // Hàm xử lý đổi sort
+    const handleSort = (field: string) => {
+        if (sortField === field) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortOrder('asc');
+        }
+    };
+
     return (
-        <div className="space-y-4">
+        <div className="space-y-6 p-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Quản lý lớp học</h2>
-                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Thêm lớp học
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Thêm lớp học mới</DialogTitle>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="className" className="text-right">
-                                    Tên lớp
-                                </Label>
-                                <Input
-                                    id="className"
-                                    className="col-span-3"
-                                    value={newClass.className}
-                                    onChange={(e) => setNewClass(prev => ({ ...prev, className: e.target.value }))}
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="teacherId" className="text-right">
-                                    Giáo viên
-                                </Label>
-                                <Select
-                                    value={newClass.teacherId}
-                                    onValueChange={(value) => setNewClass(prev => ({ ...prev, teacherId: value }))}
-                                >
-                                    <SelectTrigger className="col-span-3">
-                                        <SelectValue placeholder="Chọn giáo viên" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Array.from(teachers.values()).map((teacher) => (
-                                            <SelectItem key={teacher.userId} value={teacher.userId}>
-                                                {teacher.fullName || teacher.username}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="grade" className="text-right">
-                                    Khối
-                                </Label>
-                                <Input
-                                    id="grade"
-                                    type="number"
-                                    className="col-span-3"
-                                    value={newClass.grade}
-                                    onChange={(e) => setNewClass(prev => ({ ...prev, grade: parseInt(e.target.value) }))}
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="unitPrice" className="text-right">
-                                    Giá một buổi
-                                </Label>
-                                <div className="col-span-3 flex items-center">
+                <div className="flex justify-end items-center gap-2">
+                    <Input
+                        placeholder="Tìm theo tên lớp..."
+                        defaultValue={searchName}
+                        onChange={e => handleSearch(e.target.value)}
+                        className="w-64"
+                    />
+                    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" /> Thêm lớp học
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Thêm lớp học mới</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="className" className="text-right">
+                                        Tên lớp
+                                    </Label>
                                     <Input
-                                        id="unitPrice"
+                                        id="className"
+                                        className="col-span-3"
+                                        value={newClass.className}
+                                        onChange={(e) => setNewClass(prev => ({ ...prev, className: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="teacherId" className="text-right">
+                                        Giáo viên
+                                    </Label>
+                                    <Select
+                                        value={newClass.teacherId}
+                                        onValueChange={(value) => setNewClass(prev => ({ ...prev, teacherId: value }))}
+                                    >
+                                        <SelectTrigger className="col-span-3">
+                                            <SelectValue placeholder="Chọn giáo viên" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Array.from(teachers.values()).map((teacher) => (
+                                                <SelectItem key={teacher.userId} value={teacher.userId}>
+                                                    {teacher.fullName || teacher.username}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="grade" className="text-right">
+                                        Khối
+                                    </Label>
+                                    <Input
+                                        id="grade"
                                         type="number"
                                         className="col-span-3"
-                                        value={newClass.unitPrice}
-                                        onChange={(e) => setNewClass(prev => ({ ...prev, unitPrice: parseInt(e.target.value) }))}
+                                        value={newClass.grade}
+                                        onChange={(e) => setNewClass(prev => ({ ...prev, grade: parseInt(e.target.value) }))}
                                     />
-                                    <span className="ml-2 text-sm text-muted-foreground">VNĐ</span>
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="roomName" className="text-right">
-                                    Phòng học
-                                </Label>
-                                <Input
-                                    id="roomName"
-                                    className="col-span-3"
-                                    value={newClass.roomName}
-                                    onChange={(e) => setNewClass(prev => ({ ...prev, roomName: e.target.value }))}
-                                    placeholder="VD: TA1-401"
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="timeSlot" className="text-right">
-                                    Thời gian học
-                                </Label>
-                                <Select
-                                    value={`${newClass.startTime}-${newClass.endTime}`}
-                                    onValueChange={(value) => {
-                                        const timeSlot = TIME_SLOTS.find(slot =>
-                                            `${slot.startTime}-${slot.endTime}` === value
-                                        );
-                                        if (timeSlot) {
-                                            handleTimeSlotChange(timeSlot);
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger className="col-span-3">
-                                        <SelectValue placeholder="Chọn thời gian học" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {TIME_SLOTS.map((slot) => (
-                                            <SelectItem
-                                                key={`${slot.startTime}-${slot.endTime}`}
-                                                value={`${slot.startTime}-${slot.endTime}`}
-                                            >
-                                                {slot.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="startDate" className="text-right">
-                                    Ngày bắt đầu
-                                </Label>
-                                <Input
-                                    id="startDate"
-                                    type="date"
-                                    className="col-span-3"
-                                    value={newClass.startDate}
-                                    onChange={(e) => setNewClass(prev => ({ ...prev, startDate: e.target.value }))}
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="endDate" className="text-right">
-                                    Ngày kết thúc
-                                </Label>
-                                <Input
-                                    id="endDate"
-                                    type="date"
-                                    className="col-span-3"
-                                    value={newClass.endDate}
-                                    onChange={(e) => setNewClass(prev => ({ ...prev, endDate: e.target.value }))}
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="daysOfWeek" className="text-right">
-                                    Ngày học
-                                </Label>
-                                <div className="col-span-3">
-                                    <div className="relative">
-                                        <div
-                                            id="daysTrigger"
-                                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                            onClick={() => setIsDaysDropdownOpen(!isDaysDropdownOpen)}
-                                        >
-                                            <span>
-                                                {newClass.daysOfWeek?.length
-                                                    ? `${newClass.daysOfWeek.length} ngày đã chọn`
-                                                    : "Chọn ngày học"}
-                                            </span>
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="24"
-                                                height="24"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                className={`h-4 w-4 opacity-50 transition-transform ${isDaysDropdownOpen ? 'rotate-180' : ''}`}
-                                            >
-                                                <path d="m6 9 6 6 6-6" />
-                                            </svg>
-                                        </div>
-                                        {isDaysDropdownOpen && (
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="unitPrice" className="text-right">
+                                        Giá một buổi
+                                    </Label>
+                                    <div className="col-span-3 flex items-center">
+                                        <Input
+                                            id="unitPrice"
+                                            type="number"
+                                            className="col-span-3"
+                                            value={newClass.unitPrice}
+                                            onChange={(e) => setNewClass(prev => ({ ...prev, unitPrice: parseInt(e.target.value) }))}
+                                        />
+                                        <span className="ml-2 text-sm text-muted-foreground">VNĐ</span>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="roomName" className="text-right">
+                                        Phòng học
+                                    </Label>
+                                    <Input
+                                        id="roomName"
+                                        className="col-span-3"
+                                        value={newClass.roomName}
+                                        onChange={(e) => setNewClass(prev => ({ ...prev, roomName: e.target.value }))}
+                                        placeholder="VD: TA1-401"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="timeSlot" className="text-right">
+                                        Thời gian học
+                                    </Label>
+                                    <Select
+                                        value={`${newClass.startTime}-${newClass.endTime}`}
+                                        onValueChange={(value) => {
+                                            const timeSlot = TIME_SLOTS.find(slot =>
+                                                `${slot.startTime}-${slot.endTime}` === value
+                                            );
+                                            if (timeSlot) {
+                                                handleTimeSlotChange(timeSlot);
+                                            }
+                                        }}
+                                    >
+                                        <SelectTrigger className="col-span-3">
+                                            <SelectValue placeholder="Chọn thời gian học" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {TIME_SLOTS.map((slot) => (
+                                                <SelectItem
+                                                    key={`${slot.startTime}-${slot.endTime}`}
+                                                    value={`${slot.startTime}-${slot.endTime}`}
+                                                >
+                                                    {slot.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="startDate" className="text-right">
+                                        Ngày bắt đầu
+                                    </Label>
+                                    <Input
+                                        id="startDate"
+                                        type="date"
+                                        className="col-span-3"
+                                        value={newClass.startDate}
+                                        onChange={(e) => setNewClass(prev => ({ ...prev, startDate: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="endDate" className="text-right">
+                                        Ngày kết thúc
+                                    </Label>
+                                    <Input
+                                        id="endDate"
+                                        type="date"
+                                        className="col-span-3"
+                                        value={newClass.endDate}
+                                        onChange={(e) => setNewClass(prev => ({ ...prev, endDate: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="daysOfWeek" className="text-right">
+                                        Ngày học
+                                    </Label>
+                                    <div className="col-span-3">
+                                        <div className="relative">
                                             <div
-                                                id="daysDropdown"
-                                                className="absolute z-50 bottom-full mb-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md"
+                                                id="daysTrigger"
+                                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                onClick={() => setIsDaysDropdownOpen(!isDaysDropdownOpen)}
                                             >
-                                                <div className="p-1">
-                                                    {DAYS_OF_WEEK.map((day) => (
-                                                        <div
-                                                            key={day.value}
-                                                            className="flex items-center space-x-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground cursor-pointer"
-                                                            onClick={() => handleDaySelection(day.value)}
-                                                        >
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={newClass.daysOfWeek?.includes(day.value)}
-                                                                className="h-4 w-4 rounded border-gray-300"
-                                                                readOnly
-                                                            />
-                                                            <span>{day.label}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                                <span>
+                                                    {newClass.daysOfWeek?.length
+                                                        ? `${newClass.daysOfWeek.length} ngày đã chọn`
+                                                        : "Chọn ngày học"}
+                                                </span>
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="24"
+                                                    height="24"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    className={`h-4 w-4 opacity-50 transition-transform ${isDaysDropdownOpen ? 'rotate-180' : ''}`}
+                                                >
+                                                    <path d="m6 9 6 6 6-6" />
+                                                </svg>
                                             </div>
-                                        )}
+                                            {isDaysDropdownOpen && (
+                                                <div
+                                                    id="daysDropdown"
+                                                    className="absolute z-50 bottom-full mb-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md"
+                                                >
+                                                    <div className="p-1">
+                                                        {DAYS_OF_WEEK.map((day) => (
+                                                            <div
+                                                                key={day.value}
+                                                                className="flex items-center space-x-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                                                                onClick={() => handleDaySelection(day.value)}
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={newClass.daysOfWeek?.includes(day.value)}
+                                                                    className="h-4 w-4 rounded border-gray-300"
+                                                                    readOnly
+                                                                />
+                                                                <span>{day.label}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="flex justify-end">
-                            <Button onClick={handleCreate}>Lưu</Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                            <div className="flex justify-end">
+                                <Button onClick={handleCreate}>Lưu</Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </div>
 
             <div className="border rounded-lg">
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Tên lớp</TableHead>
-                            <TableHead>Giáo viên</TableHead>
-                            <TableHead>Sĩ số</TableHead>
-                            <TableHead>Khối</TableHead>
-                            <TableHead>Phòng học</TableHead>
-                            <TableHead>Lịch học</TableHead>
-                            <TableHead>Trạng thái</TableHead>
+                            <TableHead>
+                                <div className="flex items-center gap-1">
+                                    <span>Tên lớp</span>
+                                    <button type="button" onClick={() => handleSort('className')} className="ml-1">
+                                        {sortField === 'className' ? (
+                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
+                                        ) : (
+                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
+                                        )}
+                                    </button>
+                                </div>
+                            </TableHead>
+                            <TableHead>
+                                <div className="flex items-center gap-1">
+                                    <span>Giáo viên</span>
+                                    <button type="button" onClick={() => handleSort('teacher.fullName')} className="ml-1">
+                                        {sortField === 'teacher.fullName' ? (
+                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
+                                        ) : (
+                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
+                                        )}
+                                    </button>
+                                </div>
+                            </TableHead>
+                            <TableHead>
+                                <div className="flex items-center gap-1">
+                                    <span>Sĩ số</span>
+                                    <button type="button" onClick={() => handleSort('studentCount')} className="ml-1">
+                                        {sortField === 'studentCount' ? (
+                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
+                                        ) : (
+                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
+                                        )}
+                                    </button>
+                                </div>
+                            </TableHead>
+                            <TableHead>
+                                <div className="flex items-center gap-1">
+                                    <span>Khối</span>
+                                    <button type="button" onClick={() => handleSort('grade')} className="ml-1">
+                                        {sortField === 'grade' ? (
+                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
+                                        ) : (
+                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
+                                        )}
+                                    </button>
+                                </div>
+                            </TableHead>
+                            <TableHead>
+                                <div className="flex items-center gap-1">
+                                    <span>Phòng học</span>
+                                    <button type="button" onClick={() => handleSort('roomName')} className="ml-1">
+                                        {sortField === 'roomName' ? (
+                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
+                                        ) : (
+                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
+                                        )}
+                                    </button>
+                                </div>
+                            </TableHead>
+                            <TableHead>
+                                <div className="flex items-center gap-1">
+                                    <span>Lịch học</span>
+                                    <button type="button" onClick={() => handleSort('schedule')} className="ml-1">
+                                        {sortField === 'schedule' ? (
+                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
+                                        ) : (
+                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
+                                        )}
+                                    </button>
+                                </div>
+                            </TableHead>
+                            <TableHead>
+                                <div className="flex items-center gap-1">
+                                    <span>Trạng thái</span>
+                                    <button type="button" onClick={() => handleSort('status')} className="ml-1">
+                                        {sortField === 'status' ? (
+                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
+                                        ) : (
+                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
+                                        )}
+                                    </button>
+                                </div>
+                            </TableHead>
                             <TableHead className="text-right">Thao tác</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -594,11 +709,20 @@ export default function AdminClasses() {
                                 <TableCell>{classItem.roomName}</TableCell>
                                 <TableCell>{formatSchedule(classItem)}</TableCell>
                                 <TableCell>
-                                    <span className={`px-2 py-1 rounded-full text-xs ${classItem.status === "OPEN"
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-red-100 text-red-800"
-                                        }`}>
-                                        {classItem.status === "OPEN" ? "Đang Mở" : "Đã Đóng"}
+                                    <span
+                                        className={`px-2 py-1 rounded-full text-xs
+                                            ${classItem.status === "OPEN"
+                                                ? "bg-green-100 text-green-800"
+                                                : classItem.status === "UPCOMING"
+                                                    ? "bg-yellow-100 text-yellow-800"
+                                                    : "bg-red-100 text-red-800"}
+                                        `}
+                                    >
+                                        {classItem.status === "OPEN"
+                                            ? "Đang Mở"
+                                            : classItem.status === "UPCOMING"
+                                                ? "Sắp Khai Giảng"
+                                                : "Đã Đóng"}
                                     </span>
                                 </TableCell>
                                 <TableCell className="text-right">

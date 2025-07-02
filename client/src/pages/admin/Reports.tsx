@@ -11,7 +11,9 @@ import { Download } from "lucide-react";
 import studentApi from '@/api/studentApi';
 import { classApi } from '@/api/classApi';
 import paymentApi from '@/api/paymentApi';
-import { Bar, Line, Pie } from 'react-chartjs-2';
+import { teacherPaymentApi } from '@/api/teacherPaymentApi';
+import teacherApi from '@/api/teacherApi';
+import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2';
 import Papa from 'papaparse';
 import {
     Chart as ChartJS,
@@ -51,9 +53,24 @@ export default function AdminReports() {
     const [loading, setLoading] = useState(true);
     const [pieLoading, setPieLoading] = useState(true);
 
+    // New state variables for student statistics
+    const [studentsNoClass, setStudentsNoClass] = useState(0);
+    const [studentsNoClassByMonth, setStudentsNoClassByMonth] = useState<number[]>(Array(12).fill(0));
+    const [studentsCreatedByMonth, setStudentsCreatedByMonth] = useState<number[]>(Array(12).fill(0));
+    const [currentYear] = useState(new Date().getFullYear());
+
+    // New state variables for teacher salary reports
+    const [teacherSalaryByMonth, setTeacherSalaryByMonth] = useState<number[]>(Array(12).fill(0));
+    const [teacherSalaryByQuarter, setTeacherSalaryByQuarter] = useState<number[]>(Array(4).fill(0));
+    const [totalTeacherSalary, setTotalTeacherSalary] = useState(0);
+    const [teacherCount, setTeacherCount] = useState(0);
+    const [salaryLoading, setSalaryLoading] = useState(true);
+
     const barRef = useRef(null);
     const lineRef = useRef(null);
     const pieRef = useRef(null);
+    const salaryBarRef = useRef(null);
+    const salaryLineRef = useRef(null);
     const { state: sidebarState } = useSidebar();
 
     const { ref: containerRef } = useResizeObserver({
@@ -61,6 +78,8 @@ export default function AdminReports() {
             barRef.current?.chart?.resize();
             lineRef.current?.chart?.resize();
             pieRef.current?.chart?.resize();
+            salaryBarRef.current?.chart?.resize();
+            salaryLineRef.current?.chart?.resize();
         },
     });
 
@@ -68,7 +87,7 @@ export default function AdminReports() {
         setLoading(true);
         Promise.all([
             studentApi.getAll(undefined, undefined, 0, 1),
-            classApi.getAll(undefined, undefined, undefined, undefined, 0, 100),
+            classApi.getAll(undefined, undefined, undefined, undefined, undefined, 0, 100),
             paymentApi.getAll(undefined, undefined, 0, 1000)
         ]).then(([stuRes, classRes, payRes]) => {
             let students = 0;
@@ -115,6 +134,81 @@ export default function AdminReports() {
         }).catch(() => setLoading(false));
     }, []);
 
+    // Fetch student statistics
+    useEffect(() => {
+        const fetchStudentStats = async () => {
+            try {
+                // Get students with no class
+                const noClassRes = await studentApi.countNoClass();
+                setStudentsNoClass(noClassRes.data.result || 0);
+
+                // Get students with no class by month for current year
+                const noClassByMonthPromises = Array.from({ length: 12 }, (_, i) =>
+                    studentApi.countNoClassByMonth(i + 1, currentYear)
+                );
+                const noClassByMonthResults = await Promise.all(noClassByMonthPromises);
+                const noClassByMonthData = noClassByMonthResults.map(res => res.data.result || 0);
+                setStudentsNoClassByMonth(noClassByMonthData);
+
+                // Get students created by month for current year
+                const createdByMonthPromises = Array.from({ length: 12 }, (_, i) =>
+                    studentApi.countByCreatedAt(i + 1, currentYear)
+                );
+                const createdByMonthResults = await Promise.all(createdByMonthPromises);
+                const createdByMonthData = createdByMonthResults.map(res => res.data.result || 0);
+                setStudentsCreatedByMonth(createdByMonthData);
+            } catch (error) {
+                console.error('Error fetching student statistics:', error);
+            }
+        };
+
+        fetchStudentStats();
+    }, [currentYear]);
+
+    // Fetch teacher salary data
+    useEffect(() => {
+        const fetchTeacherSalaryData = async () => {
+            setSalaryLoading(true);
+            try {
+                // Get all teachers
+                const teachersRes = await teacherApi.getAll(undefined, undefined, 0, 100);
+                const teachers = teachersRes.data?.result?.content || teachersRes.data?.result || [];
+                const teachersArr = Array.isArray(teachers) ? teachers : teachers.content ?? [];
+                setTeacherCount(teachersArr.length);
+
+                // Get teacher payments for current year
+                const teacherPaymentsRes = await teacherPaymentApi.getAll(undefined, undefined, currentYear, 0, 1000);
+                const teacherPayments = teacherPaymentsRes.data?.result?.content || teacherPaymentsRes.data?.result || [];
+                const teacherPaymentsArr = Array.isArray(teacherPayments) ? teacherPayments : teacherPayments.content ?? [];
+
+                const salaryByMonth = Array(12).fill(0);
+                const salaryByQuarter = Array(4).fill(0);
+                let totalSalary = 0;
+
+                teacherPaymentsArr.forEach((payment: any) => {
+                    if (payment.year === currentYear && payment.paidAmount) {
+                        const month = payment.month - 1; // 0-based index
+                        if (month >= 0 && month < 12) {
+                            salaryByMonth[month] += payment.paidAmount;
+                            salaryByQuarter[Math.floor(month / 3)] += payment.paidAmount;
+                            totalSalary += payment.paidAmount;
+                        }
+                    }
+                });
+
+                setTeacherSalaryByMonth(salaryByMonth);
+                setTeacherSalaryByQuarter(salaryByQuarter);
+                setTotalTeacherSalary(totalSalary);
+            } catch (error) {
+                console.error('Error fetching teacher salary data:', error);
+            } finally {
+                setSalaryLoading(false);
+            }
+        };
+
+        fetchTeacherSalaryData();
+    }, [currentYear]);
+
     // Pie chart: fetch student count by grade (1-5)
     useEffect(() => {
         let isMounted = true;
@@ -124,7 +218,7 @@ export default function AdminReports() {
                 const gradeLabels: string[] = [];
                 const gradeCounts: number[] = [];
                 for (let grade = 1; grade <= 5; grade++) {
-                    const res = await classApi.getAll(undefined, undefined, undefined, grade, 0, 1);
+                    const res = await classApi.getAll(undefined, undefined, undefined, grade, "OPEN", 0, 1);
                     let total = 0;
                     const page = res.data.result && typeof res.data.result === 'object' && 'page' in res.data.result ? (res.data.result as any).page : undefined;
                     if (page && typeof page === 'object' && 'totalElements' in page) {
@@ -154,8 +248,15 @@ export default function AdminReports() {
             ['Tổng số lớp học', classCount],
             ['Doanh thu tháng gần nhất', lastMonthRevenue],
             ['Tỷ lệ duy trì', retentionRate + '%'],
+            ['Học viên chưa có lớp', studentsNoClass],
+            ['Tổng số giáo viên', teacherCount],
+            ['Tổng tiền đã trả cho giáo viên', totalTeacherSalary.toLocaleString('vi-VN') + 'đ'],
             ['Doanh thu theo tháng', revenueByMonth.map((v, i) => `T${i + 1}: ${v}`).join('; ')],
             ['Doanh thu theo quý', revenueByQuarter.map((v, i) => `Q${i + 1}: ${v}`).join('; ')],
+            ['Tiền đã trả cho giáo viên theo tháng', teacherSalaryByMonth.map((v, i) => `T${i + 1}: ${v}`).join('; ')],
+            ['Tiền đã trả cho giáo viên theo quý', teacherSalaryByQuarter.map((v, i) => `Q${i + 1}: ${v}`).join('; ')],
+            ['Học viên chưa có lớp theo tháng', studentsNoClassByMonth.map((v, i) => `T${i + 1}: ${v}`).join('; ')],
+            ['Học viên mới theo tháng', studentsCreatedByMonth.map((v, i) => `T${i + 1}: ${v}`).join('; ')],
             ['Phân bố học viên theo trình độ', levelDist.map(l => `${l.label}: ${l.value}`).join('; ')],
         ];
         const csv = '\uFEFF' + Papa.unparse(rows);
@@ -196,8 +297,52 @@ export default function AdminReports() {
         }],
     };
 
+    // New chart data for student statistics
+    const studentStatsData = {
+        labels: Array.from({ length: 12 }, (_, i) => `Tháng ${i + 1}`),
+        datasets: [
+            {
+                label: 'Học viên chưa có lớp',
+                data: studentsNoClassByMonth,
+                backgroundColor: 'rgba(239, 68, 68, 0.5)',
+                borderColor: 'rgba(239, 68, 68, 1)',
+                borderWidth: 1,
+            },
+            {
+                label: 'Học viên mới',
+                data: studentsCreatedByMonth,
+                backgroundColor: 'rgba(34, 197, 94, 0.5)',
+                borderColor: 'rgba(34, 197, 94, 1)',
+                borderWidth: 1,
+            }
+        ],
+    };
+
+    // New chart data for teacher salary
+    const teacherSalaryBarData = {
+        labels: Array.from({ length: 12 }, (_, i) => `Tháng ${i + 1}`),
+        datasets: [{
+            label: 'Tiền đã trả cho giáo viên theo tháng',
+            data: teacherSalaryByMonth,
+            backgroundColor: 'rgba(168, 85, 247, 0.5)',
+            borderColor: 'rgba(168, 85, 247, 1)',
+            borderWidth: 1,
+        }],
+    };
+
+    const teacherSalaryLineData = {
+        labels: ['Quý 1', 'Quý 2', 'Quý 3', 'Quý 4'],
+        datasets: [{
+            label: 'Tiền đã trả cho giáo viên theo quý',
+            data: teacherSalaryByQuarter,
+            borderColor: 'rgba(245, 158, 11, 1)',
+            backgroundColor: 'rgba(245, 158, 11, 0.2)',
+            tension: 0.4,
+        }],
+    };
+
     return (
-        <div ref={containerRef} className="space-y-10 overflow-x-hidden w-full min-h-screen bg-gray-100">
+        <div ref={containerRef} className="space-y-10 overflow-x-hidden w-full min-h-screen bg-gray-100 p-6">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">Báo cáo thống kê</h2>
                 <Button onClick={handleExportCSV}>
@@ -222,6 +367,37 @@ export default function AdminReports() {
                     title: 'Tỷ lệ duy trì',
                     value: retentionRate + '%',
                     description: 'Tỷ lệ học viên tiếp tục học'
+                }].map((stat, idx) => (
+                    <Card key={idx} className="p-2">
+                        <CardHeader className="pb-1">
+                            <CardTitle className="text-base">{stat.title}</CardTitle>
+                            <CardDescription className="text-xs">{stat.description}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-xl font-bold">{loading ? '...' : stat.value}</div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+
+            {/* New statistics cards */}
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 mb-8">
+                {[{
+                    title: 'Học viên chưa có lớp',
+                    value: studentsNoClass,
+                    description: 'Học viên chưa được phân lớp'
+                }, {
+                    title: 'Tổng số giáo viên',
+                    value: teacherCount,
+                    description: 'Số lượng giáo viên hiện tại'
+                }, {
+                    title: 'Tổng tiền đã trả cho giáo viên',
+                    value: totalTeacherSalary.toLocaleString('vi-VN') + 'đ',
+                    description: 'Tổng tiền đã trả cho giáo viên năm ' + currentYear
+                }, {
+                    title: 'Học viên mới tháng này',
+                    value: studentsCreatedByMonth[new Date().getMonth()] || 0,
+                    description: 'Học viên mới đăng ký tháng hiện tại'
                 }].map((stat, idx) => (
                     <Card key={idx} className="p-2">
                         <CardHeader className="pb-1">
@@ -265,6 +441,119 @@ export default function AdminReports() {
                             <div className="flex items-center justify-center h-full">Đang tải...</div>
                         ) : (
                             <Pie ref={pieRef} data={pieData} options={{ maintainAspectRatio: false, responsive: true }} />
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* New student statistics chart */}
+            <Card className="mb-10">
+                <CardHeader>
+                    <CardTitle>Thống kê học viên theo tháng</CardTitle>
+                    <CardDescription>Học viên chưa có lớp và học viên mới đăng ký</CardDescription>
+                </CardHeader>
+                <CardContent className="h-72 w-full min-w-0 max-w-5xl mx-auto">
+                    <Bar data={studentStatsData} options={{
+                        maintainAspectRatio: false,
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }} />
+                </CardContent>
+            </Card>
+
+            {/* Teacher salary charts */}
+            <Card className="mb-10">
+                <CardHeader>
+                    <CardTitle>Tiền đã trả cho giáo viên theo tháng</CardTitle>
+                    <CardDescription>Biểu đồ cột tiền đã trả cho giáo viên 12 tháng năm {currentYear}</CardDescription>
+                </CardHeader>
+                <CardContent className="h-72 w-full min-w-0 max-w-5xl mx-auto">
+                    {salaryLoading ? (
+                        <div className="flex items-center justify-center h-full">Đang tải...</div>
+                    ) : (
+                        <Bar ref={salaryBarRef} data={teacherSalaryBarData} options={{
+                            maintainAspectRatio: false,
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function (value) {
+                                            return value.toLocaleString('vi-VN') + 'đ';
+                                        }
+                                    }
+                                }
+                            }
+                        }} />
+                    )}
+                </CardContent>
+            </Card>
+
+            <div className="grid gap-10 md:grid-cols-2 mb-10">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Tiền đã trả cho giáo viên theo quý</CardTitle>
+                        <CardDescription>Biểu đồ đường tiền đã trả cho giáo viên 4 quý năm {currentYear}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-72 w-full min-w-0 max-w-3xl mx-auto">
+                        {salaryLoading ? (
+                            <div className="flex items-center justify-center h-full">Đang tải...</div>
+                        ) : (
+                            <Line ref={salaryLineRef} data={teacherSalaryLineData} options={{
+                                maintainAspectRatio: false,
+                                responsive: true,
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: {
+                                            callback: function (value) {
+                                                return value.toLocaleString('vi-VN') + 'đ';
+                                            }
+                                        }
+                                    }
+                                }
+                            }} />
+                        )}
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>So sánh doanh thu và tiền đã trả cho giáo viên</CardTitle>
+                        <CardDescription>Biểu đồ tròn so sánh tỷ lệ</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-72 w-full min-w-0 max-w-3xl mx-auto">
+                        {loading || salaryLoading ? (
+                            <div className="flex items-center justify-center h-full">Đang tải...</div>
+                        ) : (
+                            <Doughnut data={{
+                                labels: ['Doanh thu', 'Tiền đã trả cho giáo viên'],
+                                datasets: [{
+                                    data: [
+                                        revenueByMonth.reduce((a, b) => a + b, 0),
+                                        totalTeacherSalary
+                                    ],
+                                    backgroundColor: ['rgba(59, 130, 246, 0.8)', 'rgba(168, 85, 247, 0.8)'],
+                                    borderColor: ['rgba(59, 130, 246, 1)', 'rgba(168, 85, 247, 1)'],
+                                    borderWidth: 2,
+                                }],
+                            }} options={{
+                                maintainAspectRatio: false,
+                                responsive: true,
+                                plugins: {
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function (context) {
+                                                const value = context.parsed;
+                                                return context.label + ': ' + value.toLocaleString('vi-VN') + 'đ';
+                                            }
+                                        }
+                                    }
+                                }
+                            }} />
                         )}
                     </CardContent>
                 </Card>

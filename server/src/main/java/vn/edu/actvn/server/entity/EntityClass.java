@@ -74,6 +74,6 @@ public class EntityClass {
     LocalDateTime updatedAt;
 
     public enum Status {
-        OPEN, CLOSED
+        OPEN, CLOSED, UPCOMING
     }
 }

@@ -51,7 +51,7 @@ export default function TeacherAttendance() {
             const user = getUser();
             if (user) {
                 try {
-                    const res = await classApi.getAll(undefined, user.userId, undefined, undefined, 0, CLASS_PAGE_SIZE, "className,ASC");
+                    const res = await classApi.getAll(undefined, user.userId, undefined, undefined, undefined, 0, CLASS_PAGE_SIZE, "className,ASC");
                     let result = res.data.result;
                     let newClasses: ClassResponse[] = [];
                     if (result && typeof result === 'object' && 'content' in result && Array.isArray(result.content)) {
@@ -213,7 +213,7 @@ export default function TeacherAttendance() {
         const user = getUser();
         if (user) {
             try {
-                const res = await classApi.getAll(undefined, user.userId, undefined, undefined, classPage, CLASS_PAGE_SIZE, "className,ASC");
+                const res = await classApi.getAll(undefined, user.userId, undefined, undefined, undefined, classPage, CLASS_PAGE_SIZE, "className,ASC");
                 let result = res.data.result;
                 let newClasses: ClassResponse[] = [];
                 let hasMore = false;
@@ -234,159 +234,161 @@ export default function TeacherAttendance() {
     };
 
     return (
-        <div className="flex gap-6">
-            {/* Left: Class List */}
-            <div className="w-1/3 space-y-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Danh sách lớp</CardTitle>
-                        <CardDescription>Chọn lớp để xem thông tin và điểm danh</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-col gap-2">
-                            {classes.length === 0 && <div>Không có lớp nào.</div>}
-                            {classes.map(cls => (
-                                <Button
-                                    key={cls.classId}
-                                    variant={selectedClass?.classId === cls.classId ? "default" : "outline"}
-                                    onClick={() => handleSelectClass(cls)}
-                                    className="justify-start"
-                                >
-                                    {cls.className}
-                                </Button>
-                            ))}
-                            {classHasMore && (
-                                <Button variant="outline" onClick={handleLoadMoreClass} className="mt-2">Xem thêm lớp</Button>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Right: Class Info & Attendance */}
-            <div className="w-2/3 space-y-4">
-                {selectedClass ? (
+        <div className="space-y-6 p-6">
+            <div className="flex gap-6">
+                {/* Left: Class List */}
+                <div className="w-1/3 space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Thông tin lớp: {selectedClass.className}</CardTitle>
-                            <CardDescription>
-                                Sĩ số: {selectedClass.studentIds.length} <br />
-                                Phòng: {selectedClass.roomName} <br />
-                                Ngày bắt đầu: {format(new Date(selectedClass.startDate), 'dd/MM/yyyy', { locale: vi })}<br />
-                                Thời gian học: {selectedClass.startTime} - {selectedClass.endTime} <br />
-                                Các ngày học: {selectedClass.daysOfWeek && selectedClass.daysOfWeek.length > 0 ? selectedClass.daysOfWeek.map(d => d.charAt(0) + d.slice(1).toLowerCase()).join(', ') : 'Không rõ'}
-                            </CardDescription>
+                            <CardTitle>Danh sách lớp</CardTitle>
+                            <CardDescription>Chọn lớp để xem thông tin và điểm danh</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button onClick={handleAttendance} disabled={loading}>
-                                {loading ? 'Đang tải...' : 'Điểm danh hôm nay'}
-                            </Button>
-                            <Button onClick={handleShowHistory} variant="outline" className="ml-2">
-                                {showHistory ? 'Ẩn lịch sử điểm danh' : 'Xem lịch sử điểm danh'}
-                            </Button>
-                            {showHistory && (
-                                <div className="mt-4">
-                                    {historyLoading && history.length === 0 ? (
-                                        <div>Đang tải lịch sử...</div>
-                                    ) : history.length === 0 ? (
-                                        <div>Không có lịch sử điểm danh.</div>
-                                    ) : (
-                                        <>
-                                            <div className="border rounded-lg divide-y">
-                                                {history.map((att, idx) => (
-                                                    <div
-                                                        key={att.attendanceId}
-                                                        className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 cursor-pointer"
-                                                        onClick={() => handleOpenHistoryDialog(att)}
-                                                    >
-                                                        <div className="font-medium">
-                                                            {typeof selectedClass?.className === 'string' ? selectedClass.className : 'Tên lớp'}
+                            <div className="flex flex-col gap-2">
+                                {classes.length === 0 && <div>Không có lớp nào.</div>}
+                                {classes.map(cls => (
+                                    <Button
+                                        key={cls.classId}
+                                        variant={selectedClass?.classId === cls.classId ? "default" : "outline"}
+                                        onClick={() => handleSelectClass(cls)}
+                                        className="justify-start"
+                                    >
+                                        {cls.className}
+                                    </Button>
+                                ))}
+                                {classHasMore && (
+                                    <Button variant="outline" onClick={handleLoadMoreClass} className="mt-2">Xem thêm lớp</Button>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Right: Class Info & Attendance */}
+                <div className="w-2/3 space-y-4">
+                    {selectedClass ? (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Thông tin lớp: {selectedClass.className}</CardTitle>
+                                <CardDescription>
+                                    Sĩ số: {selectedClass.studentIds.length} <br />
+                                    Phòng: {selectedClass.roomName} <br />
+                                    Ngày bắt đầu: {format(new Date(selectedClass.startDate), 'dd/MM/yyyy', { locale: vi })}<br />
+                                    Thời gian học: {selectedClass.startTime} - {selectedClass.endTime} <br />
+                                    Các ngày học: {selectedClass.daysOfWeek && selectedClass.daysOfWeek.length > 0 ? selectedClass.daysOfWeek.map(d => d.charAt(0) + d.slice(1).toLowerCase()).join(', ') : 'Không rõ'}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Button onClick={handleAttendance} disabled={loading}>
+                                    {loading ? 'Đang tải...' : 'Điểm danh hôm nay'}
+                                </Button>
+                                <Button onClick={handleShowHistory} variant="outline" className="ml-2">
+                                    {showHistory ? 'Ẩn lịch sử điểm danh' : 'Xem lịch sử điểm danh'}
+                                </Button>
+                                {showHistory && (
+                                    <div className="mt-4">
+                                        {historyLoading && history.length === 0 ? (
+                                            <div>Đang tải lịch sử...</div>
+                                        ) : history.length === 0 ? (
+                                            <div>Không có lịch sử điểm danh.</div>
+                                        ) : (
+                                            <>
+                                                <div className="border rounded-lg divide-y">
+                                                    {history.map((att, idx) => (
+                                                        <div
+                                                            key={att.attendanceId}
+                                                            className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                                                            onClick={() => handleOpenHistoryDialog(att)}
+                                                        >
+                                                            <div className="font-medium">
+                                                                {typeof selectedClass?.className === 'string' ? selectedClass.className : 'Tên lớp'}
+                                                            </div>
+                                                            <div className="text-sm text-gray-500">{att.date ? format(new Date(att.date), 'dd/MM/yyyy', { locale: vi }) : ''}</div>
                                                         </div>
-                                                        <div className="text-sm text-gray-500">{att.date ? format(new Date(att.date), 'dd/MM/yyyy', { locale: vi }) : ''}</div>
+                                                    ))}
+                                                </div>
+                                                {historyHasMore && !historyLoading && (
+                                                    <div className="flex justify-center mt-2">
+                                                        <Button variant="outline" onClick={handleLoadMoreHistory}>
+                                                            Xem thêm
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                                {historyLoading && history.length > 0 && (
+                                                    <div className="flex justify-center mt-2 text-sm text-gray-500">Đang tải thêm...</div>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                                {error && <div className="text-red-500 mt-2">{error}</div>}
+                                {attendance && (
+                                    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                                        <DialogContent className="max-w-4xl w-full h-[700px] flex flex-col">
+                                            <DialogHeader>
+                                                <DialogTitle>Điểm danh lớp {selectedClass?.className}</DialogTitle>
+                                                <DialogDescription>Ngày: {attendance.date ? format(new Date(attendance.date), 'dd/MM/yyyy', { locale: vi }) : ''}</DialogDescription>
+                                            </DialogHeader>
+                                            <div className="flex-1 overflow-y-auto flex flex-col gap-6">
+                                                {editAttendance.map((student, idx) => (
+                                                    <div
+                                                        key={student.studentId}
+                                                        className="flex flex-col md:flex-row md:items-center gap-2 md:gap-8 border-b pb-2"
+                                                    >
+                                                        <div className="font-medium min-w-[120px] md:w-1/4">{studentMap[student.studentId] || student.studentId}</div>
+                                                        <div className="flex gap-6 items-center md:w-1/4">
+                                                            <label className="flex items-center gap-2">
+                                                                <input
+                                                                    type="radio"
+                                                                    checked={student.status === 'PRESENT'}
+                                                                    onChange={() => handleEditStatus(student.studentId, 'PRESENT')}
+                                                                />
+                                                                Có mặt
+                                                            </label>
+                                                            <label className="flex items-center gap-2">
+                                                                <input
+                                                                    type="radio"
+                                                                    checked={student.status === 'ABSENT'}
+                                                                    onChange={() => handleEditStatus(student.studentId, 'ABSENT')}
+                                                                />
+                                                                Vắng
+                                                            </label>
+                                                        </div>
+                                                        <div className="md:w-2/4 w-full md:pl-8">
+                                                            <Input
+                                                                className="mt-1 md:mt-0"
+                                                                value={student.note || ''}
+                                                                onChange={e => handleEditNote(student.studentId, e.target.value)}
+                                                                placeholder="Ghi chú"
+                                                            />
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
-                                            {historyHasMore && !historyLoading && (
-                                                <div className="flex justify-center mt-2">
-                                                    <Button variant="outline" onClick={handleLoadMoreHistory}>
-                                                        Xem thêm
-                                                    </Button>
-                                                </div>
-                                            )}
-                                            {historyLoading && history.length > 0 && (
-                                                <div className="flex justify-center mt-2 text-sm text-gray-500">Đang tải thêm...</div>
-                                            )}
-                                        </>
-                                    )}
-                                </div>
-                            )}
-                            {error && <div className="text-red-500 mt-2">{error}</div>}
-                            {attendance && (
-                                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                                    <DialogContent className="max-w-4xl w-full h-[700px] flex flex-col">
-                                        <DialogHeader>
-                                            <DialogTitle>Điểm danh lớp {selectedClass?.className}</DialogTitle>
-                                            <DialogDescription>Ngày: {attendance.date ? format(new Date(attendance.date), 'dd/MM/yyyy', { locale: vi }) : ''}</DialogDescription>
-                                        </DialogHeader>
-                                        <div className="flex-1 overflow-y-auto flex flex-col gap-6">
-                                            {editAttendance.map((student, idx) => (
-                                                <div
-                                                    key={student.studentId}
-                                                    className="flex flex-col md:flex-row md:items-center gap-2 md:gap-8 border-b pb-2"
+                                            <DialogFooter>
+                                                <Button
+                                                    onClick={handleSaveAttendance}
+                                                    disabled={saving}
                                                 >
-                                                    <div className="font-medium min-w-[120px] md:w-1/4">{studentMap[student.studentId] || student.studentId}</div>
-                                                    <div className="flex gap-6 items-center md:w-1/4">
-                                                        <label className="flex items-center gap-2">
-                                                            <input
-                                                                type="radio"
-                                                                checked={student.status === 'PRESENT'}
-                                                                onChange={() => handleEditStatus(student.studentId, 'PRESENT')}
-                                                            />
-                                                            Có mặt
-                                                        </label>
-                                                        <label className="flex items-center gap-2">
-                                                            <input
-                                                                type="radio"
-                                                                checked={student.status === 'ABSENT'}
-                                                                onChange={() => handleEditStatus(student.studentId, 'ABSENT')}
-                                                            />
-                                                            Vắng
-                                                        </label>
-                                                    </div>
-                                                    <div className="md:w-2/4 w-full md:pl-8">
-                                                        <Input
-                                                            className="mt-1 md:mt-0"
-                                                            value={student.note || ''}
-                                                            onChange={e => handleEditNote(student.studentId, e.target.value)}
-                                                            placeholder="Ghi chú"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <DialogFooter>
-                                            <Button
-                                                onClick={handleSaveAttendance}
-                                                disabled={saving}
-                                            >
-                                                {saving ? 'Đang lưu...' : 'Lưu'}
-                                            </Button>
-                                            <DialogClose asChild>
-                                                <Button variant="outline">Đóng</Button>
-                                            </DialogClose>
-                                        </DialogFooter>
-                                    </DialogContent>
-                                </Dialog>
-                            )}
-                        </CardContent>
-                    </Card>
-                ) : (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Chọn lớp để xem thông tin</CardTitle>
-                        </CardHeader>
-                    </Card>
-                )}
+                                                    {saving ? 'Đang lưu...' : 'Lưu'}
+                                                </Button>
+                                                <DialogClose asChild>
+                                                    <Button variant="outline">Đóng</Button>
+                                                </DialogClose>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
+                                )}
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Chọn lớp để xem thông tin</CardTitle>
+                            </CardHeader>
+                        </Card>
+                    )}
+                </div>
             </div>
         </div>
     );

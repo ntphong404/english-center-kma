@@ -20,7 +20,7 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { useDebouncedCallback } from 'use-debounce';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 const initialForm = {
     title: '',
@@ -207,7 +207,7 @@ const Banner = () => {
     };
 
     return (
-        <div className="p-4">
+        <div className="p-6">
             <div className="flex flex-col gap-2 mb-4">
                 <h2 className="text-2xl font-bold">Quản lý Banner</h2>
                 <div className="flex justify-end items-center gap-2">

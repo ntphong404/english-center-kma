@@ -10,7 +10,7 @@ const TeacherProfile = () => {
     const [profile, setProfile] = useState({
         fullName: 'Trần Thị Giáo Viên',
         email: 'teacher@school.com',
-        phone: '0987654321',
+        phoneNumber: '0987654321',
         address: '456 Đường XYZ, Quận 2, TP.HCM',
         dateOfBirth: '1985-05-15',
         avatar: '',

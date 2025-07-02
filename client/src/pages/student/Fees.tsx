@@ -87,7 +87,7 @@ export default function StudentFees() {
         .reduce((sum, payment) => sum + payment.amount, 0);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 p-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Học phí</h2>
                 <Button>

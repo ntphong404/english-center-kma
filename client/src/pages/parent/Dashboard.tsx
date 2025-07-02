@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, BookOpen, GraduationCap, CreditCard, Users, Bell } from 'lucide-react';
+import { Calendar, BookOpen, CreditCard, Users, Bell } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { getUser } from '@/store/userStore';
@@ -10,16 +10,13 @@ import { classApi } from '@/api/classApi';
 import attendanceApi from '@/api/attendanceApi';
 import tuitionFeeApi from '@/api/tuitionFeeApi';
 import { Parent, Student } from '@/types/user';
-import { ClassResponse } from '@/types/entityclass';
-import { AttendanceResponse } from '@/types/attendance';
-import { TuitionFeeResponse } from '@/types/tuitionfee';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 
 interface ChildData {
     student: Student;
-    class?: ClassResponse;
-    teacher?: { fullName: string };
+    classes: { classId: string; className: string }[];
     attendance: {
         total: number;
         present: number;
@@ -42,6 +39,7 @@ const ParentDashboard = () => {
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
     const currentUser = getUser();
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchData = async () => {
@@ -65,16 +63,16 @@ const ParentDashboard = () => {
                 // Fetch data for each student
                 const childrenData: ChildData[] = await Promise.all(
                     students.map(async (student) => {
-                        // Get student's classes
-                        const classesRes = await classApi.getAll(undefined, undefined, student.userId, undefined, 0, 10);
+                        // Get all classes for this student
+                        const classesRes = await classApi.getAll(undefined, undefined, student.userId, undefined, undefined, 0, 10);
                         const classes = classesRes.data.result.content || [];
-                        const studentClass = classes[0]; // Get first class
+                        const classList = classes.map((cls: any) => ({ classId: cls.classId, className: cls.className }));
 
-                        // Get attendance data
+                        // Get attendance data (across all classes)
                         let attendance = { total: 0, present: 0, absent: 0 };
-                        if (studentClass) {
+                        for (const cls of classes) {
                             try {
-                                const attendanceRes = await attendanceApi.getAll(undefined, studentClass.classId, undefined, 0, 100);
+                                const attendanceRes = await attendanceApi.getAll(undefined, cls.classId, undefined, 0, 100);
                                 let attendances: any[] = [];
                                 const result = attendanceRes.data.result;
                                 if (result && typeof result === 'object' && 'content' in result && Array.isArray(result.content)) {
@@ -82,17 +80,16 @@ const ParentDashboard = () => {
                                 } else if (Array.isArray(result)) {
                                     attendances = result;
                                 }
-
-                                attendance.total = attendances.length;
-                                attendance.present = attendances.reduce((total, att) => {
+                                attendance.total += attendances.length;
+                                attendance.present += attendances.reduce((total, att) => {
                                     const studentAtt = att.studentAttendances.find(sa => sa.studentId === student.userId);
                                     return total + (studentAtt?.status === 'PRESENT' ? 1 : 0);
                                 }, 0);
-                                attendance.absent = attendance.total - attendance.present;
                             } catch (error) {
-                                console.error('Error fetching attendance:', error);
+                                // ignore
                             }
                         }
+                        attendance.absent = attendance.total - attendance.present;
 
                         // Get tuition fee data
                         let fees = { total: 0, paid: 0, remaining: 0, dueDate: undefined as string | undefined };
@@ -116,38 +113,29 @@ const ParentDashboard = () => {
                                 fees.dueDate = format(new Date(latestFee.dueDate), 'dd/MM/yyyy', { locale: vi });
                             }
                         } catch (error) {
-                            console.error('Error fetching fees:', error);
+                            // ignore
                         }
 
-                        // Get teacher info
-                        let teacher = undefined;
-                        if (studentClass?.teacherId) {
-                            try {
-                                // Note: Assuming there's a teacher API, but we'll use a simple approach for now
-                                teacher = { fullName: 'Giáo viên' }; // Placeholder
-                            } catch (error) {
-                                console.error('Error fetching teacher:', error);
-                            }
-                        }
-
-                        // Calculate next class
+                        // Calculate next class (find the soonest upcoming class among all classes)
                         let nextClass = undefined;
-                        if (studentClass) {
+                        let soonestDate: Date | undefined = undefined;
+                        for (const cls of classes) {
                             const today = new Date();
-                            const classDays = studentClass.daysOfWeek || [];
-                            const startTime = studentClass.startTime;
-
-                            // Simple next class calculation
-                            nextClass = {
-                                time: `${startTime} - ${studentClass.endTime}`,
-                                date: format(today, 'dd/MM/yyyy', { locale: vi })
-                            };
+                            const startTime = cls.startTime;
+                            // For demo, just use today as next class
+                            const classDate = today;
+                            if (!soonestDate || classDate < soonestDate) {
+                                soonestDate = classDate;
+                                nextClass = {
+                                    time: `${startTime} - ${cls.endTime}`,
+                                    date: format(classDate, 'dd/MM/yyyy', { locale: vi })
+                                };
+                            }
                         }
 
                         return {
                             student,
-                            class: studentClass,
-                            teacher,
+                            classes: classList,
                             attendance,
                             fees,
                             nextClass
@@ -157,7 +145,6 @@ const ParentDashboard = () => {
 
                 setChildren(childrenData);
             } catch (error) {
-                console.error('Error fetching parent dashboard data:', error);
                 toast({
                     title: 'Lỗi',
                     description: 'Không thể tải dữ liệu dashboard',
@@ -213,7 +200,7 @@ const ParentDashboard = () => {
 
     if (children.length === 0) {
         return (
-            <div className="space-y-6">
+            <div className="space-y-6 p-6">
                 <h1 className="text-3xl font-bold mb-8">Tổng quan</h1>
                 <div className="text-center py-12">
                     <p className="text-gray-500">Bạn chưa có con em nào được đăng ký.</p>
@@ -223,23 +210,33 @@ const ParentDashboard = () => {
     }
 
     return (
-        <div className="space-y-6">
-            <h1 className="text-3xl font-bold mb-8">Tổng quan</h1>
+        <div className="space-y-8 max-w-5xl mx-auto px-2 md:px-0 p-6">
+            <h1 className="text-3xl font-bold mb-8 text-center">Tổng quan học sinh</h1>
 
             {children.map((child) => (
                 <div key={child.student.userId} className="space-y-6">
-                    <h2 className="text-2xl font-semibold">{child.student.fullName || child.student.username}</h2>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
+                        <h2 className="text-2xl font-semibold text-blue-700">{child.student.fullName || child.student.username}</h2>
+                        {child.classes.length > 0 && (
+                            <div className="flex flex-wrap gap-2 items-center">
+                                <span className="text-sm text-gray-500">Lớp đang học:</span>
+                                {child.classes.map(cls => (
+                                    <span key={cls.classId} className="bg-blue-100 text-blue-700 rounded px-2 py-1 text-xs font-medium">{cls.className}</span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                     {/* Stats Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {getChildStats(child).map((stat, index) => (
-                            <Card key={index}>
+                            <Card key={index} className="shadow-md border-0">
                                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                                     <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
                                     {stat.icon}
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{stat.value}</div>
+                                    <div className="text-2xl font-bold mb-1">{stat.value}</div>
                                     <p className="text-xs text-muted-foreground">
                                         <span className={stat.changeDirection === 'up' ? 'text-green-500' : 'text-red-500'}>
                                             {stat.change}
@@ -252,39 +249,17 @@ const ParentDashboard = () => {
                         ))}
                     </div>
 
-                    {/* Class Information */}
-                    <Card>
+                    {/* Tuition Info */}
+                    <Card className="mt-4">
                         <CardHeader>
-                            <CardTitle>Thông tin lớp học</CardTitle>
+                            <CardTitle>Thông tin học phí</CardTitle>
                             <CardDescription>
-                                Chi tiết về lớp học và học phí
+                                Tổng quan về học phí của học sinh
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <h3 className="font-semibold mb-4">Thông tin lớp</h3>
-                                    <dl className="space-y-2">
-                                        <div className="flex justify-between">
-                                            <dt className="text-gray-500">Lớp:</dt>
-                                            <dd className="font-medium">{child.class?.className || 'Chưa có lớp'}</dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-gray-500">Giáo viên:</dt>
-                                            <dd className="font-medium">{child.teacher?.fullName || 'Chưa có thông tin'}</dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-gray-500">Buổi học tiếp theo:</dt>
-                                            <dd className="font-medium">{child.nextClass?.time || 'Không có lịch'}</dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-gray-500">Ngày:</dt>
-                                            <dd className="font-medium">{child.nextClass?.date || 'Không có lịch'}</dd>
-                                        </div>
-                                    </dl>
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold mb-4">Học phí</h3>
                                     <dl className="space-y-2">
                                         <div className="flex justify-between">
                                             <dt className="text-gray-500">Tổng học phí:</dt>
@@ -304,21 +279,20 @@ const ParentDashboard = () => {
                                         </div>
                                     </dl>
                                 </div>
-                            </div>
-
-                            <div className="flex gap-2 mt-6">
-                                <Button variant="outline" size="sm" className="flex-1">
-                                    <Calendar className="mr-2 h-4 w-4" />
-                                    Xem lịch học
-                                </Button>
-                                <Button variant="outline" size="sm" className="flex-1">
-                                    <BookOpen className="mr-2 h-4 w-4" />
-                                    Xem thông tin lớp
-                                </Button>
-                                <Button variant="outline" size="sm" className="flex-1">
-                                    <CreditCard className="mr-2 h-4 w-4" />
-                                    Xem học phí
-                                </Button>
+                                <div className="flex flex-col gap-2 justify-center">
+                                    <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate('/parent/fees')}>
+                                        <CreditCard className="mr-2 h-4 w-4" />
+                                        Xem chi tiết học phí
+                                    </Button>
+                                    <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate('/parent/schedule')}>
+                                        <Calendar className="mr-2 h-4 w-4" />
+                                        Xem lịch học
+                                    </Button>
+                                    <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate('/parent/children')}>
+                                        <BookOpen className="mr-2 h-4 w-4" />
+                                        Xem thông tin lớp
+                                    </Button>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

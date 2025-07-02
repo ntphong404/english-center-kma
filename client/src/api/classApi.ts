@@ -3,9 +3,9 @@ import { ApiResponse, PageResponse } from '../types/api';
 import axiosInstance from '../services/axios';
 
 export const classApi = {
-    getAll: (className?: string, teacherId?: string, studentId?: string, grade?: number, page?: number, size?: number, sort?: string) => {
+    getAll: (className?: string, teacherId?: string, studentId?: string, grade?: number, status?: string, page?: number, size?: number, sort?: string) => {
         return axiosInstance.get<ApiResponse<PageResponse<ClassResponse>>>('/classes', {
-            params: { className, teacherId, studentId, grade, page, size, sort }
+            params: { className, teacherId, studentId, grade, status, page, size, sort }
         });
     },
 

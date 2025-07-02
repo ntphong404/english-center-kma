@@ -7,7 +7,6 @@ import ParentChildren from '@/pages/parent/Children';
 import ParentFees from '@/pages/parent/Fees';
 import ParentSchedule from '@/pages/parent/Schedule';
 import ParentSettings from '@/pages/parent/Settings';
-import ParentTimetable from '@/pages/parent/Timetable';
 import ParentProfile from '@/pages/parent/Profile';
 
 // Loading component
@@ -47,10 +46,6 @@ export const parentRoutes: RouteObject = {
         {
             path: 'schedule',
             element: <ParentSchedule />,
-        },
-        {
-            path: 'timetable',
-            element: <ParentTimetable />,
         },
         {
             path: 'settings',

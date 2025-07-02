@@ -142,72 +142,74 @@ export default function StudentAttendance() {
     };
 
     return (
-        <div className="flex flex-col md:flex-row gap-6">
-            {/* Danh sách lớp */}
-            <div className="md:w-1/4 w-full">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Danh sách lớp</CardTitle>
-                        <CardDescription>Chọn lớp để xem thông tin và điểm danh</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-col gap-3">
-                            {classes.map((cls) => (
-                                <button
-                                    key={cls.id}
-                                    className={`rounded-lg px-4 py-2 text-left border ${selectedClassId === cls.id ? "bg-primary text-white" : "bg-white text-black"}`}
-                                    onClick={() => setSelectedClassId(cls.id)}
-                                >
-                                    {cls.name}
-                                </button>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+        <div className="space-y-6 p-6">
+            <div className="flex flex-col md:flex-row gap-6">
+                {/* Danh sách lớp */}
+                <div className="md:w-1/4 w-full">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Danh sách lớp</CardTitle>
+                            <CardDescription>Chọn lớp để xem thông tin và điểm danh</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-col gap-3">
+                                {classes.map((cls) => (
+                                    <button
+                                        key={cls.id}
+                                        className={`rounded-lg px-4 py-2 text-left border ${selectedClassId === cls.id ? "bg-primary text-white" : "bg-white text-black"}`}
+                                        onClick={() => setSelectedClassId(cls.id)}
+                                    >
+                                        {cls.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
-            {/* Thông tin lớp và điểm danh */}
-            <div className="md:w-3/4 w-full">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Thông tin lớp: {selectedClass.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="mb-4 space-y-1">
-                            <div>Sĩ số: {selectedClass.size}</div>
-                            <div>Phòng: {selectedClass.room}</div>
-                            <div>Ngày bắt đầu: {selectedClass.startDate}</div>
-                            <div>Thời gian học: {selectedClass.time}</div>
-                            <div>Các ngày học: {selectedClass.days.join(", ")}</div>
-                        </div>
-                        <div className="flex gap-6 mb-6">
-                            <div className="font-medium">Số buổi học: <span className="text-primary font-bold">{attendanceStats.total}</span></div>
-                            <div className="font-medium">Có mặt: <span className="text-green-600 font-bold">{attendanceStats.present}</span></div>
-                            <div className="font-medium">Vắng mặt: <span className="text-red-600 font-bold">{attendanceStats.absent}</span></div>
-                        </div>
-                        <div>
-                            <div className="font-semibold mb-2">Lịch sử điểm danh</div>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Ngày</TableHead>
-                                        <TableHead>Trạng thái</TableHead>
-                                        <TableHead>Ghi chú</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {attendanceRecords.map((record) => (
-                                        <TableRow key={record.id}>
-                                            <TableCell>{record.date}</TableCell>
-                                            <TableCell>{getStatusBadge(record.status)}</TableCell>
-                                            <TableCell>{record.note || "-"}</TableCell>
+                {/* Thông tin lớp và điểm danh */}
+                <div className="md:w-3/4 w-full">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Thông tin lớp: {selectedClass.name}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="mb-4 space-y-1">
+                                <div>Sĩ số: {selectedClass.size}</div>
+                                <div>Phòng: {selectedClass.room}</div>
+                                <div>Ngày bắt đầu: {selectedClass.startDate}</div>
+                                <div>Thời gian học: {selectedClass.time}</div>
+                                <div>Các ngày học: {selectedClass.days.join(", ")}</div>
+                            </div>
+                            <div className="flex gap-6 mb-6">
+                                <div className="font-medium">Số buổi học: <span className="text-primary font-bold">{attendanceStats.total}</span></div>
+                                <div className="font-medium">Có mặt: <span className="text-green-600 font-bold">{attendanceStats.present}</span></div>
+                                <div className="font-medium">Vắng mặt: <span className="text-red-600 font-bold">{attendanceStats.absent}</span></div>
+                            </div>
+                            <div>
+                                <div className="font-semibold mb-2">Lịch sử điểm danh</div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Ngày</TableHead>
+                                            <TableHead>Trạng thái</TableHead>
+                                            <TableHead>Ghi chú</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {attendanceRecords.map((record) => (
+                                            <TableRow key={record.id}>
+                                                <TableCell>{record.date}</TableCell>
+                                                <TableCell>{getStatusBadge(record.status)}</TableCell>
+                                                <TableCell>{record.note || "-"}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );

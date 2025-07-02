@@ -16,6 +16,7 @@ public interface ClassRepository extends JpaRepository<EntityClass, String> {
         WHERE (LOWER(ec.className) LIKE LOWER(CONCAT('%', :className, '%')))
           AND (:grade = 0 or ec.grade = :grade)
           AND (LOWER(ec.teacher.userId) LIKE LOWER(CONCAT('%', :teacherId, '%')))
+              AND (:status IS NULL OR ec.status = :status)
           AND (:studentId = "" OR EXISTS (
               SELECT 1 FROM ec.students s WHERE (LOWER(s.userId) LIKE LOWER(CONCAT('%', :studentId, '%')))
           ))
@@ -25,6 +26,8 @@ public interface ClassRepository extends JpaRepository<EntityClass, String> {
          @Param("teacherId") String teacherId,
          @Param("className") String className,
          @Param("grade") Integer grade,
+         @Param("status") EntityClass.Status status,
          Pageable pageable);
 
+    List<EntityClass> findByStatus(EntityClass.Status status);
 }

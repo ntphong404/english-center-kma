@@ -18,6 +18,7 @@ import vn.edu.actvn.server.dto.request.entityclass.ClassUpdateRequest;
 import vn.edu.actvn.server.dto.request.entityclass.CreateClassRequest;
 import vn.edu.actvn.server.dto.response.entityclass.ClassResponse;
 import vn.edu.actvn.server.dto.response.ApiResponse;
+import vn.edu.actvn.server.entity.EntityClass;
 import vn.edu.actvn.server.service.ClassService;
 
 import java.util.List;
@@ -60,10 +61,11 @@ public class ClassController {
             @RequestParam (required = false) String teacherId,
             @RequestParam (required = false) String className,
             @RequestParam (required = false) Integer grade,
+            @RequestParam (required = false)EntityClass.Status status,
             @ParameterObject Pageable pageable
             ) {
         return ApiResponse.<Page<ClassResponse>>builder()
-                .result(classService.getClasses(studentId,teacherId,className,grade,pageable))
+                .result(classService.getClasses(studentId,teacherId,className,grade, status,pageable))
                 .message("Class list retrieved successfully")
                 .build();
     }
@@ -83,6 +85,15 @@ public class ClassController {
         classService.closeClass(classId);
         return ApiResponse.<Void>builder()
                 .message("Class deleted successfully")
+                .build();
+    }
+
+    @PostMapping("/{classId}/restore")
+    @Operation(summary = "Restore a closed class by ID")
+    public ApiResponse<Void> restoreClass(@PathVariable("classId") String classId) {
+        classService.restoreClass(classId);
+        return ApiResponse.<Void>builder()
+                .message("Class restored successfully")
                 .build();
     }
 

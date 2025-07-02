@@ -19,7 +19,7 @@ export default function TeacherDashboard() {
       const user = getUser();
       if (user) {
         try {
-          const res = await classApi.getAll(undefined, user.userId, undefined, undefined, 0, 100);
+          const res = await classApi.getAll(undefined, user.userId, undefined, undefined, undefined, 0, 100);
           let result = res.data.result;
           let newClasses: ClassResponse[] = [];
           if (result && typeof result === 'object' && 'content' in result && Array.isArray(result.content)) {
@@ -48,7 +48,7 @@ export default function TeacherDashboard() {
     .slice(0, 5);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <h1 className="text-3xl font-bold mb-8">Tổng quan giáo viên</h1>
 
       {/* Stats Cards */}

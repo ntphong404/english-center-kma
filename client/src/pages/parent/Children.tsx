@@ -69,29 +69,34 @@ const Children: React.FC = () => {
                 if (response.data.code === 200) {
                     const studentsData = response.data.result;
 
-                    // Lấy thông tin lớp cho từng học sinh
+                    // Lấy thông tin lớp cho từng học sinh (bao gồm cả lớp không có discount)
                     const studentsWithClasses = await Promise.all(
                         studentsData.map(async (student) => {
-                            const classDiscountsWithInfo = await Promise.all(
-                                student.classDiscounts.map(async (classDiscount) => {
-                                    try {
-                                        const classResponse = await classApi.getById(classDiscount.classId);
-                                        if (classResponse.data.code === 200) {
-                                            return {
-                                                ...classDiscount,
-                                                classInfo: classResponse.data.result
-                                            };
-                                        }
-                                    } catch (error) {
-                                        console.error(`Error loading class info for ${classDiscount.classId}:`, error);
-                                    }
-                                    return classDiscount;
-                                })
-                            );
+                            // Lấy tất cả lớp mà học sinh này đang học
+                            let classList: ClassResponse[] = [];
+                            try {
+                                const classRes = await classApi.getAll(undefined, undefined, student.userId, undefined, 0, 100);
+                                if (classRes.data.code === 200) {
+                                    const pageResult = classRes.data.result as any;
+                                    classList = pageResult.content || pageResult;
+                                }
+                            } catch (error) {
+                                console.error('Error loading class list for student:', student.userId, error);
+                            }
+
+                            // Merge các lớp với discount (nếu có), nếu không có thì discount = 0
+                            const mergedClassDiscounts: ClassWithInfo[] = classList.map((cls) => {
+                                const found = student.classDiscounts.find(cd => cd.classId === cls.classId);
+                                return {
+                                    classId: cls.classId,
+                                    discount: found ? found.discount : 0,
+                                    classInfo: cls
+                                };
+                            });
 
                             return {
                                 ...student,
-                                classDiscounts: classDiscountsWithInfo
+                                classDiscounts: mergedClassDiscounts
                             };
                         })
                     );
@@ -208,7 +213,7 @@ const Children: React.FC = () => {
     }
 
     return (
-        <div className="container mx-auto p-6 space-y-6">
+        <div className="space-y-6 p-6">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Thông tin học sinh</h1>

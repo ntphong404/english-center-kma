@@ -37,6 +37,7 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { getUser } from '@/store/userStore';
 
 const TIME_SLOTS = [
     { label: "7:30 - 9:30", startTime: "07:30:00", endTime: "09:30:00" },
@@ -55,10 +56,10 @@ const DAYS_OF_WEEK = [
     { value: "SUNDAY", label: "Chủ nhật" },
 ];
 
-export default function AdminClasses() {
+export default function TeacherClasses() {
     const { toast } = useToast();
     const [classes, setClasses] = useState<ClassResponse[]>([]);
-    const [teachers, setTeachers] = useState<Map<string, Teacher>>(new Map());
+
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [selectedClass, setSelectedClass] = useState<ClassResponse | null>(null);
@@ -84,11 +85,12 @@ export default function AdminClasses() {
     const [studentToRemove, setStudentToRemove] = useState<Student | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [classToDelete, setClassToDelete] = useState<ClassResponse | null>(null);
+    const teacherId = getUser()?.userId;
 
     // Form state for new class
     const [newClass, setNewClass] = useState<Partial<CreateClassRequest>>({
         className: '',
-        teacherId: '',
+        teacherId: teacherId || '',
         grade: 1,
         year: new Date().getFullYear(),
         unitPrice: 0,
@@ -100,26 +102,12 @@ export default function AdminClasses() {
         roomName: '',
     });
 
-    const fetchTeachers = async () => {
-        try {
-            const response = await teacherApi.getAll(undefined, undefined, 0, 100); // Fetch all teachers
-            const teacherMap = new Map<string, Teacher>();
-            response.data.result.content.forEach(teacher => {
-                teacherMap.set(teacher.userId, teacher);
-            });
-            setTeachers(teacherMap);
-        } catch (error) {
-            toast({
-                title: "Lỗi",
-                description: "Không thể tải danh sách giáo viên",
-                variant: "destructive",
-            });
-        }
-    };
+
 
     const fetchClasses = async () => {
+        if (!teacherId) return;
         try {
-            const response = await classApi.getAll(undefined, undefined, undefined, undefined, currentPage - 1, pageSize);
+            const response = await classApi.getAll(undefined, teacherId, undefined, undefined, undefined, currentPage - 1, pageSize);
             const pageResponse = response.data.result;
             if (pageResponse) {
                 setClasses(pageResponse.content);
@@ -167,9 +155,8 @@ export default function AdminClasses() {
     };
 
     useEffect(() => {
-        fetchTeachers();
         fetchClasses();
-    }, [currentPage, pageSize]);
+    }, [currentPage, pageSize, teacherId]);
 
     useEffect(() => {
         if (isAddStudentsDialogOpen && selectedClassForStudents) {
@@ -184,11 +171,6 @@ export default function AdminClasses() {
             }
         }
     }, [isViewStudentsDialogOpen, selectedClassForView]);
-
-    const getTeacherName = (teacherId: string) => {
-        const teacher = teachers.get(teacherId);
-        return teacher ? teacher.fullName || teacherId : teacherId;
-    };
 
     const handleDelete = async (id: string) => {
         try {
@@ -214,7 +196,7 @@ export default function AdminClasses() {
 
     const handleCreate = async () => {
         try {
-            if (!newClass.className || !newClass.teacherId || !newClass.startDate || !newClass.endDate || !newClass.startTime || !newClass.endTime || !newClass.daysOfWeek.length) {
+            if (!newClass.className || !newClass.startDate || !newClass.endDate || !newClass.startTime || !newClass.endTime || !newClass.daysOfWeek.length) {
                 toast({
                     title: "Lỗi",
                     description: "Vui lòng điền đầy đủ thông tin",
@@ -231,7 +213,7 @@ export default function AdminClasses() {
             setIsAddDialogOpen(false);
             setNewClass({
                 className: '',
-                teacherId: '',
+                teacherId: teacherId || '',
                 grade: 1,
                 year: new Date().getFullYear(),
                 unitPrice: 0,
@@ -366,7 +348,7 @@ export default function AdminClasses() {
     const totalStudentPages = Math.ceil(classStudents.length / STUDENTS_PER_PAGE);
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6 p-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Quản lý lớp học</h2>
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -390,26 +372,6 @@ export default function AdminClasses() {
                                     value={newClass.className}
                                     onChange={(e) => setNewClass(prev => ({ ...prev, className: e.target.value }))}
                                 />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="teacherId" className="text-right">
-                                    Giáo viên
-                                </Label>
-                                <Select
-                                    value={newClass.teacherId}
-                                    onValueChange={(value) => setNewClass(prev => ({ ...prev, teacherId: value }))}
-                                >
-                                    <SelectTrigger className="col-span-3">
-                                        <SelectValue placeholder="Chọn giáo viên" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Array.from(teachers.values()).map((teacher) => (
-                                            <SelectItem key={teacher.userId} value={teacher.userId}>
-                                                {teacher.fullName || teacher.username}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="grade" className="text-right">
@@ -575,7 +537,6 @@ export default function AdminClasses() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Tên lớp</TableHead>
-                            <TableHead>Giáo viên</TableHead>
                             <TableHead>Sĩ số</TableHead>
                             <TableHead>Khối</TableHead>
                             <TableHead>Phòng học</TableHead>
@@ -588,17 +549,25 @@ export default function AdminClasses() {
                         {classes.map((classItem) => (
                             <TableRow key={classItem.classId}>
                                 <TableCell>{classItem.className}</TableCell>
-                                <TableCell>{getTeacherName(classItem.teacherId)}</TableCell>
                                 <TableCell>{classItem.studentIds.length}</TableCell>
                                 <TableCell>{classItem.grade}</TableCell>
                                 <TableCell>{classItem.roomName}</TableCell>
                                 <TableCell>{formatSchedule(classItem)}</TableCell>
                                 <TableCell>
-                                    <span className={`px-2 py-1 rounded-full text-xs ${classItem.status === "OPEN"
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-red-100 text-red-800"
-                                        }`}>
-                                        {classItem.status === "OPEN" ? "Đang Mở" : "Đã Đóng"}
+                                    <span
+                                        className={`px-2 py-1 rounded-full text-xs
+                                            ${classItem.status === "OPEN"
+                                                ? "bg-green-100 text-green-800"
+                                                : classItem.status === "UPCOMING"
+                                                    ? "bg-yellow-100 text-yellow-800"
+                                                    : "bg-red-100 text-red-800"}
+                                        `}
+                                    >
+                                        {classItem.status === "OPEN"
+                                            ? "Đang Mở"
+                                            : classItem.status === "UPCOMING"
+                                                ? "Sắp Khai Giảng"
+                                                : "Đã Đóng"}
                                     </span>
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -656,7 +625,7 @@ export default function AdminClasses() {
                         ))}
                         {Array.from({ length: pageSize - classes.length }).map((_, index) => (
                             <TableRow key={`empty-${index}`} className="h-[53px]">
-                                <TableCell colSpan={8}></TableCell>
+                                <TableCell colSpan={7}></TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -688,26 +657,6 @@ export default function AdminClasses() {
                                     value={selectedClass.className}
                                     onChange={(e) => setSelectedClass(prev => prev ? { ...prev, className: e.target.value } : null)}
                                 />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-teacherId" className="text-right">
-                                    Giáo viên
-                                </Label>
-                                <Select
-                                    value={selectedClass.teacherId}
-                                    onValueChange={(value) => setSelectedClass(prev => prev ? { ...prev, teacherId: value } : null)}
-                                >
-                                    <SelectTrigger className="col-span-3">
-                                        <SelectValue placeholder="Chọn giáo viên" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Array.from(teachers.values()).map((teacher) => (
-                                            <SelectItem key={teacher.userId} value={teacher.userId}>
-                                                {teacher.fullName || teacher.username}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="edit-grade" className="text-right">

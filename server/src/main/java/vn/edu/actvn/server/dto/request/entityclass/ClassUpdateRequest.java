@@ -3,6 +3,7 @@ package vn.edu.actvn.server.dto.request.entityclass;
 import jakarta.persistence.Column;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import vn.edu.actvn.server.entity.EntityClass;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
@@ -20,6 +21,7 @@ public class ClassUpdateRequest {
     Integer year;
     Integer Grade;
     String roomName;
+    EntityClass.Status status;
     String teacherId;
     List<String> studentIds;
 

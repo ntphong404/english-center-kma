@@ -15,7 +15,7 @@ import { Save } from "lucide-react";
 interface ParentSettings {
     name: string;
     email: string;
-    phone: string;
+    phoneNumber: string;
     address: string;
     notifications: {
         email: boolean;
@@ -29,7 +29,7 @@ interface ParentSettings {
 const defaultSettings: ParentSettings = {
     name: 'Nguyễn Văn Bố',
     email: 'phuhuynh@example.com',
-    phone: '0987654321',
+    phoneNumber: '0987654321',
     address: '123 Đường ABC, Quận 1, TP.HCM',
     notifications: {
         email: true,
@@ -65,7 +65,7 @@ export default function ParentSettings() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 p-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Cài đặt tài khoản</h2>
                 <Button onClick={handleSave} disabled={saving}>
@@ -100,11 +100,11 @@ export default function ParentSettings() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="phone">Số điện thoại</Label>
+                            <Label htmlFor="phoneNumber">Số điện thoại</Label>
                             <Input
-                                id="phone"
-                                value={settings.phone}
-                                onChange={(e) => handleChange('phone', e.target.value)}
+                                id="phoneNumber"
+                                value={settings.phoneNumber}
+                                onChange={(e) => handleChange('phoneNumber', e.target.value)}
                             />
                         </div>
                         <div className="space-y-2">

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, CreditCard, History } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import tuitionFeeApi from '@/api/tuitionFeeApi';
 import studentApi from '@/api/studentApi';
@@ -25,11 +25,28 @@ import { classApi } from '@/api/classApi';
 import { TuitionFeeResponse } from '@/types/tuitionfee';
 import { PageResponse } from '@/types/api';
 import { TablePagination } from '@/components/ui/table-pagination';
+import { teacherPaymentApi } from '@/api/teacherPaymentApi';
+import { TeacherPaymentResponse, CreateTeacherPaymentRequest } from '@/types/teacherpayment';
+import teacherApi from '@/api/teacherApi';
+import {
+    Select,
+    SelectTrigger,
+    SelectValue,
+    SelectContent,
+    SelectItem
+} from '@/components/ui/select';
 
 interface Fee extends TuitionFeeResponse {
     studentName: string;
     className: string;
     status: "paid" | "unpaid" | "overdue";
+}
+
+interface Teacher {
+    userId: string;
+    fullName?: string;
+    username?: string;
+    salary?: number;
 }
 
 export default function AdminFees() {
@@ -42,6 +59,28 @@ export default function AdminFees() {
     const [totalItems, setTotalItems] = useState(0);
     const [pageSize] = useState(6);
     const [isLoading, setIsLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<'fees' | 'teacherPayments'>('fees');
+    const [teacherPayments, setTeacherPayments] = useState<TeacherPaymentResponse[]>([]);
+    const [teacherPaymentPage, setTeacherPaymentPage] = useState(0);
+    const [teacherPaymentTotalPages, setTeacherPaymentTotalPages] = useState(0);
+    const [teacherPaymentTotalItems, setTeacherPaymentTotalItems] = useState(0);
+    const [teacherPaymentLoading, setTeacherPaymentLoading] = useState(false);
+    const [teachers, setTeachers] = useState<Teacher[]>([]);
+    const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+    const [teacherPaymentsByMonth, setTeacherPaymentsByMonth] = useState<TeacherPaymentResponse[]>([]);
+    const [teacherPaymentsLoading, setTeacherPaymentsLoading] = useState(false);
+    const [teacherPaymentsPage, setTeacherPaymentsPage] = useState(0);
+    const [teacherPaymentsPageSize] = useState(6);
+    const [teacherPaymentsTotalItems, setTeacherPaymentsTotalItems] = useState(0);
+    const [isPaymentHistoryDialogOpen, setIsPaymentHistoryDialogOpen] = useState(false);
+    const [selectedTeacherPayment, setSelectedTeacherPayment] = useState<TeacherPaymentResponse | null>(null);
+    const [paymentHistory, setPaymentHistory] = useState<TeacherPaymentResponse[]>([]);
+    const [paymentHistoryLoading, setPaymentHistoryLoading] = useState(false);
+    const [isPayDialogOpen, setIsPayDialogOpen] = useState(false);
+    const [payDialogData, setPayDialogData] = useState<TeacherPaymentResponse | null>(null);
+    const [payAmount, setPayAmount] = useState('');
+    const [payError, setPayError] = useState('');
+    const [allTeacherPayments, setAllTeacherPayments] = useState<TeacherPaymentResponse[]>([]);
 
     const fetchFees = async (page: number) => {
         try {
@@ -93,9 +132,147 @@ export default function AdminFees() {
         }
     };
 
+    const fetchTeacherPayments = async (page: number) => {
+        try {
+            setTeacherPaymentLoading(true);
+            const response = await teacherPaymentApi.getAll(undefined, undefined, undefined, page, pageSize);
+            const content = response.data.result.content;
+            const total = response.data.result.page.totalPages;
+            const totalElements = response.data.result.page.totalElements;
+            setTeacherPayments(content);
+            setTeacherPaymentTotalPages(total);
+            setTeacherPaymentTotalItems(totalElements);
+        } catch (error) {
+            toast({
+                title: "Lỗi",
+                description: "Không thể tải danh sách lương giáo viên",
+                variant: "destructive"
+            });
+        } finally {
+            setTeacherPaymentLoading(false);
+        }
+    };
+
+    // Helper: get all months between two dates (inclusive)
+    function getMonthYearRange(startYear: number, startMonth: number, endYear: number, endMonth: number) {
+        const result: { month: number; year: number }[] = [];
+        let y = startYear, m = startMonth;
+        while (y < endYear || (y === endYear && m <= endMonth)) {
+            result.push({ month: m, year: y });
+            m++;
+            if (m > 12) { m = 1; y++; }
+        }
+        return result;
+    }
+
+    // Fetch all teachers and set default teacher (with oldest payment record)
     useEffect(() => {
-        fetchFees(currentPage);
-    }, [currentPage]);
+        if (activeTab !== 'teacherPayments') return;
+        async function fetchTeachersAndDefault() {
+            setTeacherPaymentsLoading(true);
+            try {
+                const res = await teacherApi.getAll(undefined, undefined, 0, 100, 'userId,ASC');
+                const teacherList = res.data.result.content;
+                setTeachers(teacherList);
+                // Find teacher with oldest payment record
+                let oldest: { teacher: Teacher, payment: TeacherPaymentResponse } | null = null;
+                for (const teacher of teacherList) {
+                    const payRes = await teacherPaymentApi.getAll(teacher.userId, undefined, undefined, 0, 1, 'createdAt,asc');
+                    const payment = payRes.data.result.content[0];
+                    if (payment) {
+                        if (!oldest || new Date(payment.createdAt) < new Date(oldest.payment.createdAt)) {
+                            oldest = { teacher, payment };
+                        }
+                    }
+                }
+                if (oldest) setSelectedTeacher(oldest.teacher);
+                else if (teacherList.length > 0) setSelectedTeacher(teacherList[0]);
+            } catch (e) {
+                toast({ title: 'Lỗi', description: 'Không thể tải danh sách giáo viên', variant: 'destructive' });
+            } finally {
+                setTeacherPaymentsLoading(false);
+            }
+        }
+        fetchTeachersAndDefault();
+    }, [activeTab]);
+
+    // Refactor fetchPayments to be callable from both useEffect and after payment
+    const fetchTeacherPaymentsForSelected = async () => {
+        if (!selectedTeacher) return;
+        setTeacherPaymentsLoading(true);
+        try {
+            const oldestRes = await teacherPaymentApi.getAll(selectedTeacher.userId, undefined, undefined, 0, 1, 'createdAt,asc');
+            const oldest = oldestRes.data.result.content[0];
+            if (!oldest) {
+                setAllTeacherPayments([]);
+                setTeacherPaymentsTotalItems(0);
+                setTeacherPaymentsByMonth([]);
+                setTeacherPaymentsLoading(false);
+                return;
+            }
+            const now = new Date();
+            const months = getMonthYearRange(
+                oldest.year,
+                oldest.month,
+                now.getFullYear(),
+                now.getMonth() + 1
+            );
+            const paymentPromises = months.map(async ({ month, year }) => {
+                const payRes = await teacherPaymentApi.getAll(selectedTeacher.userId, month, year, 0, 1, 'createdAt,desc');
+                if (payRes.data.result.content.length > 0) {
+                    return payRes.data.result.content[0];
+                } else {
+                    const newPaymentRequest: CreateTeacherPaymentRequest = {
+                        teacherId: selectedTeacher.userId,
+                        month: month,
+                        year: year,
+                        amount: selectedTeacher.salary || 0,
+                        paidAmount: 0,
+                        note: `Lương tháng ${month}`
+                    };
+                    try {
+                        const createRes = await teacherPaymentApi.create(newPaymentRequest);
+                        return createRes.data.result;
+                    } catch (error) {
+                        console.error('Error creating payment record:', error);
+                        return null;
+                    }
+                }
+            });
+            const allPayments = (await Promise.all(paymentPromises)).filter(Boolean) as TeacherPaymentResponse[];
+            allPayments.reverse();
+            setAllTeacherPayments(allPayments);
+            setTeacherPaymentsTotalItems(allPayments.length);
+            setTeacherPaymentsByMonth(allPayments.slice(0, teacherPaymentsPageSize));
+        } catch (e) {
+            toast({ title: 'Lỗi', description: 'Không thể tải lương giáo viên', variant: 'destructive' });
+            setAllTeacherPayments([]);
+            setTeacherPaymentsTotalItems(0);
+            setTeacherPaymentsByMonth([]);
+        } finally {
+            setTeacherPaymentsLoading(false);
+        }
+    };
+
+    // Replace fetchPayments in useEffect with fetchTeacherPaymentsForSelected
+    useEffect(() => {
+        if (activeTab !== 'teacherPayments' || !selectedTeacher) return;
+        fetchTeacherPaymentsForSelected();
+        setTeacherPaymentsPage(0);
+    }, [activeTab, selectedTeacher]);
+
+    // When page changes, just slice from allTeacherPayments
+    useEffect(() => {
+        if (activeTab !== 'teacherPayments') return;
+        const startIndex = teacherPaymentsPage * teacherPaymentsPageSize;
+        const endIndex = startIndex + teacherPaymentsPageSize;
+        setTeacherPaymentsByMonth(allTeacherPayments.slice(startIndex, endIndex));
+    }, [teacherPaymentsPage, allTeacherPayments, activeTab]);
+
+    useEffect(() => {
+        if (activeTab === 'fees') fetchFees(currentPage);
+        else fetchTeacherPayments(teacherPaymentPage);
+    }, [activeTab, currentPage, teacherPaymentPage]);
 
     const handleDelete = async (id: string) => {
         try {
@@ -178,118 +355,229 @@ export default function AdminFees() {
         );
     };
 
-    return (
-        <div className="flex flex-col h-[calc(100vh-4rem)]">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">Quản lý học phí</h2>
-                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Thêm học phí
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Thêm học phí mới</DialogTitle>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="student" className="text-right">
-                                    Học viên
-                                </Label>
-                                <Input id="student" className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="class" className="text-right">
-                                    Lớp học
-                                </Label>
-                                <Input id="class" className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="amount" className="text-right">
-                                    Số tiền
-                                </Label>
-                                <Input id="amount" type="number" className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="yearMonth" className="text-right">
-                                    Tháng
-                                </Label>
-                                <Input id="yearMonth" type="month" className="col-span-3" />
-                            </div>
-                        </div>
-                        <div className="flex justify-end">
-                            <Button onClick={handleAdd}>Lưu</Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            </div>
+    const handleViewPaymentHistory = async (teacherId: string, month: number, year: number) => {
+        setPaymentHistoryLoading(true);
+        try {
+            const response = await teacherPaymentApi.getAll(teacherId, month, year, 0, 100, 'createdAt,desc');
+            setPaymentHistory(response.data.result.content);
+            setIsPaymentHistoryDialogOpen(true);
+        } catch (error) {
+            toast({
+                title: "Lỗi",
+                description: "Không thể tải lịch sử thanh toán",
+                variant: "destructive"
+            });
+        } finally {
+            setPaymentHistoryLoading(false);
+        }
+    };
 
-            <div className="flex-1 border rounded-lg overflow-auto">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Học viên</TableHead>
-                            <TableHead>Lớp học</TableHead>
-                            <TableHead>Số tiền</TableHead>
-                            <TableHead>Số tiền còn lại</TableHead>
-                            <TableHead>Tháng</TableHead>
-                            <TableHead>Trạng thái</TableHead>
-                            <TableHead className="text-right">Thao tác</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading ? (
+    // Listen for refresh event
+    useEffect(() => {
+        const handleRefresh = () => {
+            if (activeTab === 'teacherPayments' && selectedTeacher) {
+                // Trigger re-fetch
+                const event = new Event('refreshTeacherPayments');
+                window.dispatchEvent(event);
+            }
+        };
+        window.addEventListener('refreshTeacherPayments', handleRefresh);
+        return () => window.removeEventListener('refreshTeacherPayments', handleRefresh);
+    }, [activeTab, selectedTeacher]);
+
+    return (
+        <div className="flex flex-col h-[calc(100vh-4rem)] p-6">
+            <div className="mb-4">
+                <h2 className="text-2xl font-bold">Quản lý học phí</h2>
+            </div>
+            <div className="flex gap-2 mb-4">
+                <Button variant={activeTab === 'fees' ? 'default' : 'outline'} onClick={() => setActiveTab('fees')}>Học phí</Button>
+                <Button variant={activeTab === 'teacherPayments' ? 'default' : 'outline'} onClick={() => setActiveTab('teacherPayments')}>Lương giáo viên</Button>
+            </div>
+            {activeTab === 'fees' && (
+                <div className="flex justify-end items-center mb-4">
+                    {/* Removed Add Fee Button */}
+                </div>
+            )}
+
+            {activeTab === 'fees' && (
+                <div className="flex-1 border rounded-lg overflow-auto">
+                    <Table>
+                        <TableHeader>
                             <TableRow>
-                                <TableCell colSpan={7} className="text-center py-4">
-                                    Đang tải...
-                                </TableCell>
+                                <TableHead>Học viên</TableHead>
+                                <TableHead>Lớp học</TableHead>
+                                <TableHead>Số tiền</TableHead>
+                                <TableHead>Số tiền còn lại</TableHead>
+                                <TableHead>Tháng</TableHead>
+                                <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
-                        ) : fees.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={7} className="text-center py-4">
-                                    Không có dữ liệu
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            fees.map((fee) => (
-                                <TableRow key={fee.tuitionFeeId}>
-                                    <TableCell>{fee.studentName}</TableCell>
-                                    <TableCell>{fee.className}</TableCell>
-                                    <TableCell>{formatCurrency(fee.amount)}</TableCell>
-                                    <TableCell>{formatCurrency(fee.remainingAmount)}</TableCell>
-                                    <TableCell>{fee.yearMonth}</TableCell>
-                                    <TableCell>{getStatusBadge(fee.status, fee.remainingAmount, fee.amount)}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleEdit(fee)}
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleDelete(fee.tuitionFeeId)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="text-center py-4">
+                                        Đang tải...
                                     </TableCell>
                                 </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
+                            ) : fees.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="text-center py-4">
+                                        Không có dữ liệu
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                fees.map((fee) => (
+                                    <TableRow key={fee.tuitionFeeId}>
+                                        <TableCell>{fee.studentName}</TableCell>
+                                        <TableCell>{fee.className}</TableCell>
+                                        <TableCell>{formatCurrency(fee.amount)}</TableCell>
+                                        <TableCell>{formatCurrency(fee.remainingAmount)}</TableCell>
+                                        <TableCell>{fee.yearMonth}</TableCell>
+                                        <TableCell>{getStatusBadge(fee.status, fee.remainingAmount, fee.amount)}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleEdit(fee)}
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleDelete(fee.tuitionFeeId)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            )}
 
-            <TablePagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={totalItems}
-                onPageChange={setCurrentPage}
-                itemLabel="học phí"
-            />
+            {activeTab === 'teacherPayments' && (
+                <div className="mb-4 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                        <span>Chọn giáo viên:</span>
+                        <Select value={selectedTeacher?.userId || ''} onValueChange={val => {
+                            const t = teachers.find(t => t.userId === val);
+                            if (t) setSelectedTeacher(t);
+                        }}>
+                            <SelectTrigger className="w-64">
+                                <SelectValue placeholder="Chọn giáo viên" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {teachers.map(t => (
+                                    <SelectItem key={t.userId} value={t.userId}>{t.fullName || t.username}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    {selectedTeacher && (
+                        <div className="text-lg font-semibold">Giáo viên: {selectedTeacher.fullName || selectedTeacher.username}</div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'teacherPayments' && (
+                <div className="border rounded-lg overflow-y-auto max-h-[500px]">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="sticky top-0 z-10 bg-white">
+                                <TableHead>Tên giáo viên</TableHead>
+                                <TableHead>Tháng</TableHead>
+                                <TableHead>Năm</TableHead>
+                                <TableHead>Tổng lương</TableHead>
+                                <TableHead>Số tiền còn lại</TableHead>
+                                <TableHead>Ghi chú</TableHead>
+                                <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {teacherPaymentsLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="text-center py-4">Đang tải...</TableCell>
+                                </TableRow>
+                            ) : teacherPaymentsByMonth.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="text-center py-4">Không có dữ liệu</TableCell>
+                                </TableRow>
+                            ) : (
+                                teacherPaymentsByMonth.map(tp => (
+                                    <TableRow key={tp.id}>
+                                        <TableCell>{tp.teacherName}</TableCell>
+                                        <TableCell>{tp.month}</TableCell>
+                                        <TableCell>{tp.year}</TableCell>
+                                        <TableCell>{formatCurrency(tp.amount)}</TableCell>
+                                        <TableCell>{formatCurrency(tp.remainingAmount)}</TableCell>
+                                        <TableCell>{tp.note}</TableCell>
+                                        <TableCell>
+                                            <span className={`px-2 py-1 rounded-full text-xs ${tp.status === 'PAID' ? 'bg-green-100 text-green-800' :
+                                                tp.status === 'PARTIALLY_PAID' ? 'bg-yellow-100 text-yellow-800' :
+                                                    'bg-red-100 text-red-800'
+                                                }`}>
+                                                {tp.status === 'PAID' ? 'Đã thanh toán' :
+                                                    tp.status === 'PARTIALLY_PAID' ? 'Chưa thanh toán đủ' :
+                                                        'Chưa thanh toán'}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            {(tp.status === 'UNPAID' || tp.status === 'PARTIALLY_PAID') && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => {
+                                                        setPayDialogData(tp);
+                                                        setPayAmount('');
+                                                        setPayError('');
+                                                        setIsPayDialogOpen(true);
+                                                    }}
+                                                    title="Thanh toán"
+                                                >
+                                                    <CreditCard className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleViewPaymentHistory(tp.teacherId, tp.month, tp.year)}
+                                                title="Xem lịch sử thanh toán"
+                                            >
+                                                <History className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            )}
+
+            {activeTab === 'fees' && (
+                <TablePagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    onPageChange={setCurrentPage}
+                    itemLabel="học phí"
+                />
+            )}
+            {activeTab === 'teacherPayments' && (
+                <TablePagination
+                    currentPage={teacherPaymentsPage}
+                    totalPages={Math.ceil(teacherPaymentsTotalItems / teacherPaymentsPageSize)}
+                    totalItems={teacherPaymentsTotalItems}
+                    onPageChange={setTeacherPaymentsPage}
+                    itemLabel="lương giáo viên"
+                />
+            )}
 
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                 <DialogContent>
@@ -357,6 +645,141 @@ export default function AdminFees() {
                     )}
                     <div className="flex justify-end">
                         <Button onClick={handleSaveEdit}>Lưu thay đổi</Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Pay Dialog */}
+            <Dialog open={isPayDialogOpen} onOpenChange={setIsPayDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Thanh toán lương giáo viên</DialogTitle>
+                    </DialogHeader>
+                    {payDialogData && (
+                        <form
+                            className="grid gap-6 py-4"
+                            onSubmit={async (e) => {
+                                e.preventDefault();
+                                setPayError('');
+                                const remain = payDialogData.remainingAmount;
+                                const paid = parseFloat(payAmount);
+                                if (isNaN(paid) || paid <= 0) {
+                                    setPayError('Vui lòng nhập số tiền hợp lệ');
+                                    return;
+                                }
+                                if (paid > remain) {
+                                    setPayError('Số tiền thanh toán không được lớn hơn số tiền còn lại');
+                                    return;
+                                }
+                                try {
+                                    const req: CreateTeacherPaymentRequest = {
+                                        teacherId: payDialogData.teacherId,
+                                        month: payDialogData.month,
+                                        year: payDialogData.year,
+                                        amount: payDialogData.amount,
+                                        paidAmount: paid,
+                                        note: payDialogData.note || ''
+                                    };
+                                    await teacherPaymentApi.create(req);
+                                    toast({ title: 'Thành công', description: 'Đã thanh toán lương!' });
+                                    setIsPayDialogOpen(false);
+                                    // Refresh data
+                                    await fetchTeacherPaymentsForSelected();
+                                } catch (error) {
+                                    setPayError('Có lỗi khi thanh toán!');
+                                }
+                            }}
+                        >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-sm">Giáo viên</Label>
+                                    <Input value={payDialogData.teacherName} disabled />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm">Tháng</Label>
+                                    <Input value={payDialogData.month} disabled />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm">Năm</Label>
+                                    <Input value={payDialogData.year} disabled />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm">Tổng lương</Label>
+                                    <Input value={formatCurrency(payDialogData.amount)} disabled />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm">Số tiền còn lại</Label>
+                                    <Input value={formatCurrency(payDialogData.remainingAmount)} disabled />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="payAmount" className="text-sm">Số tiền thanh toán</Label>
+                                    <Input
+                                        id="payAmount"
+                                        name="payAmount"
+                                        type="number"
+                                        min={1}
+                                        max={payDialogData.remainingAmount}
+                                        value={payAmount}
+                                        onChange={e => setPayAmount(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            {payError && <div className="text-red-500 text-sm mt-2">{payError}</div>}
+                            <div className="flex justify-end gap-2 mt-4">
+                                <Button type="submit">Thanh toán</Button>
+                            </div>
+                        </form>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Payment History Dialog */}
+            <Dialog open={isPaymentHistoryDialogOpen} onOpenChange={setIsPaymentHistoryDialogOpen}>
+                <DialogContent className="max-w-4xl">
+                    <DialogHeader>
+                        <DialogTitle>Lịch sử thanh toán</DialogTitle>
+                    </DialogHeader>
+                    <div className="max-h-96 overflow-auto">
+                        {paymentHistoryLoading ? (
+                            <div className="text-center py-4">Đang tải...</div>
+                        ) : paymentHistory.length === 0 ? (
+                            <div className="text-center py-4">Không có lịch sử thanh toán</div>
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Ngày tạo</TableHead>
+                                        <TableHead>Số tiền</TableHead>
+                                        <TableHead>Đã thanh toán</TableHead>
+                                        <TableHead>Còn lại</TableHead>
+                                        <TableHead>Ghi chú</TableHead>
+                                        <TableHead>Trạng thái</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {paymentHistory.map((payment) => (
+                                        <TableRow key={payment.id}>
+                                            <TableCell>{new Date(payment.createdAt).toLocaleDateString('vi-VN')}</TableCell>
+                                            <TableCell>{formatCurrency(payment.amount)}</TableCell>
+                                            <TableCell>{formatCurrency(payment.paidAmount)}</TableCell>
+                                            <TableCell>{formatCurrency(payment.remainingAmount)}</TableCell>
+                                            <TableCell>{payment.note}</TableCell>
+                                            <TableCell>
+                                                <span className={`px-2 py-1 rounded-full text-xs ${payment.status === 'PAID' ? 'bg-green-100 text-green-800' :
+                                                    payment.status === 'PARTIALLY_PAID' ? 'bg-yellow-100 text-yellow-800' :
+                                                        'bg-red-100 text-red-800'
+                                                    }`}>
+                                                    {payment.status === 'PAID' ? 'Đã thanh toán' :
+                                                        payment.status === 'PARTIALLY_PAID' ? 'Chưa thanh toán đủ' :
+                                                            'Chưa thanh toán'}
+                                                </span>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>

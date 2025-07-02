@@ -109,7 +109,7 @@ const AdminDashboard = () => {
   }, [toast]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <h1 className="text-3xl font-bold mb-8">Tổng quan</h1>
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
