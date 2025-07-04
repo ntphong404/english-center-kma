@@ -37,6 +37,8 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import debounce from "lodash.debounce";
 import { classApi } from '@/api/classApi';
 import { ClassResponse } from '@/types/entityclass';
+import ColoredTable from '@/components/ui/ColoredTable';
+import CustomDialog from '@/components/CustomDialog';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -56,12 +58,16 @@ export default function AdminUsers() {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<UserUpdateRequest | null>(null);
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-    const [newUser, setNewUser] = useState<Partial<UserCreateRequest>>({
+    const [newUser, setNewUser] = useState<Partial<UserCreateRequest> & { salary?: number }>({
         username: "",
         password: "",
         fullName: "",
         email: "",
+        gender: "MALE",
+        phoneNumber: "",
+        address: "",
         dob: new Date().toISOString().split('T')[0],
+        salary: 0,
     });
     const [activeTab, setActiveTab] = useState('STUDENT');
     const [currentPage, setCurrentPage] = useState(0);
@@ -183,23 +189,22 @@ export default function AdminUsers() {
                 password: newUser.password || "",
                 fullName: newUser.fullName || "",
                 email: newUser.email || "",
-                gender: "MALE", // Default value
-                phoneNumber: "", // Default value
-                address: "", // Default value
+                gender: newUser.gender || "",
+                phoneNumber: newUser.phoneNumber || "",
+                address: newUser.address || "",
                 dob: newUser.dob || new Date().toISOString().split('T')[0],
             };
 
             switch (activeTab) {
                 case 'STUDENT':
                     response = await studentApi.create({
-                        ...baseUserData,
-                        classDiscounts: []
-                    });
+                        ...baseUserData
+                    } as CreateStudentRequest);
                     break;
                 case 'TEACHER':
                     response = await teacherApi.create({
                         ...baseUserData,
-                        salary: 0
+                        salary: newUser.salary || 0
                     });
                     break;
                 case 'PARENT':
@@ -217,7 +222,11 @@ export default function AdminUsers() {
                 password: "",
                 fullName: "",
                 email: "",
+                gender: "MALE",
+                phoneNumber: "",
+                address: "",
                 dob: new Date().toISOString().split('T')[0],
+                salary: 0,
             });
             setIsAddDialogOpen(false);
 
@@ -296,7 +305,10 @@ export default function AdminUsers() {
                     } as UpdateStudentRequest);
                     break;
                 case 'TEACHER':
-                    response = await teacherApi.patch(selectedUserId, selectedUser as UpdateTeacherRequest);
+                    response = await teacherApi.patch(selectedUserId, {
+                        ...selectedUser,
+                        salary: (selectedUser as any).salary || 0
+                    } as UpdateTeacherRequest);
                     break;
                 case 'PARENT':
                     response = await parentApi.patch(selectedUserId, selectedUser as UserUpdateRequest);
@@ -489,11 +501,11 @@ export default function AdminUsers() {
                 setActiveTab(value);
                 setCurrentPage(0);
             }}>
-                <TabsList>
-                    <TabsTrigger value="STUDENT">Student</TabsTrigger>
-                    <TabsTrigger value="PARENT">Parent</TabsTrigger>
-                    <TabsTrigger value="TEACHER">Teacher</TabsTrigger>
-                    <TabsTrigger value="ADMIN">Admin</TabsTrigger>
+                <TabsList className="border rounded-md flex gap-1 p-0.5 mb-4 bg-transparent">
+                    <TabsTrigger value="STUDENT" className="data-[state=active]:bg-[#3b70c6] data-[state=active]:text-white data-[state=active]:font-medium bg-transparent text-gray-700 hover:bg-gray-100 font-medium px-4 py-1.5 rounded-md transition">Student</TabsTrigger>
+                    <TabsTrigger value="PARENT" className="data-[state=active]:bg-[#3b70c6] data-[state=active]:text-white data-[state=active]:font-medium bg-transparent text-gray-700 hover:bg-gray-100 font-medium px-4 py-1.5 rounded-md transition">Parent</TabsTrigger>
+                    <TabsTrigger value="TEACHER" className="data-[state=active]:bg-[#3b70c6] data-[state=active]:text-white data-[state=active]:font-medium bg-transparent text-gray-700 hover:bg-gray-100 font-medium px-4 py-1.5 rounded-md transition">Teacher</TabsTrigger>
+                    <TabsTrigger value="ADMIN" className="data-[state=active]:bg-[#3b70c6] data-[state=active]:text-white data-[state=active]:font-medium bg-transparent text-gray-700 hover:bg-gray-100 font-medium px-4 py-1.5 rounded-md transition">Admin</TabsTrigger>
                 </TabsList>
                 <TabsContent value="STUDENT">
                     {/* Student tab content */}
@@ -521,215 +533,138 @@ export default function AdminUsers() {
                             <Plus className="mr-2 h-4 w-4" /> Thêm người dùng
                         </Button>
                     </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Thêm người dùng mới</DialogTitle>
-                        </DialogHeader>
+                    <CustomDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} title="Thêm người dùng mới">
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="username" className="text-right">
-                                    Tên đăng nhập
-                                </Label>
-                                <Input
-                                    id="username"
-                                    value={newUser.username}
-                                    onChange={(e) =>
-                                        setNewUser({ ...newUser, username: e.target.value })
-                                    }
-                                    className="col-span-3"
-                                />
+                                <Label htmlFor="username" className="text-right">Tên đăng nhập</Label>
+                                <Input id="username" value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="password" className="text-right">
-                                    Mật khẩu
-                                </Label>
-                                <Input
-                                    id="password"
-                                    value={newUser.password}
-                                    onChange={(e) =>
-                                        setNewUser({ ...newUser, password: e.target.value })
-                                    }
-                                    className="col-span-3"
-                                />
+                                <Label htmlFor="password" className="text-right">Mật khẩu</Label>
+                                <Input id="password" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="fullName" className="text-right">
-                                    Họ và tên
-                                </Label>
-                                <Input
-                                    id="fullName"
-                                    value={newUser.fullName}
-                                    onChange={(e) =>
-                                        setNewUser({ ...newUser, fullName: e.target.value })
-                                    }
-                                    className="col-span-3"
-                                />
+                                <Label htmlFor="fullName" className="text-right">Họ và tên</Label>
+                                <Input id="fullName" value={newUser.fullName} onChange={e => setNewUser({ ...newUser, fullName: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="email" className="text-right">
-                                    Email
-                                </Label>
-                                <Input
-                                    id="email"
-                                    value={newUser.email}
-                                    onChange={(e) =>
-                                        setNewUser({ ...newUser, email: e.target.value })
-                                    }
-                                    className="col-span-3"
-                                />
+                                <Label htmlFor="email" className="text-right">Email</Label>
+                                <Input id="email" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="dob" className="text-right">
-                                    Ngày sinh
-                                </Label>
-                                <Input
-                                    id="dob"
-                                    type="date"
-                                    value={newUser.dob}
-                                    onChange={(e) =>
-                                        setNewUser({ ...newUser, dob: e.target.value })
-                                    }
-                                    className="col-span-3"
-                                />
+                                <Label htmlFor="dob" className="text-right">Ngày sinh</Label>
+                                <Input id="dob" type="date" value={newUser.dob} onChange={e => setNewUser({ ...newUser, dob: e.target.value })} className="col-span-3" />
                             </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="gender" className="text-right">Giới tính</Label>
+                                <Select value={newUser.gender || "MALE"} onValueChange={val => setNewUser({ ...newUser, gender: val })}>
+                                    <SelectTrigger className="col-span-3">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="MALE">Nam</SelectItem>
+                                        <SelectItem value="FEMALE">Nữ</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="phoneNumber" className="text-right">Số điện thoại</Label>
+                                <Input id="phoneNumber" value={newUser.phoneNumber} onChange={e => setNewUser({ ...newUser, phoneNumber: e.target.value })} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="address" className="text-right">Địa chỉ</Label>
+                                <Input id="address" value={newUser.address} onChange={e => setNewUser({ ...newUser, address: e.target.value })} className="col-span-3" />
+                            </div>
+                            {activeTab === 'TEACHER' && (
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="salary" className="text-right">Lương</Label>
+                                    <Input id="salary" type="number" value={newUser.salary || 0} onChange={e => setNewUser({ ...newUser, salary: Number(e.target.value) })} className="col-span-3" />
+                                </div>
+                            )}
                         </div>
                         <div className="flex justify-end">
                             <Button onClick={handleAdd}>Thêm người dùng</Button>
                         </div>
-                    </DialogContent>
+                    </CustomDialog>
                 </Dialog>
             </div>
 
-            <div className="border rounded-lg">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>
-                                <div className="flex items-center gap-1">
-                                    <span>Tên đăng nhập</span>
-                                    <button type="button" onClick={() => handleSort('username')} className="ml-1">
-                                        {sortField === 'username' ? (
-                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
-                                        ) : (
-                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
-                                        )}
-                                    </button>
-                                </div>
-                            </TableHead>
-                            <TableHead>
-                                <div className="flex items-center gap-1">
-                                    <span>Họ và tên</span>
-                                    <button type="button" onClick={() => handleSort('fullName')} className="ml-1">
-                                        {sortField === 'fullName' ? (
-                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
-                                        ) : (
-                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
-                                        )}
-                                    </button>
-                                </div>
-                            </TableHead>
-                            <TableHead>
-                                <div className="flex items-center gap-1">
-                                    <span>Email</span>
-                                    <button type="button" onClick={() => handleSort('email')} className="ml-1">
-                                        {sortField === 'email' ? (
-                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
-                                        ) : (
-                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
-                                        )}
-                                    </button>
-                                </div>
-                            </TableHead>
-                            <TableHead>
-                                <div className="flex items-center gap-1">
-                                    <span>Ngày sinh</span>
-                                    <button type="button" onClick={() => handleSort('dob')} className="ml-1">
-                                        {sortField === 'dob' ? (
-                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
-                                        ) : (
-                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
-                                        )}
-                                    </button>
-                                </div>
-                            </TableHead>
-                            <TableHead className="text-right">Thao tác</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {getCurrentUsers().map((user) => (
-                            <TableRow key={user.userId}>
-                                <TableCell>{user.username}</TableCell>
-                                <TableCell>{user.fullName || "-"}</TableCell>
-                                <TableCell>{user.email || "-"}</TableCell>
-                                <TableCell>{user.dob || "-"}</TableCell>
-                                <TableCell className="text-right">
-                                    {activeTab === 'PARENT' && (
-                                        <>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => {
-                                                    setSelectedParent(user as Parent);
-                                                    fetchParentStudents(user.userId);
-                                                    setIsViewStudentsDialogOpen(true);
-                                                }}
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => {
-                                                    setSelectedParent(user as Parent);
-                                                    setSelectedStudents([]);
-                                                    setStudentPage(1);
-                                                    fetchAvailableStudents(1);
-                                                    setIsAddStudentsDialogOpen(true);
-                                                }}
-                                            >
-                                                <Plus className="h-4 w-4" />
-                                            </Button>
-                                        </>
-                                    )}
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => {
-                                            setSelectedUserId(user.userId);
-                                            setSelectedUser({
-                                                fullName: user.fullName || "",
-                                                email: user.email || "",
-                                                gender: user.gender || "MALE",
-                                                phoneNumber: user.phoneNumber || "",
-                                                address: user.address || "",
-                                                dob: user.dob || "",
-                                            });
-                                            setIsEditDialogOpen(true);
-                                        }}
-                                    >
-                                        <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleClickDelete(user)}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                        {/* Add empty rows to maintain fixed height */}
-                        {getCurrentUsers().length < ITEMS_PER_PAGE &&
-                            Array.from({ length: ITEMS_PER_PAGE - getCurrentUsers().length }).map((_, index) => (
-                                <TableRow key={`empty-${index}`}>
-                                    <TableCell colSpan={6} className="h-[53px]"></TableCell>
-                                </TableRow>
-                            ))
-                        }
-                    </TableBody>
-                </Table>
-            </div>
+            <ColoredTable
+                columns={[
+                    { title: 'Tên đăng nhập', sortable: true, sortField: 'username' },
+                    { title: 'Họ và tên', sortable: true, sortField: 'fullName' },
+                    { title: 'Email', sortable: true, sortField: 'email' },
+                    { title: 'Ngày sinh', sortable: true, sortField: 'dob' },
+                    { title: 'Thao tác', headerClassName: 'text-right' },
+                ]}
+                data={getCurrentUsers()}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+                pageSize={ITEMS_PER_PAGE}
+                renderRow={(user) => [
+                    user.username,
+                    user.fullName || '-',
+                    user.email || '-',
+                    user.dob || '-',
+                    <div className="text-right" key="actions">
+                        {activeTab === 'PARENT' && (
+                            <>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                        setSelectedParent(user);
+                                        fetchParentStudents(user.userId);
+                                        setIsViewStudentsDialogOpen(true);
+                                    }}
+                                >
+                                    <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                        setSelectedParent(user);
+                                        setSelectedStudents([]);
+                                        setStudentPage(1);
+                                        fetchAvailableStudents(1);
+                                        setIsAddStudentsDialogOpen(true);
+                                    }}
+                                >
+                                    <Plus className="h-4 w-4" />
+                                </Button>
+                            </>
+                        )}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                                setSelectedUserId(user.userId);
+                                setSelectedUser({
+                                    fullName: user.fullName || "",
+                                    email: user.email || "",
+                                    gender: user.gender || "MALE",
+                                    phoneNumber: user.phoneNumber || "",
+                                    address: user.address || "",
+                                    dob: user.dob || "",
+                                    ...(activeTab === 'TEACHER' ? { salary: (user).salary || 0 } : {})
+                                });
+                                setIsEditDialogOpen(true);
+                            }}
+                        >
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleClickDelete(user)}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                ]}
+            />
 
             <TablePagination
                 currentPage={currentPage}
@@ -739,201 +674,201 @@ export default function AdminUsers() {
                 itemLabel="người dùng"
             />
 
-            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Chỉnh sửa thông tin người dùng</DialogTitle>
-                    </DialogHeader>
-                    {selectedUser && activeTab === 'STUDENT' && (
-                        <>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="edit-fullName" className="text-right">Họ và tên</Label>
-                                    <Input id="edit-fullName" value={selectedUser.fullName || ""} onChange={e => setSelectedUser({ ...selectedUser, fullName: e.target.value })} className="col-span-3" />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="edit-email" className="text-right">Email</Label>
-                                    <Input id="edit-email" value={selectedUser.email || ""} onChange={e => setSelectedUser({ ...selectedUser, email: e.target.value })} className="col-span-3" />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="edit-dob" className="text-right">Ngày sinh</Label>
-                                    <Input id="edit-dob" type="date" value={selectedUser.dob || ""} onChange={e => setSelectedUser({ ...selectedUser, dob: e.target.value })} className="col-span-3" />
-                                </div>
+            {/* Chỉnh sửa dialog chỉnh sửa người dùng */}
+            <CustomDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} title="Chỉnh sửa thông tin người dùng">
+                {selectedUser && (
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-fullName" className="text-right">Họ và tên</Label>
+                            <Input id="edit-fullName" value={selectedUser.fullName || ""} onChange={e => setSelectedUser({ ...selectedUser, fullName: e.target.value })} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-email" className="text-right">Email</Label>
+                            <Input id="edit-email" value={selectedUser.email || ""} onChange={e => setSelectedUser({ ...selectedUser, email: e.target.value })} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-dob" className="text-right">Ngày sinh</Label>
+                            <Input id="edit-dob" type="date" value={selectedUser.dob || ""} onChange={e => setSelectedUser({ ...selectedUser, dob: e.target.value })} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-gender" className="text-right">Giới tính</Label>
+                            <Select value={selectedUser.gender || "MALE"} onValueChange={val => setSelectedUser({ ...selectedUser, gender: val })}>
+                                <SelectTrigger className="col-span-3">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="MALE">Nam</SelectItem>
+                                    <SelectItem value="FEMALE">Nữ</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-phoneNumber" className="text-right">Số điện thoại</Label>
+                            <Input id="edit-phoneNumber" value={selectedUser.phoneNumber || ""} onChange={e => setSelectedUser({ ...selectedUser, phoneNumber: e.target.value })} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-address" className="text-right">Địa chỉ</Label>
+                            <Input id="edit-address" value={selectedUser.address || ""} onChange={e => setSelectedUser({ ...selectedUser, address: e.target.value })} className="col-span-3" />
+                        </div>
+                        {activeTab === 'TEACHER' && (
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-salary" className="text-right">Lương</Label>
+                                <Input id="edit-salary" type="number" value={(selectedUser as any).salary || 0} onChange={e => setSelectedUser({ ...selectedUser, salary: Number(e.target.value) } as any)} className="col-span-3" />
                             </div>
-                            <div className="mb-2 font-semibold">Danh sách lớp & Discount (%)</div>
-                            <div className="space-y-2">
-                                {allClasses.map((cls, idx) => (
-                                    <div key={cls.classId} className="flex items-center gap-2">
-                                        <span className="w-48">{cls.className}</span>
-                                        <Input
-                                            type="number"
-                                            min={0}
-                                            max={99}
-                                            value={classDiscounts[idx]?.discount ?? 0}
-                                            onChange={e => {
-                                                const val = Math.max(0, Math.min(99, parseInt(e.target.value) || 0));
-                                                setClassDiscounts(discounts => discounts.map((d, i) => i === idx ? { ...d, discount: val } : d));
-                                            }}
-                                            className="w-20"
-                                        />
-                                        <span>%</span>
-                                    </div>
+                        )}
+                        {activeTab === 'STUDENT' && (
+                            <>
+                                <div className="mb-2 font-semibold">Danh sách lớp & Discount (%)</div>
+                                <div className="space-y-2">
+                                    {allClasses.map((cls, idx) => (
+                                        <div key={cls.classId} className="flex items-center gap-2">
+                                            <span className="w-48">{cls.className}</span>
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                max={99}
+                                                value={classDiscounts[idx]?.discount ?? 0}
+                                                onChange={e => {
+                                                    const val = Math.max(0, Math.min(99, parseInt(e.target.value) || 0));
+                                                    setClassDiscounts(discounts => discounts.map((d, i) => i === idx ? { ...d, discount: val } : d));
+                                                }}
+                                                className="w-20"
+                                            />
+                                            <span>%</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+                <div className="flex justify-end">
+                    <Button onClick={handleEdit}>Lưu thay đổi</Button>
+                </div>
+            </CustomDialog>
+
+            {/* Xem danh sách học sinh của phụ huynh */}
+            <CustomDialog open={isViewStudentsDialogOpen} onOpenChange={setIsViewStudentsDialogOpen} title={`Danh sách học sinh của phụ huynh ${selectedParent?.fullName}`}>
+                <div className="space-y-4">
+                    <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[50px]"></TableHead>
+                                    <TableHead>Tên học sinh</TableHead>
+                                    <TableHead>Ngày sinh</TableHead>
+                                    <TableHead>Email</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {parentStudents.map((student) => (
+                                    <TableRow key={student.userId}>
+                                        <TableCell>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleClickRemoveStudent(student)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                        <TableCell>{student.fullName || student.username}</TableCell>
+                                        <TableCell>{student.dob || "-"}</TableCell>
+                                        <TableCell>{student.email || "-"}</TableCell>
+                                    </TableRow>
                                 ))}
-                            </div>
-                        </>
-                    )}
+                            </TableBody>
+                        </Table>
+                    </div>
                     <div className="flex justify-end">
-                        <Button onClick={handleEdit}>Lưu thay đổi</Button>
+                        <Button variant="outline" onClick={() => setIsViewStudentsDialogOpen(false)}>
+                            Đóng
+                        </Button>
                     </div>
-                </DialogContent>
-            </Dialog>
+                </div>
+            </CustomDialog>
 
-            {/* View Students Dialog */}
-            <Dialog open={isViewStudentsDialogOpen} onOpenChange={setIsViewStudentsDialogOpen}>
-                <DialogContent className="max-w-4xl">
-                    <DialogHeader>
-                        <DialogTitle>Danh sách học sinh của phụ huynh {selectedParent?.fullName}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        <div className="border rounded-md">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[50px]"></TableHead>
-                                        <TableHead>Tên học sinh</TableHead>
-                                        <TableHead>Ngày sinh</TableHead>
-                                        <TableHead>Email</TableHead>
+            {/* Thêm học sinh cho phụ huynh */}
+            <CustomDialog open={isAddStudentsDialogOpen} onOpenChange={setIsAddStudentsDialogOpen} title={`Thêm học sinh cho phụ huynh ${selectedParent?.fullName}`}>
+                <div className="space-y-4">
+                    <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[50px]"></TableHead>
+                                    <TableHead>Tên học sinh</TableHead>
+                                    <TableHead>Ngày sinh</TableHead>
+                                    <TableHead>Email</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {availableStudents.map((student) => (
+                                    <TableRow key={student.userId}>
+                                        <TableCell>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleClickAddStudent(student)}
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                        <TableCell>{student.fullName || student.username}</TableCell>
+                                        <TableCell>{student.dob || "-"}</TableCell>
+                                        <TableCell>{student.email || "-"}</TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {parentStudents.map((student) => (
-                                        <TableRow key={student.userId}>
-                                            <TableCell>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleClickRemoveStudent(student)}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
-                                            <TableCell>{student.fullName || student.username}</TableCell>
-                                            <TableCell>{student.dob || "-"}</TableCell>
-                                            <TableCell>{student.email || "-"}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                        <div className="flex justify-end">
-                            <Button variant="outline" onClick={() => setIsViewStudentsDialogOpen(false)}>
-                                Đóng
-                            </Button>
-                        </div>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </div>
-                </DialogContent>
-            </Dialog>
+                    <div className="flex justify-between items-center">
+                        <div className="text-sm text-muted-foreground">
+                            Chọn học sinh để thêm
+                        </div>
+                        <TablePagination
+                            currentPage={studentPage - 1}
+                            totalPages={studentTotalPages}
+                            totalItems={studentTotalItems}
+                            onPageChange={(page) => setStudentPage(page + 1)}
+                            itemLabel="học sinh"
+                        />
+                    </div>
+                    <div className="flex justify-end">
+                        <Button variant="outline" onClick={() => setIsAddStudentsDialogOpen(false)}>
+                            Đóng
+                        </Button>
+                    </div>
+                </div>
+            </CustomDialog>
 
-            {/* Add Students Dialog */}
-            <Dialog open={isAddStudentsDialogOpen} onOpenChange={setIsAddStudentsDialogOpen}>
-                <DialogContent className="max-w-4xl">
-                    <DialogHeader>
-                        <DialogTitle>Thêm học sinh cho phụ huynh {selectedParent?.fullName}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        <div className="border rounded-md">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[50px]"></TableHead>
-                                        <TableHead>Tên học sinh</TableHead>
-                                        <TableHead>Ngày sinh</TableHead>
-                                        <TableHead>Email</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {availableStudents.map((student) => (
-                                        <TableRow key={student.userId}>
-                                            <TableCell>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleClickAddStudent(student)}
-                                                >
-                                                    <Plus className="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
-                                            <TableCell>{student.fullName || student.username}</TableCell>
-                                            <TableCell>{student.dob || "-"}</TableCell>
-                                            <TableCell>{student.email || "-"}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <div className="text-sm text-muted-foreground">
-                                Chọn học sinh để thêm
-                            </div>
-                            <TablePagination
-                                currentPage={studentPage - 1}
-                                totalPages={studentTotalPages}
-                                totalItems={studentTotalItems}
-                                onPageChange={(page) => setStudentPage(page + 1)}
-                                itemLabel="học sinh"
-                            />
-                        </div>
-                        <div className="flex justify-end">
-                            <Button variant="outline" onClick={() => setIsAddStudentsDialogOpen(false)}>
-                                Đóng
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
+            {/* Xác nhận thêm học sinh */}
+            <CustomDialog open={isConfirmAddDialogOpen} onOpenChange={setIsConfirmAddDialogOpen} title="Xác nhận thêm học sinh">
+                <div>Bạn có chắc muốn thêm học sinh <b>{studentToAdd?.fullName}</b> vào phụ huynh này không?</div>
+                <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={() => setIsConfirmAddDialogOpen(false)}>Hủy</Button>
+                    <Button variant="destructive" onClick={handleConfirmAddStudent}>Thêm</Button>
+                </div>
+            </CustomDialog>
 
-            {/* Confirm Add Dialog */}
-            <Dialog open={isConfirmAddDialogOpen} onOpenChange={setIsConfirmAddDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Xác nhận thêm học sinh</DialogTitle>
-                    </DialogHeader>
-                    <div>Bạn có chắc muốn thêm học sinh <b>{studentToAdd?.fullName}</b> vào phụ huynh này không?</div>
-                    <div className="flex justify-end gap-2 mt-4">
-                        <Button variant="outline" onClick={() => setIsConfirmAddDialogOpen(false)}>Hủy</Button>
-                        <Button variant="destructive" onClick={handleConfirmAddStudent}>Thêm</Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
+            {/* Xác nhận xóa học sinh */}
+            <CustomDialog open={isConfirmRemoveDialogOpen} onOpenChange={setIsConfirmRemoveDialogOpen} title="Xác nhận xóa học sinh">
+                <div>Bạn có chắc muốn xóa học sinh <b>{studentToRemove?.fullName}</b> khỏi phụ huynh này không?</div>
+                <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={() => setIsConfirmRemoveDialogOpen(false)}>Hủy</Button>
+                    <Button variant="destructive" onClick={handleConfirmRemoveStudent}>Xóa</Button>
+                </div>
+            </CustomDialog>
 
-            {/* Confirm Remove Dialog */}
-            <Dialog open={isConfirmRemoveDialogOpen} onOpenChange={setIsConfirmRemoveDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Xác nhận xóa học sinh</DialogTitle>
-                    </DialogHeader>
-                    <div>Bạn có chắc muốn xóa học sinh <b>{studentToRemove?.fullName}</b> khỏi phụ huynh này không?</div>
-                    <div className="flex justify-end gap-2 mt-4">
-                        <Button variant="outline" onClick={() => setIsConfirmRemoveDialogOpen(false)}>Hủy</Button>
-                        <Button variant="destructive" onClick={handleConfirmRemoveStudent}>Xóa</Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            {/* Add Delete Confirmation Dialog */}
-            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Xác nhận xóa người dùng</DialogTitle>
-                    </DialogHeader>
-                    <div>Bạn có chắc muốn xóa người dùng <b>{userToDelete?.fullName || userToDelete?.username}</b> không?</div>
-                    <div className="flex justify-end gap-2 mt-4">
-                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Hủy</Button>
-                        <Button variant="destructive" onClick={handleConfirmDelete}>Xóa</Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
+            {/* Xác nhận xóa người dùng */}
+            <CustomDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} title="Xác nhận xóa người dùng">
+                <div>Bạn có chắc muốn xóa người dùng <b>{userToDelete?.fullName || userToDelete?.username}</b> không?</div>
+                <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Hủy</Button>
+                    <Button variant="destructive" onClick={handleConfirmDelete}>Xóa</Button>
+                </div>
+            </CustomDialog>
         </div>
     );
 }
+
 

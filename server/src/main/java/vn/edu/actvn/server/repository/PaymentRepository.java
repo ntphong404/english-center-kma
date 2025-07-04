@@ -18,4 +18,8 @@ public interface PaymentRepository extends JpaRepository<Payment, String> {
            AND LOWER(p.tuitionFee.entityClass.classId) LIKE LOWER(CONCAT('%', :classId, '%'))
     """)
     Page<Payment> search(@Param("studentId") String studentId, @Param("classId") String classId, Pageable pageable);
+
+    Page<Payment> findAllByTuitionFee_TuitionFeeId(String tuitionFeeId, Pageable pageable);
+
+    //find [Entity] [All] By + tên trường cần tìm kiếm
 }

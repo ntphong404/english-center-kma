@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GraduationCap, Users, BookOpen, Calendar } from 'lucide-react';
 import ProfileForm from '@/components/ProfileForm';
+import parentApi from '@/api/parentApi';
+import { getUser } from '@/store/userStore';
 
 const StudentProfile = () => {
     // Mock data - sẽ thay bằng API sau
@@ -13,6 +15,18 @@ const StudentProfile = () => {
         avatar: '',
         bio: 'Học sinh lớp 8A, yêu thích môn Toán và Văn học.'
     });
+
+    // Lấy parentId từ userData
+    const userData = getUser();
+    const parentId = (userData as import('@/types/user').Student)?.parentId;
+    const [parentInfo, setParentInfo] = useState<any>(null);
+    useEffect(() => {
+        if (parentId) {
+            parentApi.getById(parentId).then(res => {
+                setParentInfo(res.data.result);
+            }).catch(() => setParentInfo(null));
+        }
+    }, [parentId]);
 
     const handleProfileUpdate = (data: any) => {
         setProfile(data);
@@ -57,11 +71,11 @@ const StudentProfile = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <span className="text-sm font-medium">Họ tên phụ huynh</span>
-                        <input value="Lê Văn Phụ Huynh" disabled className="w-full px-3 py-2 border rounded-md bg-muted" />
+                        <input value={parentInfo?.fullName || ''} disabled className="w-full px-3 py-2 border rounded-md bg-muted" />
                     </div>
                     <div className="space-y-2">
                         <span className="text-sm font-medium">Số điện thoại phụ huynh</span>
-                        <input value="0987654321" disabled className="w-full px-3 py-2 border rounded-md bg-muted" />
+                        <input value={parentInfo?.phoneNumber || ''} disabled className="w-full px-3 py-2 border rounded-md bg-muted" />
                     </div>
                 </div>
             </div>

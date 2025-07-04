@@ -24,6 +24,7 @@ import {
     DialogFooter,
     DialogClose,
 } from '@/components/ui/dialog';
+import CustomDialog from '@/components/CustomDialog';
 
 interface Schedule {
     id: string;
@@ -269,66 +270,75 @@ export default function TeacherSchedule() {
 
     return (
         <div className="w-full bg-[#f5f6fa]">
+            {/* Tiêu đề lớn */}
+            <div className="text-2xl font-bold pt-8 ml-12">Lịch dạy của tôi</div>
             {/* Lịch + nội dung căn giữa */}
-            <div className="flex flex-col md:flex-row gap-8 justify-center items-start pt-8 md:pt-[100px] pb-8">
+            <div className="flex flex-col md:flex-row gap-8 justify-center items-start pb-8 w-full">
                 {/* Calendar */}
                 <div
-                    className="flex flex-col items-start w-full max-w-[460px] min-w-[320px] md:min-h-[400px]"
+                    className="flex flex-col items-center w-full max-w-[540px] min-w-[320px] mx-auto"
                 >
                     <div
                         ref={calendarRef}
-                        className="bg-white rounded-2xl border shadow-lg p-8 w-full h-full flex flex-col items-center"
+                        className="bg-white rounded-3xl border shadow-2xl p-10 w-full h-full flex flex-col items-center"
                     >
-                        <div className="flex items-center justify-between w-full mb-2">
+                        <div className="flex items-center justify-between w-full mb-4">
                             <button
-                                className="text-xl px-2"
+                                className="text-2xl px-3"
                                 onClick={() => {
                                     if (month === 0) { setMonth(11); setYear(y => y - 1); }
                                     else setMonth(m => m - 1);
                                 }}
                             >{'<'}</button>
-                            <div className="font-semibold text-xl">
+                            <div className="font-semibold text-2xl">
                                 {`Tháng ${month + 1} Năm ${year}`}
                             </div>
                             <button
-                                className="text-xl px-2"
+                                className="text-2xl px-3"
                                 onClick={() => {
                                     if (month === 11) { setMonth(0); setYear(y => y + 1); }
                                     else setMonth(m => m + 1);
                                 }}
                             >{'>'}</button>
                         </div>
-                        <div className="grid grid-cols-7 text-center text-gray-500 mb-1 w-full text-base">
+                        <div className="grid grid-cols-7 text-center text-gray-500 mb-2 w-full text-lg">
                             {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => <div key={d}>{d}</div>)}
                         </div>
-                        <div className="grid grid-cols-7 gap-1 w-full">
-                            {matrix.flat().map((date, idx) => (
-                                <div
-                                    key={idx}
-                                    className={`aspect-square flex flex-col items-center justify-center rounded-lg cursor-pointer select-none text-lg font-medium
-                    ${date.getMonth() === month
-                                            ? (isSameDay(date, selectedDate) ? 'border-2 border-blue-500 bg-blue-50 text-blue-700' : 'hover:bg-blue-50')
-                                            : 'text-gray-300'}
-                  `}
-                                    onClick={() => date.getMonth() === month && setSelectedDate(date)}
-                                >
-                                    <span>{date.getDate()}</span>
-                                    {/* Dot if has schedule */}
-                                    {date.getMonth() === month && daysWithSchedules.includes(date.getDate()) && (
-                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1 inline-block"></span>
-                                    )}
-                                </div>
-                            ))}
+                        <div className="grid grid-cols-7 gap-2 w-full">
+                            {matrix.flat().map((date, idx) => {
+                                const isToday = date.toDateString() === new Date().toDateString();
+                                const isSelected = isSameDay(date, selectedDate);
+                                return (
+                                    <div
+                                        key={idx}
+                                        className={`aspect-square flex flex-col items-center justify-center rounded-xl cursor-pointer select-none text-xl font-semibold
+                                            ${date.getMonth() === month
+                                                ? (isSelected
+                                                    ? 'bg-blue-200 text-blue-800 border-2 border-blue-500'
+                                                    : isToday
+                                                        ? 'bg-blue-50 text-blue-700'
+                                                        : 'hover:bg-blue-50')
+                                                : 'text-gray-300'}
+                                        `}
+                                        onClick={() => date.getMonth() === month && setSelectedDate(date)}
+                                    >
+                                        <span>{date.getDate()}</span>
+                                        {/* Dot if has schedule */}
+                                        {date.getMonth() === month && daysWithSchedules.includes(date.getDate()) && (
+                                            <span className="w-2 h-2 rounded-full bg-blue-500 mt-1 inline-block"></span>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
-
                 {/* Schedule List Card */}
                 <div
-                    className="min-w-[300px] max-w-[350px] w-full mx-auto md:mx-0"
+                    className="flex flex-col items-center w-full max-w-[540px] min-w-[320px] mx-auto mt-8 md:mt-0"
                     style={calendarHeight ? { minHeight: undefined, height: undefined, ...(window.innerWidth >= 768 ? { height: calendarHeight } : {}) } : {}}
                 >
-                    <div className="bg-[#ffe5e5] rounded-2xl shadow-lg p-6 flex flex-col justify-start h-full overflow-y-auto">
+                    <div className="bg-[#ffe5e5] rounded-3xl shadow-2xl p-6 flex flex-col justify-start h-full w-full overflow-y-auto">
                         <div className="font-bold text-lg text-red-600 flex items-center gap-2 mb-4">
                             Lịch dạy
                             <span className="inline-flex items-center justify-center bg-red-500 text-white rounded-full w-7 h-7 text-base font-bold">{daySchedules.length}</span>
@@ -369,35 +379,26 @@ export default function TeacherSchedule() {
             </div>
 
             {/* Dialog xem học sinh */}
-            <Dialog open={studentDialogOpen} onOpenChange={setStudentDialogOpen}>
-                <DialogContent className="max-w-lg w-full">
-                    <DialogHeader>
-                        <DialogTitle>Danh sách học sinh</DialogTitle>
-                        <DialogDescription>
-                            {currentClass?.className} ({currentClass?.studentIds?.length || 0} học sinh)
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                        {studentList.length === 0 && <div>Không có học sinh nào.</div>}
-                        {studentList.map(stu => (
-                            <div key={stu.userId} className="border-b py-2">
-                                <div className="font-medium">{stu.fullName || stu.username}</div>
-                                <div className="text-sm text-gray-500">Email: {stu.email || '---'}</div>
-                            </div>
-                        ))}
+            <CustomDialog open={studentDialogOpen} onOpenChange={setStudentDialogOpen} title="Danh sách học sinh">
+                <div className="text-muted-foreground mb-2">{currentClass?.className} ({currentClass?.studentIds?.length || 0} học sinh)</div>
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    {studentList.length === 0 && <div>Không có học sinh nào.</div>}
+                    {studentList.map(stu => (
+                        <div key={stu.userId} className="border-b py-2">
+                            <div className="font-medium">{stu.fullName || stu.username}</div>
+                            <div className="text-sm text-gray-500">Email: {stu.email || '---'}</div>
+                        </div>
+                    ))}
+                </div>
+                {studentHasMore && (
+                    <div className="flex justify-end mt-2">
+                        <Button variant="outline" onClick={handleLoadMoreStudents}>Xem thêm</Button>
                     </div>
-                    {studentHasMore && (
-                        <DialogFooter>
-                            <Button variant="outline" onClick={handleLoadMoreStudents}>Xem thêm</Button>
-                        </DialogFooter>
-                    )}
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button variant="outline">Đóng</Button>
-                        </DialogClose>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                )}
+                <div className="flex justify-end mt-2">
+                    <Button variant="outline" onClick={() => setStudentDialogOpen(false)}>Đóng</Button>
+                </div>
+            </CustomDialog>
         </div>
     );
 }

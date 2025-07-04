@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 import vn.edu.actvn.server.dto.response.tuitionfee.TuitionFeeResponse;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -16,4 +17,5 @@ public class PaymentResponse {
     String paymentId;
     TuitionFeeResponse tuitionFee;
     BigDecimal paidAmount;
+    LocalDateTime createdAt;
 }

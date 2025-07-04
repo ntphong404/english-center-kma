@@ -30,7 +30,6 @@ public interface AttendanceRepository extends JpaRepository<Attendance, String> 
             @Param("date") LocalDate date,
             Pageable pageable);
 
-
     List<Attendance> findByEntityClass_ClassIdAndDateBetween(String classId, LocalDate start, LocalDate end);
 
     long countByEntityClass_ClassIdAndStudentAttendances_StudentIdAndStudentAttendances_Status(String classId, String studentId, Attendance.Status status);

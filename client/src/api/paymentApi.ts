@@ -13,6 +13,12 @@ const paymentApi = {
         return axiosInstance.get<ApiResponse<PaymentResponse>>(`/payments/${id}`);
     },
 
+    getByTuitionFeeId: (tuitionFeeId: string, page: number = 0, size: number = 10, sort: string = 'createdAt,DESC') => {
+        return axiosInstance.get<ApiResponse<PageResponse<PaymentResponse>>>(`/payments/tuition-fee/${tuitionFeeId}`, {
+            params: { page, size, sort }
+        });
+    },
+
     create: (payment: Partial<PaymentResponse>) => {
         return axiosInstance.post<ApiResponse<PaymentResponse>>('/payments', payment);
     },

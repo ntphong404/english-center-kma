@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.actvn.server.dto.request.teacherpayment.CreateTeacherPaymentRequest;
@@ -107,6 +108,18 @@ public class TeacherPaymentService {
         TeacherPayment payment = teacherPaymentRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         return teacherPaymentMapper.toResponse(payment);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public Page<TeacherPaymentResponse> getByTeacher(Integer month, Integer year,Pageable pageable) {
+        if (month == null) month = 0;
+        if (year == null) year = 0;
+        var context = SecurityContextHolder.getContext();
+        String teacherName = context.getAuthentication().getName();
+        Teacher teacher = teacherRepository.findByUsername(teacherName)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        return teacherPaymentRepository.search(teacher.getUserId(), month, year , pageable)
+                .map(teacherPaymentMapper::toResponse);
     }
 
     @PreAuthorize("hasRole('ADMIN')")

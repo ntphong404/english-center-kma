@@ -42,6 +42,18 @@ public class TeacherPaymentController {
                 .build();
     }
 
+    @GetMapping("/salary")
+    @Operation(summary = "Get payment by ID")
+    public ApiResponse<Page<TeacherPaymentResponse>> getSalary(
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year,
+            @ParameterObject Pageable pageable) {
+        return ApiResponse.<Page<TeacherPaymentResponse>>builder()
+                .result(paymentService.getByTeacher(month, year ,pageable))
+                .message("Fetched teacher payment")
+                .build();
+    }
+
     @PostMapping
     @Operation(summary = "Create a new teacher payment")
     public ApiResponse<TeacherPaymentResponse> create(@RequestBody CreateTeacherPaymentRequest req) {

@@ -77,17 +77,19 @@ public class TuitionFeeService {
         tuitionFee.setAmount(amount.multiply(BigDecimal.valueOf(100 - discount))
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
 
-        tuitionFee.setRemainingAmount(tuitionFee.getAmount());
+        tuitionFee.setPaidAmount(tuitionFee.getPaidAmount()==null? BigDecimal.ZERO : tuitionFee.getPaidAmount());
+        tuitionFee.setRemainingAmount(tuitionFee.getAmount().subtract(tuitionFee.getPaidAmount()));
 
         TuitionFee savedTuitionFee = tuitionFeeRepository.save(tuitionFee);
         return tuitionFeeMapper.toTuitionFeeResponse(savedTuitionFee);
     }
 
     @PreAuthorize("hasAuthority('TUITION_FEE_READ_ALL') || hasRole('ADMIN')")
-    public Page<TuitionFeeResponse> getAllTuitionFees(String studentId,YearMonth yearMonth,Pageable pageable) {
+    public Page<TuitionFeeResponse> getAllTuitionFees(String studentId,String classId,YearMonth yearMonth,Pageable pageable) {
         LocalDate yearMonthDate = yearMonth != null ? yearMonth.atDay(1) : null;
         if (studentId == null) studentId = "";
-        return tuitionFeeRepository.search(studentId, yearMonthDate, pageable)
+        if (classId == null) classId = "";
+        return tuitionFeeRepository.search(studentId,classId, yearMonthDate, pageable)
                 .map(tuitionFeeMapper::toTuitionFeeResponse);
     }
 

@@ -5,6 +5,7 @@ import {
   Calendar,
   ClipboardCheck,
   Settings,
+  CreditCard,
 } from 'lucide-react';
 import BaseLayout from './BaseLayout';
 
@@ -14,6 +15,7 @@ const TeacherLayout = () => {
     { icon: <BookOpen size={18} />, label: 'Lớp học', path: '/teacher/classes' },
     { icon: <Calendar size={18} />, label: 'Lịch giảng dạy', path: '/teacher/schedule' },
     { icon: <ClipboardCheck size={18} />, label: 'Điểm danh', path: '/teacher/attendance' },
+    { icon: <CreditCard size={18} />, label: 'Lương tháng', path: '/teacher/payment' },
     { icon: <Settings size={18} />, label: 'Cài đặt', path: '/teacher/settings' },
   ];
 

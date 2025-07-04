@@ -1,4 +1,4 @@
-import { User } from '../types/user';
+import { SendToParentRequest, User } from '../types/user';
 import { ApiResponse, PageResponse } from '../types/api';
 import axiosInstance from '../services/axios';
 
@@ -48,4 +48,11 @@ export const userApi = {
         return axiosInstance.post<ApiResponse<User>>('/users/change-avatar', formData);
     },
 
+    sendToParent: (request: SendToParentRequest) => {
+        return axiosInstance.post<ApiResponse<void>>(`/users/send-email-to-parent`, request);
+    },
+
+    getNotification: () => {
+        return axiosInstance.get<ApiResponse<PageResponse<Notification[]>>>(`/users/notification`);
+    }
 };

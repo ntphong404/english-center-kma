@@ -8,15 +8,19 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.edu.actvn.server.entity.Teacher;
 
+import java.util.Optional;
+
 @Repository
 public interface TeacherRepository extends JpaRepository<Teacher, String> {
     // Additional query methods can be defined here
 
     @Query("""
-        SELECT t FROM Teacher t 
-        WHERE LOWER(t.fullName) LIKE LOWER(CONCAT('%', :fullName, '%')) 
+        SELECT t FROM Teacher t
+        WHERE LOWER(t.fullName) LIKE LOWER(CONCAT('%', :fullName, '%'))
         AND LOWER(t.email) LIKE LOWER(CONCAT('%', :email, '%'))
     """)
     Page<Teacher> search(@Param("fullName") String fullName,@Param("email") String email, Pageable pageable);
+
+    Optional<Teacher> findByUsername(String teacherName);
 }
 

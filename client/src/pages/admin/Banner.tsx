@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { useDebouncedCallback } from 'use-debounce';
+import CustomDialog from '@/components/CustomDialog';
+import ColoredTable from '@/components/ui/ColoredTable';
 
 const PAGE_SIZE = 5;
 
@@ -224,10 +226,7 @@ const Banner = () => {
                                 <Plus className="w-4 h-4 mr-2" /> Thêm mới
                             </Button>
                         </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Thêm banner mới</DialogTitle>
-                            </DialogHeader>
+                        <CustomDialog open={openAdd} onOpenChange={setOpenAdd} title="Thêm banner mới">
                             <div className="space-y-4">
                                 <Input
                                     placeholder="Tiêu đề"
@@ -253,62 +252,39 @@ const Banner = () => {
                                 </div>
                             </div>
                             <DialogFooter>
-                                <Button onClick={handleAddBanner} disabled={creating}>
-                                    {creating ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Đang tạo...
-                                        </>
-                                    ) : (
-                                        'Lưu'
-                                    )}
-                                </Button>
+                                <Button onClick={handleAddBanner} disabled={creating}>{creating ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Đang tạo...</>) : ('Lưu')}</Button>
                                 <Button variant="outline" onClick={() => setOpenAdd(false)} disabled={creating}>Hủy</Button>
                             </DialogFooter>
-                        </DialogContent>
+                        </CustomDialog>
                     </Dialog>
                 </div>
             </div>
             <div className="overflow-x-auto border rounded-lg">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="text-center">STT</TableHead>
-                            <TableHead className="text-center">Tiêu đề</TableHead>
-                            <TableHead className="text-center">Mô tả</TableHead>
-                            <TableHead className="text-center">Ảnh</TableHead>
-                            <TableHead className="text-center">Hành động</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {loading ? (
-                            <TableRow><TableCell colSpan={5} className="text-center py-4">Đang tải...</TableCell></TableRow>
-                        ) : banners.length === 0 ? (
-                            <TableRow><TableCell colSpan={5} className="text-center py-4">Không có dữ liệu</TableCell></TableRow>
-                        ) : (
-                            banners.map((banner, idx) => (
-                                <TableRow key={banner.bannerCourseId}>
-                                    <TableCell className="text-center">{page * PAGE_SIZE + idx + 1}</TableCell>
-                                    <TableCell className="text-center">{banner.title}</TableCell>
-                                    <TableCell className="text-center">{banner.description}</TableCell>
-                                    <TableCell className="text-center">
-                                        <img src={banner.imageUrl} alt={banner.title} className="h-16 w-32 object-cover rounded mx-auto" />
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <Button size="icon" variant="ghost" onClick={() => openEditDialog(banner)}>
-                                                <Pencil className="w-4 h-4" />
-                                            </Button>
-                                            <Button size="icon" variant="destructive" onClick={() => openDeleteDialog(banner)}>
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
+                <ColoredTable
+                    columns={[
+                        { title: 'STT', className: 'text-center' },
+                        { title: 'Tiêu đề', className: 'text-center' },
+                        { title: 'Mô tả', className: 'text-center' },
+                        { title: 'Ảnh', className: 'text-center' },
+                        { title: 'Hành động', className: 'text-center' },
+                    ]}
+                    data={banners.map((banner, idx) => [
+                        page * PAGE_SIZE + idx + 1,
+                        banner.title,
+                        banner.description,
+                        <img src={banner.imageUrl} alt={banner.title} className="h-16 w-32 object-cover rounded mx-auto" />,
+                        <div className="flex items-center justify-center gap-2">
+                            <Button size="icon" variant="ghost" onClick={() => openEditDialog(banner)}>
+                                <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button size="icon" variant="destructive" onClick={() => openDeleteDialog(banner)}>
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
+                        </div>
+                    ])}
+                    renderRow={row => row}
+                    emptyMessage={loading ? 'Đang tải...' : 'Không có dữ liệu'}
+                />
             </div>
             <TablePagination
                 currentPage={page}
@@ -319,64 +295,45 @@ const Banner = () => {
             />
 
             {/* Dialog sửa banner */}
-            <Dialog open={openEdit} onOpenChange={setOpenEdit}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Sửa banner</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
+            <CustomDialog open={openEdit} onOpenChange={setOpenEdit} title="Sửa banner">
+                <div className="space-y-4">
+                    <Input
+                        placeholder="Tiêu đề"
+                        value={editForm.title}
+                        onChange={e => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                    />
+                    <Input
+                        placeholder="Mô tả"
+                        value={editForm.description}
+                        onChange={e => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                    />
+                    <div className="flex items-center gap-2">
                         <Input
-                            placeholder="Tiêu đề"
-                            value={editForm.title}
-                            onChange={e => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                            type="file"
+                            accept="image/*"
+                            ref={editFileInputRef}
+                            onChange={handleEditUpload}
+                            className="w-auto"
                         />
-                        <Input
-                            placeholder="Mô tả"
-                            value={editForm.description}
-                            onChange={e => setEditForm(prev => ({ ...prev, description: e.target.value }))}
-                        />
-                        <div className="flex items-center gap-2">
-                            <Input
-                                type="file"
-                                accept="image/*"
-                                ref={editFileInputRef}
-                                onChange={handleEditUpload}
-                                className="w-auto"
-                            />
-                            {editForm.image && (
-                                <img src={URL.createObjectURL(editForm.image)} alt="preview" className="h-16 w-32 object-cover rounded" />
-                            )}
-                        </div>
+                        {editForm.image && (
+                            <img src={URL.createObjectURL(editForm.image)} alt="preview" className="h-16 w-32 object-cover rounded" />
+                        )}
                     </div>
-                    <DialogFooter>
-                        <Button onClick={handleEditBanner} disabled={updating}>
-                            {updating ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Đang cập nhật...
-                                </>
-                            ) : (
-                                'Lưu'
-                            )}
-                        </Button>
-                        <Button variant="outline" onClick={() => setOpenEdit(false)} disabled={updating}>Hủy</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                </div>
+                <DialogFooter>
+                    <Button onClick={handleEditBanner} disabled={updating}>{updating ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Đang cập nhật...</>) : ('Lưu')}</Button>
+                    <Button variant="outline" onClick={() => setOpenEdit(false)} disabled={updating}>Hủy</Button>
+                </DialogFooter>
+            </CustomDialog>
 
             {/* Dialog xác nhận xóa */}
-            <Dialog open={openDelete} onOpenChange={setOpenDelete}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Xóa banner</DialogTitle>
-                        <DialogDescription>Bạn có chắc chắn muốn xóa banner này không? Hành động này không thể hoàn tác.</DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setOpenDelete(false)}>Hủy</Button>
-                        <Button variant="destructive" onClick={handleDeleteBanner}>Xóa</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <CustomDialog open={openDelete} onOpenChange={setOpenDelete} title="Xóa banner">
+                <div>Bạn có chắc chắn muốn xóa banner <b>{selectedBanner?.title}</b> không? Hành động này không thể hoàn tác.</div>
+                <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={() => setOpenDelete(false)}>Hủy</Button>
+                    <Button variant="destructive" onClick={handleDeleteBanner}>Xóa</Button>
+                </div>
+            </CustomDialog>
         </div>
     );
 };

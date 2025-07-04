@@ -14,7 +14,7 @@ import Autoplay from 'embla-carousel-autoplay';
 const HomeSlider = () => {
   const [slides, setSlides] = useState<BannerCourseResponse[]>([]);
   const autoplay = useRef(
-    Autoplay({ delay: 5000, stopOnInteraction: false })
+    Autoplay({ delay: 3000, stopOnInteraction: false })
   );
 
   useEffect(() => {
@@ -36,8 +36,8 @@ const HomeSlider = () => {
     <Carousel
       className="w-full"
       plugins={[autoplay.current]}
-      onMouseEnter={autoplay.current.stop}
-      onMouseLeave={autoplay.current.reset}
+      onMouseEnter={() => autoplay.current.stop()}
+      onMouseLeave={() => autoplay.current.play()}
       opts={{
         loop: true,
       }}

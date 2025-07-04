@@ -3,6 +3,7 @@ package vn.edu.actvn.server.service;
 import java.util.List;
 import java.util.Optional;
 
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PostAuthorize;
@@ -15,7 +16,10 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import vn.edu.actvn.server.dto.request.user.*;
+import vn.edu.actvn.server.dto.response.ApiResponse;
 import vn.edu.actvn.server.dto.response.user.UserResponse;
 import vn.edu.actvn.server.entity.Otp;
 import vn.edu.actvn.server.entity.Role;

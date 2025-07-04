@@ -62,7 +62,6 @@ export interface CreateStudentRequest {
     phoneNumber: string;
     address: string;
     dob: string;
-    classDiscounts: ClassDiscount[];
 }
 
 // UPDATE 
@@ -93,4 +92,18 @@ export interface UserUpdateRequest {
     phoneNumber: string;
     address: string;
     dob: string;
+}
+
+export interface SendToParentRequest {
+    parentId: string;
+    subject: string;
+    content: string;
+}
+
+export interface Notification {
+    notificationId: string;
+    recipientName: string;
+    subject: string;
+    content: string;
+    sentAt: string;
 }

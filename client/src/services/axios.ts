@@ -3,7 +3,7 @@ import axios from 'axios';
 // Tạo instance axios với cấu hình mặc định
 const axiosInstance = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
-    timeout: 10000,
+    timeout: 30000,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -120,6 +120,7 @@ axiosInstance.interceptors.response.use(
                     }
                     break;
                 case 400:
+                    console.error('Lỗi 400 nè đồ ngốc', error.response.data);
                     return Promise.reject(error);
                 case 403:
                     // Xử lý lỗi forbidden

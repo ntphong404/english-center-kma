@@ -88,7 +88,7 @@ const BaseLayout = ({ title, logo, collapsedLogo, sidebarLinks }: BaseLayoutProp
                 </Sidebar>
 
                 <main className="flex-1 flex flex-col">
-                    <header className="bg-white shadow-sm p-4 flex justify-between items-center h-[60px] min-h-[60px]">
+                    <header className="bg-white shadow-sm p-4 flex justify-between items-center h-[60px] min-h-[60px] sticky top-0 z-30">
                         <div className="flex items-center">
                             <SidebarTrigger className="mr-2" />
                             <h1 className="text-xl font-semibold">{title}</h1>

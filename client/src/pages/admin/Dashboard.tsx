@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { format, isThisMonth, parseISO } from 'date-fns';
 import { Student } from '@/types/user';
 import { userApi } from '@/api/userApi';
+import dashboardApi from '@/api/DashboardApi';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState([
@@ -21,78 +22,32 @@ const AdminDashboard = () => {
   const [upcomingClasses, setUpcomingClasses] = useState<any[]>([]);
   const { toast } = useToast();
   const [teacherMap, setTeacherMap] = useState<Record<string, string>>({});
+
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchDashboard = async () => {
       try {
-        // Tổng số học sinh
-        const stuRes = await studentApi.getAll(undefined, undefined, 0, 1);
-        let totalStudents = 0;
-        if (stuRes.data?.result?.page?.totalElements !== undefined) {
-          totalStudents = stuRes.data.result.page.totalElements;
-        } else if (Array.isArray(stuRes.data?.result)) {
-          totalStudents = stuRes.data.result.length;
-        }
-
-        // Tổng số giáo viên
-        const teaRes = await teacherApi.getAll(undefined, undefined, 0, 1);
-        let totalTeachers = 0;
-        if (teaRes.data?.result?.page?.totalElements !== undefined) {
-          totalTeachers = teaRes.data.result.page.totalElements;
-        } else if (Array.isArray(teaRes.data?.result)) {
-          totalTeachers = teaRes.data.result.length;
-        }
-
-        // Tổng thu tháng này
-        const payRes = await paymentApi.getAll(undefined, undefined, 0, 1000);
-        let payments = [];
-        if (Array.isArray(payRes.data?.result)) {
-          payments = payRes.data.result;
-        } else if (payRes.data?.result?.content) {
-          payments = payRes.data.result.content;
-        }
-        const totalPaid = payments
-          .filter((p) => p.tuitionFee && isThisMonth(parseISO(p.tuitionFee.yearMonth + '-01')))
-          .reduce((sum, p) => sum + (p.paidAmount || 0), 0);
-
-        // Học phí chưa đóng
-        const feeRes = await tuitionFeeApi.getAll(undefined, undefined, 0, 1000);
-        let fees = [];
-        if (Array.isArray(feeRes.data?.result)) {
-          fees = feeRes.data.result;
-        } else if (feeRes.data?.result?.content) {
-          fees = feeRes.data.result.content;
-        }
-        const totalUnpaid = fees
-          .filter((f) => f.remainingAmount > 0)
-          .reduce((sum, f) => sum + (f.remainingAmount || 0), 0);
-
+        const now = new Date();
+        const month = now.getMonth() + 1;
+        const year = now.getFullYear();
+        const res = await dashboardApi.getAdminDashboard(month, year);
+        const data = res.data.result;
         setStats([
-          { title: 'Tổng số học sinh', value: totalStudents.toString(), icon: <Users className="h-5 w-5 text-blue-500" />, change: '', changeDirection: 'up', changeDescription: '' },
-          { title: 'Tổng số giáo viên', value: totalTeachers.toString(), icon: <GraduationCap className="h-5 w-5 text-green-500" />, change: '', changeDirection: 'up', changeDescription: '' },
-          { title: 'Tổng thu tháng này', value: totalPaid.toLocaleString('vi-VN') + 'đ', icon: <DollarSign className="h-5 w-5 text-yellow-500" />, change: '', changeDirection: 'up', changeDescription: '' },
-          { title: 'Học phí chưa đóng', value: totalUnpaid.toLocaleString('vi-VN') + 'đ', icon: <Bell className="h-5 w-5 text-red-500" />, change: '', changeDirection: 'down', changeDescription: '' },
+          { title: 'Tổng số học sinh', value: data.totalStudents.toString(), icon: <Users className="h-5 w-5 text-blue-500" />, change: '', changeDirection: 'up', changeDescription: '' },
+          { title: 'Tổng số giáo viên', value: data.totalTeachers.toString(), icon: <GraduationCap className="h-5 w-5 text-green-500" />, change: '', changeDirection: 'up', changeDescription: '' },
+          { title: 'Tổng thu tháng này', value: data.totalTuitionFeesOfMonth.toLocaleString('vi-VN') + 'đ', icon: <DollarSign className="h-5 w-5 text-yellow-500" />, change: '', changeDirection: 'up', changeDescription: '' },
+          { title: 'Học phí chưa đóng', value: data.totalTuitionFeesUnPaid.toLocaleString('vi-VN') + 'đ', icon: <Bell className="h-5 w-5 text-red-500" />, change: '', changeDirection: 'down', changeDescription: '' },
         ]);
-      } catch (e) {
-        console.error('Lỗi fetchStats:', e);
-        toast({ title: 'Lỗi', description: 'Không thể tải thống kê.' });
-      }
-    };
-    const fetchUpcoming = async () => {
-      try {
-        const res = await classApi.getAll("upcoming", undefined, undefined, undefined, 0, 5, 'startDate,ASC');
-        const arr = res.data.result.content || [];
-        // Lấy danh sách teacherId duy nhất
-        const teacherIds = Array.from(new Set(arr.map((cls: any) => cls.teacherId).filter(Boolean)));
-        // Gọi userApi để lấy tên giáo viên
+        // Map teacherId to name
+        const teacherIds = Array.from(new Set(data.classesUpcoming.map((cls: any) => cls.teacherId).filter(Boolean)));
         let teacherMap: Record<string, string> = {};
         if (teacherIds.length > 0) {
-          const teacherReqs = await Promise.all(teacherIds.map(id => userApi.getById(id)));
+          const teacherReqs = await Promise.all(teacherIds.map(id => teacherApi.getById(id)));
           teacherReqs.forEach((res, idx) => {
             teacherMap[teacherIds[idx]] = res.data.result.fullName || res.data.result.username || teacherIds[idx];
           });
         }
         setTeacherMap(teacherMap);
-        setUpcomingClasses(arr.map((cls: any) => ({
+        setUpcomingClasses(data.classesUpcoming.map((cls: any) => ({
           name: cls.className,
           grade: cls.grade,
           teacher: teacherMap[cls.teacherId] || cls.teacherId,
@@ -100,12 +55,12 @@ const AdminDashboard = () => {
           time: (cls.startTime || '') + (cls.endTime ? ' - ' + cls.endTime : ''),
           date: format(new Date(cls.startDate), 'dd/MM/yyyy'),
         })));
-      } catch {
-        setUpcomingClasses([]);
+      } catch (e) {
+        console.error('Lỗi fetchDashboard:', e);
+        toast({ title: 'Lỗi', description: 'Không thể tải thống kê.' });
       }
     };
-    fetchStats();
-    fetchUpcoming();
+    fetchDashboard();
   }, [toast]);
 
   return (

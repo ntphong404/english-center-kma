@@ -41,6 +41,7 @@ public class TuitionFeeController {
     @Operation(summary = "Get all tuition fees", description = "Return paginated tuition fee list")
     public ApiResponse<Page<TuitionFeeResponse>>  getAll(
             @RequestParam (required = false) String studentId,
+            @RequestParam (required = false) String classId,
             @RequestParam (required = false) YearMonth yearMonth,
             @ParameterObject @PageableDefault(
                     sort = "yearMonth",
@@ -48,7 +49,7 @@ public class TuitionFeeController {
             ) Pageable pageable
     ) {
         return ApiResponse.<Page<TuitionFeeResponse>>builder()
-                .result(tuitionFeeService.getAllTuitionFees(studentId, yearMonth, pageable))
+                .result(tuitionFeeService.getAllTuitionFees(studentId,classId, yearMonth, pageable))
                 .message("Fetched all tuition fees")
                 .build();
     }

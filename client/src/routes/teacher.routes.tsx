@@ -7,6 +7,7 @@ import TeacherAttendance from '@/pages/teacher/Attendance';
 import TeacherSchedule from '@/pages/teacher/Schedule';
 import TeacherSettings from '@/pages/teacher/Settings';
 import TeacherProfile from '@/pages/teacher/Profile';
+import TeacherPayment from '@/pages/teacher/Payment';
 
 // Teacher pages
 const TeacherDashboard = lazy(() => import('@/pages/teacher/Dashboard'));
@@ -46,6 +47,10 @@ export const teacherRoutes: RouteObject = {
         {
             path: 'profile',
             element: <TeacherProfile />,
+        },
+        {
+            path: 'payment',
+            element: <TeacherPayment />,
         }
     ],
 }; 

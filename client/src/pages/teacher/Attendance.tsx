@@ -22,7 +22,8 @@ import {
     DialogFooter,
     DialogClose,
 } from '@/components/ui/dialog';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
+import CustomDialog from '@/components/CustomDialog';
 
 export default function TeacherAttendance() {
     const [classes, setClasses] = useState<ClassResponse[]>([]);
@@ -51,7 +52,7 @@ export default function TeacherAttendance() {
             const user = getUser();
             if (user) {
                 try {
-                    const res = await classApi.getAll(undefined, user.userId, undefined, undefined, undefined, 0, CLASS_PAGE_SIZE, "className,ASC");
+                    const res = await classApi.getAll(undefined, user.userId, undefined, undefined, "OPEN", 0, CLASS_PAGE_SIZE, "className,ASC");
                     let result = res.data.result;
                     let newClasses: ClassResponse[] = [];
                     if (result && typeof result === 'object' && 'content' in result && Array.isArray(result.content)) {
@@ -63,6 +64,9 @@ export default function TeacherAttendance() {
                     }
                     setClasses(newClasses);
                     setClassPage(1);
+                    if (newClasses.length > 0) {
+                        setSelectedClass(newClasses[0]);
+                    }
                 } catch {
                     toast({ title: 'Lỗi', description: 'Không thể tải danh sách lớp.' });
                 }
@@ -107,8 +111,10 @@ export default function TeacherAttendance() {
             } else {
                 toast({ title: 'Lỗi', description: 'Chưa có dữ liệu điểm danh cho hôm nay.' });
             }
-        } catch {
-            toast({ title: 'Lỗi', description: 'Không thể tải dữ liệu điểm danh.' });
+        } catch (err: any) {
+            // alert(err?.response?.data.message);
+            // console.log('ahihi', err?.response?.data.message);
+            toast({ title: 'Thông báo', description: 'Hôm nay không có tiết học.' });
         } finally {
             setLoading(false);
         }
@@ -323,61 +329,49 @@ export default function TeacherAttendance() {
                                 )}
                                 {error && <div className="text-red-500 mt-2">{error}</div>}
                                 {attendance && (
-                                    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                                        <DialogContent className="max-w-4xl w-full h-[700px] flex flex-col">
-                                            <DialogHeader>
-                                                <DialogTitle>Điểm danh lớp {selectedClass?.className}</DialogTitle>
-                                                <DialogDescription>Ngày: {attendance.date ? format(new Date(attendance.date), 'dd/MM/yyyy', { locale: vi }) : ''}</DialogDescription>
-                                            </DialogHeader>
-                                            <div className="flex-1 overflow-y-auto flex flex-col gap-6">
-                                                {editAttendance.map((student, idx) => (
-                                                    <div
-                                                        key={student.studentId}
-                                                        className="flex flex-col md:flex-row md:items-center gap-2 md:gap-8 border-b pb-2"
-                                                    >
-                                                        <div className="font-medium min-w-[120px] md:w-1/4">{studentMap[student.studentId] || student.studentId}</div>
-                                                        <div className="flex gap-6 items-center md:w-1/4">
-                                                            <label className="flex items-center gap-2">
-                                                                <input
-                                                                    type="radio"
-                                                                    checked={student.status === 'PRESENT'}
-                                                                    onChange={() => handleEditStatus(student.studentId, 'PRESENT')}
-                                                                />
-                                                                Có mặt
-                                                            </label>
-                                                            <label className="flex items-center gap-2">
-                                                                <input
-                                                                    type="radio"
-                                                                    checked={student.status === 'ABSENT'}
-                                                                    onChange={() => handleEditStatus(student.studentId, 'ABSENT')}
-                                                                />
-                                                                Vắng
-                                                            </label>
-                                                        </div>
-                                                        <div className="md:w-2/4 w-full md:pl-8">
-                                                            <Input
-                                                                className="mt-1 md:mt-0"
-                                                                value={student.note || ''}
-                                                                onChange={e => handleEditNote(student.studentId, e.target.value)}
-                                                                placeholder="Ghi chú"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <DialogFooter>
-                                                <Button
-                                                    onClick={handleSaveAttendance}
-                                                    disabled={saving}
+                                    <CustomDialog open={dialogOpen} onOpenChange={setDialogOpen} title={`Điểm danh lớp ${selectedClass?.className}`}>
+                                        <div className="text-sm text-muted-foreground mb-2">Ngày: {attendance.date ? format(new Date(attendance.date), 'dd/MM/yyyy', { locale: vi }) : ''}</div>
+                                        <div className="flex-1 overflow-y-auto flex flex-col gap-6" style={{ maxHeight: 500 }}>
+                                            {editAttendance.map((student, idx) => (
+                                                <div
+                                                    key={student.studentId}
+                                                    className="flex flex-col md:flex-row md:items-center gap-2 md:gap-8 border-b pb-2"
                                                 >
-                                                    {saving ? 'Đang lưu...' : 'Lưu'}
-                                                </Button>
-                                                <DialogClose asChild>
-                                                    <Button variant="outline">Đóng</Button>
-                                                </DialogClose>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
+                                                    <div className="font-medium min-w-[120px] md:w-1/4">{studentMap[student.studentId] || student.studentId}</div>
+                                                    <div className="flex gap-6 items-center md:w-1/4">
+                                                        <label className="flex items-center gap-2">
+                                                            <input
+                                                                type="radio"
+                                                                checked={student.status === 'PRESENT'}
+                                                                onChange={() => handleEditStatus(student.studentId, 'PRESENT')}
+                                                            />
+                                                            Có mặt
+                                                        </label>
+                                                        <label className="flex items-center gap-2">
+                                                            <input
+                                                                type="radio"
+                                                                checked={student.status === 'ABSENT'}
+                                                                onChange={() => handleEditStatus(student.studentId, 'ABSENT')}
+                                                            />
+                                                            Vắng
+                                                        </label>
+                                                    </div>
+                                                    <div className="md:w-2/4 w-full md:pl-8">
+                                                        <Input
+                                                            className="mt-1 md:mt-0"
+                                                            value={student.note || ''}
+                                                            onChange={e => handleEditNote(student.studentId, e.target.value)}
+                                                            placeholder="Ghi chú"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="flex justify-end gap-2 mt-4">
+                                            <Button onClick={handleSaveAttendance} disabled={saving}>{saving ? 'Đang lưu...' : 'Lưu'}</Button>
+                                            <Button variant="outline" onClick={() => setDialogOpen(false)}>Đóng</Button>
+                                        </div>
+                                    </CustomDialog>
                                 )}
                             </CardContent>
                         </Card>

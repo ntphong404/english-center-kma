@@ -38,6 +38,8 @@ import { vi } from "date-fns/locale";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { getUser } from '@/store/userStore';
+import ColoredTable from '@/components/ui/ColoredTable';
+import CustomDialog from '@/components/CustomDialog';
 
 const TIME_SLOTS = [
     { label: "7:30 - 9:30", startTime: "07:30:00", endTime: "09:30:00" },
@@ -54,6 +56,13 @@ const DAYS_OF_WEEK = [
     { value: "FRIDAY", label: "Thứ 6" },
     { value: "SATURDAY", label: "Thứ 7" },
     { value: "SUNDAY", label: "Chủ nhật" },
+];
+
+const STATUS_OPTIONS = [
+    { value: 'ALL', label: 'Tất cả' },
+    { value: 'OPEN', label: 'Đang mở' },
+    { value: 'UPCOMING', label: 'Sắp khai giảng' },
+    { value: 'CLOSED', label: 'Đã đóng' },
 ];
 
 export default function TeacherClasses() {
@@ -85,6 +94,7 @@ export default function TeacherClasses() {
     const [studentToRemove, setStudentToRemove] = useState<Student | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [classToDelete, setClassToDelete] = useState<ClassResponse | null>(null);
+    const [statusFilter, setStatusFilter] = useState('ALL');
     const teacherId = getUser()?.userId;
 
     // Form state for new class
@@ -102,12 +112,10 @@ export default function TeacherClasses() {
         roomName: '',
     });
 
-
-
     const fetchClasses = async () => {
         if (!teacherId) return;
         try {
-            const response = await classApi.getAll(undefined, teacherId, undefined, undefined, undefined, currentPage - 1, pageSize);
+            const response = await classApi.getAll(undefined, teacherId, undefined, undefined, statusFilter === 'ALL' ? undefined : statusFilter, currentPage - 1, pageSize);
             const pageResponse = response.data.result;
             if (pageResponse) {
                 setClasses(pageResponse.content);
@@ -156,7 +164,7 @@ export default function TeacherClasses() {
 
     useEffect(() => {
         fetchClasses();
-    }, [currentPage, pageSize, teacherId]);
+    }, [currentPage, pageSize, teacherId, statusFilter]);
 
     useEffect(() => {
         if (isAddStudentsDialogOpen && selectedClassForStudents) {
@@ -350,287 +358,48 @@ export default function TeacherClasses() {
     return (
         <div className="space-y-6 p-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Quản lý lớp học</h2>
-                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Thêm lớp học
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Thêm lớp học mới</DialogTitle>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="className" className="text-right">
-                                    Tên lớp
-                                </Label>
-                                <Input
-                                    id="className"
-                                    className="col-span-3"
-                                    value={newClass.className}
-                                    onChange={(e) => setNewClass(prev => ({ ...prev, className: e.target.value }))}
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="grade" className="text-right">
-                                    Khối
-                                </Label>
-                                <Input
-                                    id="grade"
-                                    type="number"
-                                    className="col-span-3"
-                                    value={newClass.grade}
-                                    onChange={(e) => setNewClass(prev => ({ ...prev, grade: parseInt(e.target.value) }))}
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="unitPrice" className="text-right">
-                                    Giá một buổi
-                                </Label>
-                                <div className="col-span-3 flex items-center">
-                                    <Input
-                                        id="unitPrice"
-                                        type="number"
-                                        className="col-span-3"
-                                        value={newClass.unitPrice}
-                                        onChange={(e) => setNewClass(prev => ({ ...prev, unitPrice: parseInt(e.target.value) }))}
-                                    />
-                                    <span className="ml-2 text-sm text-muted-foreground">VNĐ</span>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="roomName" className="text-right">
-                                    Phòng học
-                                </Label>
-                                <Input
-                                    id="roomName"
-                                    className="col-span-3"
-                                    value={newClass.roomName}
-                                    onChange={(e) => setNewClass(prev => ({ ...prev, roomName: e.target.value }))}
-                                    placeholder="VD: TA1-401"
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="timeSlot" className="text-right">
-                                    Thời gian học
-                                </Label>
-                                <Select
-                                    value={`${newClass.startTime}-${newClass.endTime}`}
-                                    onValueChange={(value) => {
-                                        const timeSlot = TIME_SLOTS.find(slot =>
-                                            `${slot.startTime}-${slot.endTime}` === value
-                                        );
-                                        if (timeSlot) {
-                                            handleTimeSlotChange(timeSlot);
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger className="col-span-3">
-                                        <SelectValue placeholder="Chọn thời gian học" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {TIME_SLOTS.map((slot) => (
-                                            <SelectItem
-                                                key={`${slot.startTime}-${slot.endTime}`}
-                                                value={`${slot.startTime}-${slot.endTime}`}
-                                            >
-                                                {slot.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="startDate" className="text-right">
-                                    Ngày bắt đầu
-                                </Label>
-                                <Input
-                                    id="startDate"
-                                    type="date"
-                                    className="col-span-3"
-                                    value={newClass.startDate}
-                                    onChange={(e) => setNewClass(prev => ({ ...prev, startDate: e.target.value }))}
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="endDate" className="text-right">
-                                    Ngày kết thúc
-                                </Label>
-                                <Input
-                                    id="endDate"
-                                    type="date"
-                                    className="col-span-3"
-                                    value={newClass.endDate}
-                                    onChange={(e) => setNewClass(prev => ({ ...prev, endDate: e.target.value }))}
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="daysOfWeek" className="text-right">
-                                    Ngày học
-                                </Label>
-                                <div className="col-span-3">
-                                    <div className="relative">
-                                        <div
-                                            id="daysTrigger"
-                                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                            onClick={() => setIsDaysDropdownOpen(!isDaysDropdownOpen)}
-                                        >
-                                            <span>
-                                                {newClass.daysOfWeek?.length
-                                                    ? `${newClass.daysOfWeek.length} ngày đã chọn`
-                                                    : "Chọn ngày học"}
-                                            </span>
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="24"
-                                                height="24"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                className={`h-4 w-4 opacity-50 transition-transform ${isDaysDropdownOpen ? 'rotate-180' : ''}`}
-                                            >
-                                                <path d="m6 9 6 6 6-6" />
-                                            </svg>
-                                        </div>
-                                        {isDaysDropdownOpen && (
-                                            <div
-                                                id="daysDropdown"
-                                                className="absolute z-50 bottom-full mb-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md"
-                                            >
-                                                <div className="p-1">
-                                                    {DAYS_OF_WEEK.map((day) => (
-                                                        <div
-                                                            key={day.value}
-                                                            className="flex items-center space-x-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground cursor-pointer"
-                                                            onClick={() => handleDaySelection(day.value)}
-                                                        >
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={newClass.daysOfWeek?.includes(day.value)}
-                                                                className="h-4 w-4 rounded border-gray-300"
-                                                                readOnly
-                                                            />
-                                                            <span>{day.label}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex justify-end">
-                            <Button onClick={handleCreate}>Lưu</Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                <h2 className="text-2xl font-bold">Lớp học của tôi</h2>
+            </div>
+            <div className="flex justify-end items-center mb-4">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-44">
+                        <SelectValue placeholder="Chọn trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {STATUS_OPTIONS.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
-            <div className="border rounded-lg">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Tên lớp</TableHead>
-                            <TableHead>Sĩ số</TableHead>
-                            <TableHead>Khối</TableHead>
-                            <TableHead>Phòng học</TableHead>
-                            <TableHead>Lịch học</TableHead>
-                            <TableHead>Trạng thái</TableHead>
-                            <TableHead className="text-right">Thao tác</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {classes.map((classItem) => (
-                            <TableRow key={classItem.classId}>
-                                <TableCell>{classItem.className}</TableCell>
-                                <TableCell>{classItem.studentIds.length}</TableCell>
-                                <TableCell>{classItem.grade}</TableCell>
-                                <TableCell>{classItem.roomName}</TableCell>
-                                <TableCell>{formatSchedule(classItem)}</TableCell>
-                                <TableCell>
-                                    <span
-                                        className={`px-2 py-1 rounded-full text-xs
-                                            ${classItem.status === "OPEN"
-                                                ? "bg-green-100 text-green-800"
-                                                : classItem.status === "UPCOMING"
-                                                    ? "bg-yellow-100 text-yellow-800"
-                                                    : "bg-red-100 text-red-800"}
-                                        `}
-                                    >
-                                        {classItem.status === "OPEN"
-                                            ? "Đang Mở"
-                                            : classItem.status === "UPCOMING"
-                                                ? "Sắp Khai Giảng"
-                                                : "Đã Đóng"}
-                                    </span>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <div className="flex items-center justify-end space-x-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => {
-                                                setSelectedClassForView(classItem);
-                                                setClassStudents([]);
-                                                if (classItem.studentIds && classItem.studentIds.length > 0) {
-                                                    fetchClassStudents(classItem.studentIds);
-                                                }
-                                                setIsViewStudentsDialogOpen(true);
-                                            }}
-                                        >
-                                            <Eye className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => {
-                                                setSelectedClassForStudents(classItem);
-                                                setSelectedStudents([]);
-                                                setStudentPage(1);
-                                                fetchStudents(1);
-                                                setIsAddStudentsDialogOpen(true);
-                                            }}
-                                        >
-                                            <Users className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => {
-                                                setSelectedClass(classItem);
-                                                setIsEditDialogOpen(true);
-                                            }}
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => {
-                                                setClassToDelete(classItem);
-                                                setIsDeleteDialogOpen(true);
-                                            }}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                        {Array.from({ length: pageSize - classes.length }).map((_, index) => (
-                            <TableRow key={`empty-${index}`} className="h-[53px]">
-                                <TableCell colSpan={7}></TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </div>
+            <ColoredTable
+                columns={[
+                    { title: 'Tên lớp' },
+                    { title: 'Khối' },
+                    { title: 'Phòng học' },
+                    { title: 'Lịch học' },
+                    { title: 'Sĩ số' },
+                    { title: 'Trạng thái' },
+                    { title: 'Thao tác', headerClassName: 'text-right' },
+                ]}
+                data={classes.map((classItem) => [
+                    classItem.className,
+                    classItem.grade,
+                    classItem.roomName,
+                    formatSchedule(classItem),
+                    classItem.studentIds.length,
+                    <span className={`px-2 py-1 rounded-full text-xs ${classItem.status === "OPEN" ? "bg-green-100 text-green-800" : classItem.status === "UPCOMING" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"}`}>{classItem.status === "OPEN" ? "Đang Mở" : classItem.status === "UPCOMING" ? "Sắp Khai Giảng" : "Đã Đóng"}</span>,
+                    <div className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => { setSelectedClassForView(classItem); setClassStudents([]); if (classItem.studentIds && classItem.studentIds.length > 0) { fetchClassStudents(classItem.studentIds); } setIsViewStudentsDialogOpen(true); }}>
+                            <Eye className="h-4 w-4" />
+                        </Button>
+                    </div>
+                ])}
+                renderRow={row => row}
+                pageSize={pageSize}
+                emptyMessage={classes.length === 0 ? 'Không có lớp học' : ''}
+            />
 
             <TablePagination
                 currentPage={currentPage - 1}
@@ -640,397 +409,304 @@ export default function TeacherClasses() {
                 itemLabel="lớp học"
             />
 
-            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Chỉnh sửa lớp học</DialogTitle>
-                    </DialogHeader>
-                    {selectedClass && (
-                        <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-className" className="text-right">
-                                    Tên lớp
-                                </Label>
+            <CustomDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} title="Chỉnh sửa lớp học">
+                {selectedClass && (
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-className" className="text-right">
+                                Tên lớp
+                            </Label>
+                            <Input
+                                id="edit-className"
+                                className="col-span-3"
+                                value={selectedClass.className}
+                                onChange={(e) => setSelectedClass(prev => prev ? { ...prev, className: e.target.value } : null)}
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-grade" className="text-right">
+                                Khối
+                            </Label>
+                            <Input
+                                id="edit-grade"
+                                type="number"
+                                className="col-span-3"
+                                value={selectedClass.grade}
+                                onChange={(e) => setSelectedClass(prev => prev ? { ...prev, grade: parseInt(e.target.value) } : null)}
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-unitPrice" className="text-right">
+                                Giá một buổi
+                            </Label>
+                            <div className="col-span-3 flex items-center">
                                 <Input
-                                    id="edit-className"
-                                    className="col-span-3"
-                                    value={selectedClass.className}
-                                    onChange={(e) => setSelectedClass(prev => prev ? { ...prev, className: e.target.value } : null)}
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-grade" className="text-right">
-                                    Khối
-                                </Label>
-                                <Input
-                                    id="edit-grade"
+                                    id="edit-unitPrice"
                                     type="number"
                                     className="col-span-3"
-                                    value={selectedClass.grade}
-                                    onChange={(e) => setSelectedClass(prev => prev ? { ...prev, grade: parseInt(e.target.value) } : null)}
+                                    value={selectedClass.unitPrice}
+                                    onChange={(e) => setSelectedClass(prev => prev ? { ...prev, unitPrice: parseInt(e.target.value) } : null)}
                                 />
+                                <span className="ml-2 text-sm text-muted-foreground">VNĐ</span>
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-unitPrice" className="text-right">
-                                    Giá một buổi
-                                </Label>
-                                <div className="col-span-3 flex items-center">
-                                    <Input
-                                        id="edit-unitPrice"
-                                        type="number"
-                                        className="col-span-3"
-                                        value={selectedClass.unitPrice}
-                                        onChange={(e) => setSelectedClass(prev => prev ? { ...prev, unitPrice: parseInt(e.target.value) } : null)}
-                                    />
-                                    <span className="ml-2 text-sm text-muted-foreground">VNĐ</span>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-roomName" className="text-right">
-                                    Phòng học
-                                </Label>
-                                <Input
-                                    id="edit-roomName"
-                                    className="col-span-3"
-                                    value={selectedClass.roomName}
-                                    onChange={(e) => setSelectedClass(prev => prev ? { ...prev, roomName: e.target.value } : null)}
-                                    placeholder="VD: TA1-401"
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-timeSlot" className="text-right">
-                                    Thời gian học
-                                </Label>
-                                <Select
-                                    value={`${selectedClass.startTime}-${selectedClass.endTime}`}
-                                    onValueChange={(value) => {
-                                        const timeSlot = TIME_SLOTS.find(slot =>
-                                            `${slot.startTime}-${slot.endTime}` === value
-                                        );
-                                        if (timeSlot && selectedClass) {
-                                            setSelectedClass({
-                                                ...selectedClass,
-                                                startTime: timeSlot.startTime,
-                                                endTime: timeSlot.endTime
-                                            });
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger className="col-span-3">
-                                        <SelectValue placeholder="Chọn thời gian học" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {TIME_SLOTS.map((slot) => (
-                                            <SelectItem
-                                                key={`${slot.startTime}-${slot.endTime}`}
-                                                value={`${slot.startTime}-${slot.endTime}`}
-                                            >
-                                                {slot.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-daysOfWeek" className="text-right">
-                                    Ngày học
-                                </Label>
-                                <div className="col-span-3">
-                                    <div className="relative">
-                                        <div
-                                            id="editDaysTrigger"
-                                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                            onClick={() => setIsDaysDropdownOpen(!isDaysDropdownOpen)}
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-roomName" className="text-right">
+                                Phòng học
+                            </Label>
+                            <Input
+                                id="edit-roomName"
+                                className="col-span-3"
+                                value={selectedClass.roomName}
+                                onChange={(e) => setSelectedClass(prev => prev ? { ...prev, roomName: e.target.value } : null)}
+                                placeholder="VD: TA1-401"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-timeSlot" className="text-right">
+                                Thời gian học
+                            </Label>
+                            <Select
+                                value={`${selectedClass.startTime}-${selectedClass.endTime}`}
+                                onValueChange={(value) => {
+                                    const timeSlot = TIME_SLOTS.find(slot =>
+                                        `${slot.startTime}-${slot.endTime}` === value
+                                    );
+                                    if (timeSlot && selectedClass) {
+                                        setSelectedClass({
+                                            ...selectedClass,
+                                            startTime: timeSlot.startTime,
+                                            endTime: timeSlot.endTime
+                                        });
+                                    }
+                                }}
+                            >
+                                <SelectTrigger className="col-span-3">
+                                    <SelectValue placeholder="Chọn thời gian học" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {TIME_SLOTS.map((slot) => (
+                                        <SelectItem
+                                            key={`${slot.startTime}-${slot.endTime}`}
+                                            value={`${slot.startTime}-${slot.endTime}`}
                                         >
-                                            <span>
-                                                {selectedClass.daysOfWeek?.length
-                                                    ? `${selectedClass.daysOfWeek.length} ngày đã chọn`
-                                                    : "Chọn ngày học"}
-                                            </span>
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="24"
-                                                height="24"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                className={`h-4 w-4 opacity-50 transition-transform ${isDaysDropdownOpen ? 'rotate-180' : ''}`}
-                                            >
-                                                <path d="m6 9 6 6 6-6" />
-                                            </svg>
-                                        </div>
-                                        {isDaysDropdownOpen && (
-                                            <div
-                                                id="editDaysDropdown"
-                                                className="absolute z-50 bottom-full mb-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md"
-                                            >
-                                                <div className="p-1">
-                                                    {DAYS_OF_WEEK.map((day) => (
-                                                        <div
-                                                            key={day.value}
-                                                            className="flex items-center space-x-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground cursor-pointer"
-                                                            onClick={() => {
-                                                                if (selectedClass) {
-                                                                    const currentDays = selectedClass.daysOfWeek || [];
-                                                                    const updatedDays = currentDays.includes(day.value)
-                                                                        ? currentDays.filter(d => d !== day.value)
-                                                                        : [...currentDays, day.value];
-                                                                    setSelectedClass({
-                                                                        ...selectedClass,
-                                                                        daysOfWeek: updatedDays
-                                                                    });
-                                                                }
-                                                            }}
-                                                        >
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={selectedClass.daysOfWeek?.includes(day.value)}
-                                                                className="h-4 w-4 rounded border-gray-300"
-                                                                readOnly
-                                                            />
-                                                            <span>{day.label}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
+                                            {slot.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-daysOfWeek" className="text-right">
+                                Ngày học
+                            </Label>
+                            <div className="col-span-3">
+                                <div className="relative">
+                                    <div
+                                        id="editDaysTrigger"
+                                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        onClick={() => setIsDaysDropdownOpen(!isDaysDropdownOpen)}
+                                    >
+                                        <span>
+                                            {selectedClass.daysOfWeek?.length
+                                                ? `${selectedClass.daysOfWeek.length} ngày đã chọn`
+                                                : "Chọn ngày học"}
+                                        </span>
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="24"
+                                            height="24"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            className={`h-4 w-4 opacity-50 transition-transform ${isDaysDropdownOpen ? 'rotate-180' : ''}`}
+                                        >
+                                            <path d="m6 9 6 6 6-6" />
+                                        </svg>
                                     </div>
+                                    {isDaysDropdownOpen && (
+                                        <div
+                                            id="editDaysDropdown"
+                                            className="absolute z-50 bottom-full mb-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md"
+                                        >
+                                            <div className="p-1">
+                                                {DAYS_OF_WEEK.map((day) => (
+                                                    <div
+                                                        key={day.value}
+                                                        className="flex items-center space-x-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                                                        onClick={() => {
+                                                            if (selectedClass) {
+                                                                const currentDays = selectedClass.daysOfWeek || [];
+                                                                const updatedDays = currentDays.includes(day.value)
+                                                                    ? currentDays.filter(d => d !== day.value)
+                                                                    : [...currentDays, day.value];
+                                                                setSelectedClass({
+                                                                    ...selectedClass,
+                                                                    daysOfWeek: updatedDays
+                                                                });
+                                                            }
+                                                        }}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedClass.daysOfWeek?.includes(day.value)}
+                                                            className="h-4 w-4 rounded border-gray-300"
+                                                            readOnly
+                                                        />
+                                                        <span>{day.label}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-startDate" className="text-right">
-                                    Ngày bắt đầu
-                                </Label>
-                                <Input
-                                    id="edit-startDate"
-                                    type="date"
-                                    className="col-span-3"
-                                    value={selectedClass.startDate}
-                                    onChange={(e) => setSelectedClass(prev => prev ? { ...prev, startDate: e.target.value } : null)}
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-endDate" className="text-right">
-                                    Ngày kết thúc
-                                </Label>
-                                <Input
-                                    id="edit-endDate"
-                                    type="date"
-                                    className="col-span-3"
-                                    value={selectedClass.endDate}
-                                    onChange={(e) => setSelectedClass(prev => prev ? { ...prev, endDate: e.target.value } : null)}
-                                />
-                            </div>
                         </div>
-                    )}
-                    <div className="flex justify-end">
-                        <Button onClick={() => {
-                            if (selectedClass) {
-                                handleUpdate(selectedClass.classId, selectedClass);
-                            }
-                        }}>Lưu thay đổi</Button>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-startDate" className="text-right">
+                                Ngày bắt đầu
+                            </Label>
+                            <Input
+                                id="edit-startDate"
+                                type="date"
+                                className="col-span-3"
+                                value={selectedClass.startDate}
+                                onChange={(e) => setSelectedClass(prev => prev ? { ...prev, startDate: e.target.value } : null)}
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-endDate" className="text-right">
+                                Ngày kết thúc
+                            </Label>
+                            <Input
+                                id="edit-endDate"
+                                type="date"
+                                className="col-span-3"
+                                value={selectedClass.endDate}
+                                onChange={(e) => setSelectedClass(prev => prev ? { ...prev, endDate: e.target.value } : null)}
+                            />
+                        </div>
                     </div>
-                </DialogContent>
-            </Dialog>
+                )}
+                <div className="flex justify-end">
+                    <Button onClick={() => {
+                        if (selectedClass) {
+                            handleUpdate(selectedClass.classId, selectedClass);
+                        }
+                    }}>Lưu thay đổi</Button>
+                </div>
+            </CustomDialog>
 
-            <Dialog open={isAddStudentsDialogOpen} onOpenChange={setIsAddStudentsDialogOpen}>
-                <DialogContent className="max-w-4xl">
-                    <DialogHeader>
-                        <DialogTitle>Thêm học sinh vào lớp {selectedClassForStudents?.className}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        <div className="border rounded-md">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[50px]"></TableHead>
-                                        <TableHead>Tên học sinh</TableHead>
-                                        <TableHead>Ngày sinh</TableHead>
-                                        <TableHead>Email</TableHead>
+            <CustomDialog open={isAddStudentsDialogOpen} onOpenChange={setIsAddStudentsDialogOpen} title={`Thêm học sinh vào lớp ${selectedClassForStudents?.className}`}>
+                <div className="space-y-4">
+                    <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[50px]"></TableHead>
+                                    <TableHead>Tên học sinh</TableHead>
+                                    <TableHead>Ngày sinh</TableHead>
+                                    <TableHead>Email</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {students.map((student) => (
+                                    <TableRow key={student.userId}>
+                                        <TableCell>
+                                            <Checkbox
+                                                checked={selectedStudents.includes(student.userId)}
+                                                onCheckedChange={(checked) => {
+                                                    if (checked) {
+                                                        setSelectedStudents([...selectedStudents, student.userId]);
+                                                    } else {
+                                                        setSelectedStudents(selectedStudents.filter(id => id !== student.userId));
+                                                    }
+                                                }}
+                                            />
+                                        </TableCell>
+                                        <TableCell>{student.fullName || student.username}</TableCell>
+                                        <TableCell>
+                                            {student.dob ? format(new Date(student.dob), 'dd/MM/yyyy', { locale: vi }) : '-'}
+                                        </TableCell>
+                                        <TableCell>{student.email}</TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {students.map((student) => (
-                                        <TableRow key={student.userId}>
-                                            <TableCell>
-                                                <Checkbox
-                                                    checked={selectedStudents.includes(student.userId)}
-                                                    onCheckedChange={(checked) => {
-                                                        if (checked) {
-                                                            setSelectedStudents([...selectedStudents, student.userId]);
-                                                        } else {
-                                                            setSelectedStudents(selectedStudents.filter(id => id !== student.userId));
-                                                        }
-                                                    }}
-                                                />
-                                            </TableCell>
-                                            <TableCell>{student.fullName || student.username}</TableCell>
-                                            <TableCell>
-                                                {student.dob ? format(new Date(student.dob), 'dd/MM/yyyy', { locale: vi }) : '-'}
-                                            </TableCell>
-                                            <TableCell>{student.email}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <div className="text-sm text-muted-foreground">
-                                Đã chọn {selectedStudents.length} học sinh
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setStudentPage(prev => Math.max(prev - 1, 1))}
-                                    disabled={studentPage === 1}
-                                >
-                                    Trước
-                                </Button>
-                                <span className="text-sm">
-                                    Trang {studentPage} / {studentTotalPages}
-                                </span>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setStudentPage(prev => Math.min(prev + 1, studentTotalPages))}
-                                    disabled={studentPage === studentTotalPages}
-                                >
-                                    Sau
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="flex justify-end space-x-2">
-                            <Button variant="outline" onClick={() => setIsAddStudentsDialogOpen(false)}>
-                                Hủy
-                            </Button>
-                            <Button onClick={handleAddStudents} disabled={selectedStudents.length === 0}>
-                                Thêm học sinh
-                            </Button>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <div className="text-sm text-muted-foreground">Đã chọn {selectedStudents.length} học sinh</div>
+                        <div className="flex items-center space-x-2">
+                            <Button variant="outline" size="sm" onClick={() => setStudentPage(prev => Math.max(prev - 1, 1))} disabled={studentPage === 1}>Trước</Button>
+                            <span className="text-sm">Trang {studentPage} / {studentTotalPages}</span>
+                            <Button variant="outline" size="sm" onClick={() => setStudentPage(prev => Math.min(prev + 1, studentTotalPages))} disabled={studentPage === studentTotalPages}>Sau</Button>
                         </div>
                     </div>
-                </DialogContent>
-            </Dialog>
+                    <div className="flex justify-end space-x-2">
+                        <Button variant="outline" onClick={() => setIsAddStudentsDialogOpen(false)}>Hủy</Button>
+                        <Button onClick={handleAddStudents} disabled={selectedStudents.length === 0}>Thêm học sinh</Button>
+                    </div>
+                </div>
+            </CustomDialog>
 
             {/* View Students Dialog */}
-            <Dialog open={isViewStudentsDialogOpen} onOpenChange={setIsViewStudentsDialogOpen}>
-                <DialogContent className="max-w-4xl">
-                    <DialogHeader>
-                        <DialogTitle>Danh sách học sinh lớp {selectedClassForView?.className}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        <div className="border rounded-md">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[50px]"></TableHead>
-                                        <TableHead>Tên học sinh</TableHead>
-                                        <TableHead>Ngày sinh</TableHead>
-                                        <TableHead>Email</TableHead>
+            <CustomDialog open={isViewStudentsDialogOpen} onOpenChange={setIsViewStudentsDialogOpen} title={`Danh sách học sinh lớp ${selectedClassForView?.className}`}>
+                <div className="space-y-4">
+                    <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Tên học sinh</TableHead>
+                                    <TableHead>Ngày sinh</TableHead>
+                                    <TableHead>Email</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {getCurrentPageStudents().map((student) => (
+                                    <TableRow key={student.userId}>
+                                        <TableCell>{student.fullName || student.username}</TableCell>
+                                        <TableCell>
+                                            {student.dob ? format(new Date(student.dob), 'dd/MM/yyyy', { locale: vi }) : '-'}
+                                        </TableCell>
+                                        <TableCell>{student.email}</TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {getCurrentPageStudents().map((student) => (
-                                        <TableRow key={student.userId}>
-                                            <TableCell>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => {
-                                                        setStudentToRemove(student);
-                                                        setIsRemoveStudentDialogOpen(true);
-                                                    }}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
-                                            <TableCell>{student.fullName || student.username}</TableCell>
-                                            <TableCell>
-                                                {student.dob ? format(new Date(student.dob), 'dd/MM/yyyy', { locale: vi }) : '-'}
-                                            </TableCell>
-                                            <TableCell>{student.email}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                        <TablePagination
-                            currentPage={currentStudentPage - 1}
-                            totalPages={totalStudentPages}
-                            totalItems={classStudents.length}
-                            onPageChange={(page) => setCurrentStudentPage(page + 1)}
-                            itemLabel="học sinh"
-                        />
-                        <div className="flex justify-end">
-                            <Button variant="outline" onClick={() => {
-                                setIsViewStudentsDialogOpen(false);
-                                setCurrentStudentPage(1);
-                            }}>
-                                Đóng
-                            </Button>
-                        </div>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </div>
-                </DialogContent>
-            </Dialog>
+                    <TablePagination
+                        currentPage={currentStudentPage - 1}
+                        totalPages={totalStudentPages}
+                        totalItems={classStudents.length}
+                        onPageChange={(page) => setCurrentStudentPage(page + 1)}
+                        itemLabel="học sinh"
+                    />
+                    <div className="flex justify-end">
+                        <Button variant="outline" onClick={() => { setIsViewStudentsDialogOpen(false); setCurrentStudentPage(1); }}>Đóng</Button>
+                    </div>
+                </div>
+            </CustomDialog>
 
             {/* Remove Student Confirmation Dialog */}
-            <Dialog open={isRemoveStudentDialogOpen} onOpenChange={setIsRemoveStudentDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Xóa học sinh khỏi lớp</DialogTitle>
-                        <DialogDescription>
-                            Bạn có chắc chắn muốn xóa học sinh {studentToRemove?.fullName || studentToRemove?.username} khỏi lớp {selectedClassForView?.className}?
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsRemoveStudentDialogOpen(false)}>
-                            Hủy
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={() => {
-                                if (studentToRemove) {
-                                    handleRemoveStudent(studentToRemove.userId);
-                                    setIsRemoveStudentDialogOpen(false);
-                                }
-                            }}
-                        >
-                            Xóa
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <CustomDialog open={isRemoveStudentDialogOpen} onOpenChange={setIsRemoveStudentDialogOpen} title="Xóa học sinh khỏi lớp">
+                <div>Bạn có chắc chắn muốn xóa học sinh {studentToRemove?.fullName || studentToRemove?.username} khỏi lớp {selectedClassForView?.className}?</div>
+                <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={() => setIsRemoveStudentDialogOpen(false)}>Hủy</Button>
+                    <Button variant="destructive" onClick={() => { if (studentToRemove) { handleRemoveStudent(studentToRemove.userId); setIsRemoveStudentDialogOpen(false); } }}>Xóa</Button>
+                </div>
+            </CustomDialog>
 
             {/* Delete Confirmation Dialog */}
-            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Xóa lớp học</DialogTitle>
-                        <DialogDescription>
-                            Bạn có chắc chắn muốn xóa lớp {classToDelete?.className}? Hành động này không thể hoàn tác.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-                            Hủy
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={() => {
-                                if (classToDelete) {
-                                    handleDelete(classToDelete.classId);
-                                    setIsDeleteDialogOpen(false);
-                                }
-                            }}
-                        >
-                            Xóa
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <CustomDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} title="Xóa lớp học">
+                <div>Bạn có chắc chắn muốn xóa lớp {classToDelete?.className}? Hành động này không thể hoàn tác.</div>
+                <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Hủy</Button>
+                    <Button variant="destructive" onClick={() => { if (classToDelete) { handleDelete(classToDelete.classId); setIsDeleteDialogOpen(false); } }}>Xóa</Button>
+                </div>
+            </CustomDialog>
         </div>
     );
 } 

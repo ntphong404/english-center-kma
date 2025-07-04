@@ -27,7 +27,7 @@ public class CreateStudentRequest {
 
     String fullName;
 
-    @Email
+    @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")
     String email;
 
     @GenderConstraint

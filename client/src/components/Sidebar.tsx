@@ -16,7 +16,7 @@ export function Sidebar({ navItems }: SidebarProps) {
     const location = useLocation();
 
     return (
-        <div className="w-64 min-h-screen border-r bg-background">
+        <div className="w-[150px] min-h-screen border-r bg-background">
             <div className="space-y-4 py-4">
                 <div className="px-3 py-2">
                     <div className="space-y-1">

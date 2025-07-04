@@ -221,11 +221,12 @@ export default function StudentSchedule() {
 
     return (
         <div className="w-full bg-[#f5f6fa]">
+            <div className="text-2xl font-bold pt-8 ml-12">Lịch học của tôi</div>
             {/* Lịch + nội dung căn giữa */}
             <div className="flex flex-col md:flex-row gap-8 justify-center items-start pt-8 md:pt-[100px] pb-8">
                 {/* Calendar */}
                 <div
-                    className="flex flex-col items-start w-full max-w-[460px] min-w-[320px] md:min-h-[400px]"
+                    className="flex flex-col items-start w-full max-w-[540px] min-w-[320px] md:min-h-[400px]"
                 >
                     <div
                         ref={calendarRef}
@@ -254,23 +255,31 @@ export default function StudentSchedule() {
                             {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => <div key={d}>{d}</div>)}
                         </div>
                         <div className="grid grid-cols-7 gap-1 w-full">
-                            {matrix.flat().map((date, idx) => (
-                                <div
-                                    key={idx}
-                                    className={`aspect-square flex flex-col items-center justify-center rounded-lg cursor-pointer select-none text-lg font-medium
-                    ${date.getMonth() === month
-                                            ? (isSameDay(date, selectedDate) ? 'border-2 border-blue-500 bg-blue-50 text-blue-700' : 'hover:bg-blue-50')
-                                            : 'text-gray-300'}
-                  `}
-                                    onClick={() => date.getMonth() === month && setSelectedDate(date)}
-                                >
-                                    <span>{date.getDate()}</span>
-                                    {/* Dot if has schedule */}
-                                    {date.getMonth() === month && daysWithSchedules.includes(date.getDate()) && (
-                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1 inline-block"></span>
-                                    )}
-                                </div>
-                            ))}
+                            {matrix.flat().map((date, idx) => {
+                                const isToday = date.toDateString() === new Date().toDateString();
+                                const isSelected = isSameDay(date, selectedDate);
+                                return (
+                                    <div
+                                        key={idx}
+                                        className={`aspect-square flex flex-col items-center justify-center rounded-lg cursor-pointer select-none text-lg font-medium
+                                            ${date.getMonth() === month
+                                                ? (isSelected
+                                                    ? 'bg-blue-200 text-blue-800 border-2 border-blue-500'
+                                                    : isToday
+                                                        ? 'bg-blue-50 text-blue-700'
+                                                        : 'hover:bg-blue-50')
+                                                : 'text-gray-300'}
+                                        `}
+                                        onClick={() => date.getMonth() === month && setSelectedDate(date)}
+                                    >
+                                        <span>{date.getDate()}</span>
+                                        {/* Dot if has schedule */}
+                                        {date.getMonth() === month && daysWithSchedules.includes(date.getDate()) && (
+                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1 inline-block"></span>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

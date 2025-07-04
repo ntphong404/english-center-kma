@@ -11,6 +11,7 @@ export interface ClassUpdateRequest {
     daysOfWeek: string[];
     grade: number;
     roomName: string;
+    status: string;
 }
 
 export interface ClassResponse {
@@ -42,4 +43,5 @@ export interface CreateClassRequest {
     daysOfWeek: string[];
     grade: number;
     roomName: string;
+    status: string;
 }

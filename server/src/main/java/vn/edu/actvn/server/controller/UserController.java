@@ -17,14 +17,22 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
+import vn.edu.actvn.server.dto.request.email.SendToParentRequest;
 import vn.edu.actvn.server.dto.request.user.CreateAdminRequest;
 import vn.edu.actvn.server.dto.request.user.UpdateAdminRequest;
 import vn.edu.actvn.server.dto.response.ApiResponse;
+import vn.edu.actvn.server.dto.response.notification.NotificationResponse;
 import vn.edu.actvn.server.dto.response.upload.UploadResponse;
 import vn.edu.actvn.server.dto.response.user.UserResponse;
 import vn.edu.actvn.server.dto.request.user.ChangePasswordRequest;
+import vn.edu.actvn.server.entity.Notification;
+import vn.edu.actvn.server.mapper.NotificationMapper;
+import vn.edu.actvn.server.repository.NotificationRepository;
+import vn.edu.actvn.server.service.EmailService;
 import vn.edu.actvn.server.service.ImageUploadService;
 import vn.edu.actvn.server.service.UserService;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/users")
@@ -34,7 +42,10 @@ import vn.edu.actvn.server.service.UserService;
 @Tag(name = "User API", description = "Endpoints for user management and information")
 public class UserController {
         UserService userService;
-        private final ImageUploadService imageUploadService;
+        ImageUploadService imageUploadService;
+        EmailService emailService;
+        private final NotificationRepository notificationRepository;
+        private final NotificationMapper notificationMapper;
 
         @PostMapping
         @Operation(summary = "Create a new user")
@@ -164,5 +175,28 @@ public class UserController {
                                 .result(userService.changeAvatar(avatarUrl,publicId))
                                 .message("Avatar change successful")
                                 .build();
+        }
+
+        @PostMapping("/send-email-to-parent")
+        @Operation(summary = "Send email to parent")
+        public ApiResponse<Void> sendEmailToParent(@RequestBody SendToParentRequest request) {
+                emailService.sendImportantInfo(request.parentId(),
+                        request.subject(),
+                        request.content());
+                return ApiResponse.<Void>builder()
+                        .message("Email sent to parent successfully!")
+                        .build();
+        }
+
+        @GetMapping("/notification")
+        @Operation(summary = "Get notification")
+        public ApiResponse<List<NotificationResponse>> getNotification() {
+                return ApiResponse.<List<NotificationResponse>>builder()
+                        .result(notificationRepository.findAll()
+                                .stream()
+                                .map(notificationMapper::toNotificationResponse)
+                                .toList())
+                        .message("Fetched notification successfully")
+                        .build();
         }
 }

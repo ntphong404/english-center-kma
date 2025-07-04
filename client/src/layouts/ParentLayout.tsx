@@ -51,7 +51,6 @@ const ParentLayout = () => {
         { icon: <Users size={18} />, label: 'Quản lý con', path: '/parent/children' },
         { icon: <Calendar size={18} />, label: 'Lịch học', path: '/parent/schedule' },
         { icon: <DollarSign size={18} />, label: 'Học phí', path: '/parent/fees' },
-        { icon: <ClipboardCheck size={18} />, label: 'Điểm danh', path: '/parent/attendance' },
         { icon: <Settings size={18} />, label: 'Cài đặt', path: '/parent/settings' },
     ];
 

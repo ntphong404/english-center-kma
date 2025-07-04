@@ -39,8 +39,10 @@ public class PaymentService {
             throw new AppException(ErrorCode.PAYMENT_AMOUNT_INVALID);
         } else if (BigDecimalUtils.isGreaterThanOrEqual(payment.getPaidAmount(), tuitionFee.getRemainingAmount())) {
             tuitionFee.setRemainingAmount(BigDecimal.ZERO);
+            tuitionFee.setPaidAmount(tuitionFee.getAmount());
         } else {
             tuitionFee.setRemainingAmount(tuitionFee.getRemainingAmount().subtract(payment.getPaidAmount()));
+            tuitionFee.setPaidAmount(tuitionFee.getPaidAmount().add(payment.getPaidAmount()));
         }
         tuitionFeeRepository.save(tuitionFee);
         return paymentMapper.toPaymentResponse(paymentRepository.save(payment));
@@ -63,6 +65,11 @@ public class PaymentService {
         Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_EXISTED));
         return paymentMapper.toPaymentResponse(payment);
+    }
+
+    @PreAuthorize("hasAuthority('PAYMENT_READ') || hasRole('ADMIN')")
+    public Page<PaymentResponse> getPaymentByTuitionFeeId(String tuitionFeeId, Pageable pageable) {
+        return paymentRepository.findAllByTuitionFee_TuitionFeeId(tuitionFeeId, pageable).map(paymentMapper::toPaymentResponse);
     }
 
     @PreAuthorize("hasAuthority('PAYMENT_UPDATE') || hasRole('ADMIN')")

@@ -2,7 +2,6 @@ import { RouteObject, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import ParentLayout from '@/layouts/ParentLayout';
 import { ProtectedRoute } from './ProtectedRoute';
-import ParentAttendance from '@/pages/parent/Attendance';
 import ParentChildren from '@/pages/parent/Children';
 import ParentFees from '@/pages/parent/Fees';
 import ParentSchedule from '@/pages/parent/Schedule';
@@ -34,10 +33,6 @@ export const parentRoutes: RouteObject = {
         {
             path: 'children',
             element: <ParentChildren />,
-        },
-        {
-            path: 'attendance',
-            element: <ParentAttendance />,
         },
         {
             path: 'fees',

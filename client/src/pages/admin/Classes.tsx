@@ -38,6 +38,7 @@ import { vi } from "date-fns/locale";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TablePagination } from "@/components/ui/table-pagination";
 import debounce from "lodash.debounce";
+import CustomDialog from '@/components/CustomDialog';
 
 const TIME_SLOTS = [
     { label: "7:30 - 9:30", startTime: "07:30:00", endTime: "09:30:00" },
@@ -88,9 +89,10 @@ export default function AdminClasses() {
     const [searchName, setSearchName] = useState("");
     const [sortField, setSortField] = useState("className");
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>("asc");
+    const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
     // Form state for new class
-    const [newClass, setNewClass] = useState<Partial<CreateClassRequest>>({
+    const [newClass, setNewClass] = useState<Partial<CreateClassRequest> & { status?: string }>({
         className: '',
         teacherId: '',
         grade: 1,
@@ -102,6 +104,7 @@ export default function AdminClasses() {
         endTime: '',
         daysOfWeek: [],
         roomName: '',
+        status: 'OPEN',
     });
 
     const fetchTeachers = async () => {
@@ -129,7 +132,7 @@ export default function AdminClasses() {
                 undefined,
                 undefined,
                 undefined,
-                undefined,
+                statusFilter === "ALL" ? undefined : statusFilter,
                 currentPage - 1,
                 pageSize,
                 sortParam
@@ -183,7 +186,7 @@ export default function AdminClasses() {
     useEffect(() => {
         fetchTeachers();
         fetchClasses();
-    }, [currentPage, pageSize, searchName, sortField, sortOrder]);
+    }, [currentPage, pageSize, searchName, sortField, sortOrder, statusFilter]);
 
     useEffect(() => {
         if (isAddStudentsDialogOpen && selectedClassForStudents) {
@@ -209,13 +212,13 @@ export default function AdminClasses() {
             await classApi.delete(id);
             toast({
                 title: "Thành công",
-                description: "Xóa lớp học thành công",
+                description: "Đóng lớp học thành công",
             });
             fetchClasses();
         } catch (error) {
             toast({
                 title: "Lỗi",
-                description: "Không thể xóa lớp học",
+                description: "Không thể đóng lớp học",
                 variant: "destructive",
             });
         }
@@ -237,7 +240,7 @@ export default function AdminClasses() {
                 return;
             }
 
-            await classApi.create(newClass as CreateClassRequest);
+            await classApi.create(newClass as CreateClassRequest & { status: string });
             toast({
                 title: "Thành công",
                 description: "Tạo lớp học mới thành công",
@@ -255,6 +258,7 @@ export default function AdminClasses() {
                 endTime: '',
                 daysOfWeek: [],
                 roomName: '',
+                status: 'OPEN',
             });
             fetchClasses();
         } catch (error) {
@@ -276,7 +280,9 @@ export default function AdminClasses() {
 
     const handleUpdate = async (id: string, formData: ClassUpdateRequest) => {
         try {
-            await classApi.patch(id, formData);
+            // Loại bỏ studentIds nếu có trong formData
+            const { studentIds, ...rest } = formData as any;
+            await classApi.patch(id, rest as ClassUpdateRequest & { status: string });
             toast({
                 title: "Thành công",
                 description: "Cập nhật lớp học thành công",
@@ -400,22 +406,33 @@ export default function AdminClasses() {
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Quản lý lớp học</h2>
                 <div className="flex justify-end items-center gap-2">
+                    <Select
+                        value={statusFilter}
+                        onValueChange={val => { setStatusFilter(val); setCurrentPage(1); }}
+                    >
+                        <SelectTrigger className="w-40 shadow-md">
+                            <SelectValue placeholder="Tất cả trạng thái" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
+                            <SelectItem value="OPEN">Đang mở</SelectItem>
+                            <SelectItem value="UPCOMING">Sắp khai giảng</SelectItem>
+                            <SelectItem value="CLOSED">Đã đóng</SelectItem>
+                        </SelectContent>
+                    </Select>
                     <Input
                         placeholder="Tìm theo tên lớp..."
                         defaultValue={searchName}
                         onChange={e => handleSearch(e.target.value)}
-                        className="w-64"
+                        className="w-64 shadow-md"
                     />
                     <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                         <DialogTrigger asChild>
-                            <Button>
+                            <Button className="shadow-md rounded-md">
                                 <Plus className="mr-2 h-4 w-4" /> Thêm lớp học
                             </Button>
                         </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Thêm lớp học mới</DialogTitle>
-                            </DialogHeader>
+                        <CustomDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} title="Thêm lớp học mới">
                             <div className="grid gap-4 py-4">
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="className" className="text-right">
@@ -423,7 +440,7 @@ export default function AdminClasses() {
                                     </Label>
                                     <Input
                                         id="className"
-                                        className="col-span-3"
+                                        className="col-span-3 shadow-md"
                                         value={newClass.className}
                                         onChange={(e) => setNewClass(prev => ({ ...prev, className: e.target.value }))}
                                     />
@@ -436,7 +453,7 @@ export default function AdminClasses() {
                                         value={newClass.teacherId}
                                         onValueChange={(value) => setNewClass(prev => ({ ...prev, teacherId: value }))}
                                     >
-                                        <SelectTrigger className="col-span-3">
+                                        <SelectTrigger className="col-span-3 shadow-md">
                                             <SelectValue placeholder="Chọn giáo viên" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -455,7 +472,7 @@ export default function AdminClasses() {
                                     <Input
                                         id="grade"
                                         type="number"
-                                        className="col-span-3"
+                                        className="col-span-3 shadow-md"
                                         value={newClass.grade}
                                         onChange={(e) => setNewClass(prev => ({ ...prev, grade: parseInt(e.target.value) }))}
                                     />
@@ -468,7 +485,7 @@ export default function AdminClasses() {
                                         <Input
                                             id="unitPrice"
                                             type="number"
-                                            className="col-span-3"
+                                            className="col-span-3 shadow-md"
                                             value={newClass.unitPrice}
                                             onChange={(e) => setNewClass(prev => ({ ...prev, unitPrice: parseInt(e.target.value) }))}
                                         />
@@ -481,7 +498,7 @@ export default function AdminClasses() {
                                     </Label>
                                     <Input
                                         id="roomName"
-                                        className="col-span-3"
+                                        className="col-span-3 shadow-md"
                                         value={newClass.roomName}
                                         onChange={(e) => setNewClass(prev => ({ ...prev, roomName: e.target.value }))}
                                         placeholder="VD: TA1-401"
@@ -502,7 +519,7 @@ export default function AdminClasses() {
                                             }
                                         }}
                                     >
-                                        <SelectTrigger className="col-span-3">
+                                        <SelectTrigger className="col-span-3 shadow-md">
                                             <SelectValue placeholder="Chọn thời gian học" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -524,7 +541,7 @@ export default function AdminClasses() {
                                     <Input
                                         id="startDate"
                                         type="date"
-                                        className="col-span-3"
+                                        className="col-span-3 shadow-md"
                                         value={newClass.startDate}
                                         onChange={(e) => setNewClass(prev => ({ ...prev, startDate: e.target.value }))}
                                     />
@@ -536,7 +553,7 @@ export default function AdminClasses() {
                                     <Input
                                         id="endDate"
                                         type="date"
-                                        className="col-span-3"
+                                        className="col-span-3 shadow-md"
                                         value={newClass.endDate}
                                         onChange={(e) => setNewClass(prev => ({ ...prev, endDate: e.target.value }))}
                                     />
@@ -599,109 +616,125 @@ export default function AdminClasses() {
                                         </div>
                                     </div>
                                 </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="status" className="text-right">Trạng thái</Label>
+                                    <Select
+                                        value={newClass.status || "OPEN"}
+                                        onValueChange={val => setNewClass(prev => ({ ...prev, status: val }))}
+                                    >
+                                        <SelectTrigger className="col-span-3 shadow-md">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="OPEN">Đang mở</SelectItem>
+                                            <SelectItem value="UPCOMING">Sắp khai giảng</SelectItem>
+                                            <SelectItem value="CLOSED">Đã đóng</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                             <div className="flex justify-end">
-                                <Button onClick={handleCreate}>Lưu</Button>
+                                <Button className="shadow-md" onClick={handleCreate}>Lưu</Button>
                             </div>
-                        </DialogContent>
+                        </CustomDialog>
                     </Dialog>
                 </div>
             </div>
 
-            <div className="border rounded-lg">
+            <div className="border rounded-md shadow-lg overflow-hidden m-3">
                 <Table>
                     <TableHeader>
-                        <TableRow>
+                        <TableRow className="bg-gradient-to-r from-[#3b70c6] to-[#872ace] text-white font-bold">
                             <TableHead>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 text-white">
                                     <span>Tên lớp</span>
                                     <button type="button" onClick={() => handleSort('className')} className="ml-1">
                                         {sortField === 'className' ? (
-                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
+                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-white" /> : <ArrowDownNarrowWide className="w-4 h-4 text-white" />
                                         ) : (
-                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
+                                            <ArrowDownNarrowWide className="w-4 h-4 text-white/70" />
                                         )}
                                     </button>
                                 </div>
                             </TableHead>
                             <TableHead>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 text-white">
                                     <span>Giáo viên</span>
                                     <button type="button" onClick={() => handleSort('teacher.fullName')} className="ml-1">
                                         {sortField === 'teacher.fullName' ? (
-                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
+                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-white" /> : <ArrowDownNarrowWide className="w-4 h-4 text-white" />
                                         ) : (
-                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
+                                            <ArrowDownNarrowWide className="w-4 h-4 text-white/70" />
                                         )}
                                     </button>
                                 </div>
                             </TableHead>
                             <TableHead>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 text-white">
                                     <span>Sĩ số</span>
                                     <button type="button" onClick={() => handleSort('studentCount')} className="ml-1">
                                         {sortField === 'studentCount' ? (
-                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
+                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-white" /> : <ArrowDownNarrowWide className="w-4 h-4 text-white" />
                                         ) : (
-                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
+                                            <ArrowDownNarrowWide className="w-4 h-4 text-white/70" />
                                         )}
                                     </button>
                                 </div>
                             </TableHead>
                             <TableHead>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 text-white">
                                     <span>Khối</span>
                                     <button type="button" onClick={() => handleSort('grade')} className="ml-1">
                                         {sortField === 'grade' ? (
-                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
+                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-white" /> : <ArrowDownNarrowWide className="w-4 h-4 text-white" />
                                         ) : (
-                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
+                                            <ArrowDownNarrowWide className="w-4 h-4 text-white/70" />
                                         )}
                                     </button>
                                 </div>
                             </TableHead>
                             <TableHead>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 text-white">
                                     <span>Phòng học</span>
                                     <button type="button" onClick={() => handleSort('roomName')} className="ml-1">
                                         {sortField === 'roomName' ? (
-                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
+                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-white" /> : <ArrowDownNarrowWide className="w-4 h-4 text-white" />
                                         ) : (
-                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
+                                            <ArrowDownNarrowWide className="w-4 h-4 text-white/70" />
                                         )}
                                     </button>
                                 </div>
                             </TableHead>
                             <TableHead>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 text-white">
                                     <span>Lịch học</span>
                                     <button type="button" onClick={() => handleSort('schedule')} className="ml-1">
                                         {sortField === 'schedule' ? (
-                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
+                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-white" /> : <ArrowDownNarrowWide className="w-4 h-4 text-white" />
                                         ) : (
-                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
+                                            <ArrowDownNarrowWide className="w-4 h-4 text-white/70" />
                                         )}
                                     </button>
                                 </div>
                             </TableHead>
                             <TableHead>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 text-white">
                                     <span>Trạng thái</span>
                                     <button type="button" onClick={() => handleSort('status')} className="ml-1">
                                         {sortField === 'status' ? (
-                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-primary" /> : <ArrowDownNarrowWide className="w-4 h-4 text-primary" />
+                                            sortOrder === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4 text-white" /> : <ArrowDownNarrowWide className="w-4 h-4 text-white" />
                                         ) : (
-                                            <ArrowDownNarrowWide className="w-4 h-4 text-gray-400" />
+                                            <ArrowDownNarrowWide className="w-4 h-4 text-white/70" />
                                         )}
                                     </button>
                                 </div>
                             </TableHead>
-                            <TableHead className="text-right">Thao tác</TableHead>
+                            <TableHead className="text-white font-bold py-4 text-right">Thao tác</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {classes.map((classItem) => (
-                            <TableRow key={classItem.classId}>
+                        {classes.map((classItem, idx) => (
+                            <TableRow key={classItem.classId} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-cyan-50 transition`}>
                                 <TableCell>{classItem.className}</TableCell>
                                 <TableCell>{getTeacherName(classItem.teacherId)}</TableCell>
                                 <TableCell>{classItem.studentIds.length}</TableCell>
@@ -712,10 +745,10 @@ export default function AdminClasses() {
                                     <span
                                         className={`px-2 py-1 rounded-full text-xs
                                             ${classItem.status === "OPEN"
-                                                ? "bg-green-100 text-green-800"
+                                                ? "bg-green-100 text-green-800 shadow-md"
                                                 : classItem.status === "UPCOMING"
-                                                    ? "bg-yellow-100 text-yellow-800"
-                                                    : "bg-red-100 text-red-800"}
+                                                    ? "bg-yellow-100 text-yellow-800 shadow-md"
+                                                    : "bg-red-100 text-red-800 shadow-md"}
                                         `}
                                     >
                                         {classItem.status === "OPEN"
@@ -795,372 +828,371 @@ export default function AdminClasses() {
                 itemLabel="lớp học"
             />
 
-            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Chỉnh sửa lớp học</DialogTitle>
-                    </DialogHeader>
-                    {selectedClass && (
-                        <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-className" className="text-right">
-                                    Tên lớp
-                                </Label>
-                                <Input
-                                    id="edit-className"
-                                    className="col-span-3"
-                                    value={selectedClass.className}
-                                    onChange={(e) => setSelectedClass(prev => prev ? { ...prev, className: e.target.value } : null)}
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-teacherId" className="text-right">
-                                    Giáo viên
-                                </Label>
-                                <Select
-                                    value={selectedClass.teacherId}
-                                    onValueChange={(value) => setSelectedClass(prev => prev ? { ...prev, teacherId: value } : null)}
-                                >
-                                    <SelectTrigger className="col-span-3">
-                                        <SelectValue placeholder="Chọn giáo viên" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Array.from(teachers.values()).map((teacher) => (
-                                            <SelectItem key={teacher.userId} value={teacher.userId}>
-                                                {teacher.fullName || teacher.username}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-grade" className="text-right">
-                                    Khối
-                                </Label>
-                                <Input
-                                    id="edit-grade"
-                                    type="number"
-                                    className="col-span-3"
-                                    value={selectedClass.grade}
-                                    onChange={(e) => setSelectedClass(prev => prev ? { ...prev, grade: parseInt(e.target.value) } : null)}
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-unitPrice" className="text-right">
-                                    Giá một buổi
-                                </Label>
-                                <div className="col-span-3 flex items-center">
-                                    <Input
-                                        id="edit-unitPrice"
-                                        type="number"
-                                        className="col-span-3"
-                                        value={selectedClass.unitPrice}
-                                        onChange={(e) => setSelectedClass(prev => prev ? { ...prev, unitPrice: parseInt(e.target.value) } : null)}
-                                    />
-                                    <span className="ml-2 text-sm text-muted-foreground">VNĐ</span>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-roomName" className="text-right">
-                                    Phòng học
-                                </Label>
-                                <Input
-                                    id="edit-roomName"
-                                    className="col-span-3"
-                                    value={selectedClass.roomName}
-                                    onChange={(e) => setSelectedClass(prev => prev ? { ...prev, roomName: e.target.value } : null)}
-                                    placeholder="VD: TA1-401"
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-timeSlot" className="text-right">
-                                    Thời gian học
-                                </Label>
-                                <Select
-                                    value={`${selectedClass.startTime}-${selectedClass.endTime}`}
-                                    onValueChange={(value) => {
-                                        const timeSlot = TIME_SLOTS.find(slot =>
-                                            `${slot.startTime}-${slot.endTime}` === value
-                                        );
-                                        if (timeSlot && selectedClass) {
-                                            setSelectedClass({
-                                                ...selectedClass,
-                                                startTime: timeSlot.startTime,
-                                                endTime: timeSlot.endTime
-                                            });
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger className="col-span-3">
-                                        <SelectValue placeholder="Chọn thời gian học" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {TIME_SLOTS.map((slot) => (
-                                            <SelectItem
-                                                key={`${slot.startTime}-${slot.endTime}`}
-                                                value={`${slot.startTime}-${slot.endTime}`}
-                                            >
-                                                {slot.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-daysOfWeek" className="text-right">
-                                    Ngày học
-                                </Label>
-                                <div className="col-span-3">
-                                    <div className="relative">
-                                        <div
-                                            id="editDaysTrigger"
-                                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                            onClick={() => setIsDaysDropdownOpen(!isDaysDropdownOpen)}
-                                        >
-                                            <span>
-                                                {selectedClass.daysOfWeek?.length
-                                                    ? `${selectedClass.daysOfWeek.length} ngày đã chọn`
-                                                    : "Chọn ngày học"}
-                                            </span>
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="24"
-                                                height="24"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                className={`h-4 w-4 opacity-50 transition-transform ${isDaysDropdownOpen ? 'rotate-180' : ''}`}
-                                            >
-                                                <path d="m6 9 6 6 6-6" />
-                                            </svg>
-                                        </div>
-                                        {isDaysDropdownOpen && (
-                                            <div
-                                                id="editDaysDropdown"
-                                                className="absolute z-50 bottom-full mb-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md"
-                                            >
-                                                <div className="p-1">
-                                                    {DAYS_OF_WEEK.map((day) => (
-                                                        <div
-                                                            key={day.value}
-                                                            className="flex items-center space-x-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground cursor-pointer"
-                                                            onClick={() => {
-                                                                if (selectedClass) {
-                                                                    const currentDays = selectedClass.daysOfWeek || [];
-                                                                    const updatedDays = currentDays.includes(day.value)
-                                                                        ? currentDays.filter(d => d !== day.value)
-                                                                        : [...currentDays, day.value];
-                                                                    setSelectedClass({
-                                                                        ...selectedClass,
-                                                                        daysOfWeek: updatedDays
-                                                                    });
-                                                                }
-                                                            }}
-                                                        >
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={selectedClass.daysOfWeek?.includes(day.value)}
-                                                                className="h-4 w-4 rounded border-gray-300"
-                                                                readOnly
-                                                            />
-                                                            <span>{day.label}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-startDate" className="text-right">
-                                    Ngày bắt đầu
-                                </Label>
-                                <Input
-                                    id="edit-startDate"
-                                    type="date"
-                                    className="col-span-3"
-                                    value={selectedClass.startDate}
-                                    onChange={(e) => setSelectedClass(prev => prev ? { ...prev, startDate: e.target.value } : null)}
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-endDate" className="text-right">
-                                    Ngày kết thúc
-                                </Label>
-                                <Input
-                                    id="edit-endDate"
-                                    type="date"
-                                    className="col-span-3"
-                                    value={selectedClass.endDate}
-                                    onChange={(e) => setSelectedClass(prev => prev ? { ...prev, endDate: e.target.value } : null)}
-                                />
-                            </div>
+            <CustomDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} title="Chỉnh sửa lớp học">
+                {selectedClass && (
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-className" className="text-right">
+                                Tên lớp
+                            </Label>
+                            <Input
+                                id="edit-className"
+                                className="col-span-3 shadow-md"
+                                value={selectedClass.className}
+                                onChange={(e) => setSelectedClass(prev => prev ? { ...prev, className: e.target.value } : null)}
+                            />
                         </div>
-                    )}
-                    <div className="flex justify-end">
-                        <Button onClick={() => {
-                            if (selectedClass) {
-                                handleUpdate(selectedClass.classId, selectedClass);
-                            }
-                        }}>Lưu thay đổi</Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={isAddStudentsDialogOpen} onOpenChange={setIsAddStudentsDialogOpen}>
-                <DialogContent className="max-w-4xl">
-                    <DialogHeader>
-                        <DialogTitle>Thêm học sinh vào lớp {selectedClassForStudents?.className}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        <div className="border rounded-md">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[50px]"></TableHead>
-                                        <TableHead>Tên học sinh</TableHead>
-                                        <TableHead>Ngày sinh</TableHead>
-                                        <TableHead>Email</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {students.map((student) => (
-                                        <TableRow key={student.userId}>
-                                            <TableCell>
-                                                <Checkbox
-                                                    checked={selectedStudents.includes(student.userId)}
-                                                    onCheckedChange={(checked) => {
-                                                        if (checked) {
-                                                            setSelectedStudents([...selectedStudents, student.userId]);
-                                                        } else {
-                                                            setSelectedStudents(selectedStudents.filter(id => id !== student.userId));
-                                                        }
-                                                    }}
-                                                />
-                                            </TableCell>
-                                            <TableCell>{student.fullName || student.username}</TableCell>
-                                            <TableCell>
-                                                {student.dob ? format(new Date(student.dob), 'dd/MM/yyyy', { locale: vi }) : '-'}
-                                            </TableCell>
-                                            <TableCell>{student.email}</TableCell>
-                                        </TableRow>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-teacherId" className="text-right">
+                                Giáo viên
+                            </Label>
+                            <Select
+                                value={selectedClass.teacherId}
+                                onValueChange={(value) => setSelectedClass(prev => prev ? { ...prev, teacherId: value } : null)}
+                            >
+                                <SelectTrigger className="col-span-3 shadow-md">
+                                    <SelectValue placeholder="Chọn giáo viên" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {Array.from(teachers.values()).map((teacher) => (
+                                        <SelectItem key={teacher.userId} value={teacher.userId}>
+                                            {teacher.fullName || teacher.username}
+                                        </SelectItem>
                                     ))}
-                                </TableBody>
-                            </Table>
+                                </SelectContent>
+                            </Select>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <div className="text-sm text-muted-foreground">
-                                Đã chọn {selectedStudents.length} học sinh
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setStudentPage(prev => Math.max(prev - 1, 1))}
-                                    disabled={studentPage === 1}
-                                >
-                                    Trước
-                                </Button>
-                                <span className="text-sm">
-                                    Trang {studentPage} / {studentTotalPages}
-                                </span>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setStudentPage(prev => Math.min(prev + 1, studentTotalPages))}
-                                    disabled={studentPage === studentTotalPages}
-                                >
-                                    Sau
-                                </Button>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-grade" className="text-right">
+                                Khối
+                            </Label>
+                            <Input
+                                id="edit-grade"
+                                type="number"
+                                className="col-span-3 shadow-md"
+                                value={selectedClass.grade}
+                                onChange={(e) => setSelectedClass(prev => prev ? { ...prev, grade: parseInt(e.target.value) } : null)}
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-unitPrice" className="text-right">
+                                Giá một buổi
+                            </Label>
+                            <div className="col-span-3 flex items-center">
+                                <Input
+                                    id="edit-unitPrice"
+                                    type="number"
+                                    className="col-span-3 shadow-md"
+                                    value={selectedClass.unitPrice}
+                                    onChange={(e) => setSelectedClass(prev => prev ? { ...prev, unitPrice: parseInt(e.target.value) } : null)}
+                                />
+                                <span className="ml-2 text-sm text-muted-foreground">VNĐ</span>
                             </div>
                         </div>
-                        <div className="flex justify-end space-x-2">
-                            <Button variant="outline" onClick={() => setIsAddStudentsDialogOpen(false)}>
-                                Hủy
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-roomName" className="text-right">
+                                Phòng học
+                            </Label>
+                            <Input
+                                id="edit-roomName"
+                                className="col-span-3 shadow-md"
+                                value={selectedClass.roomName}
+                                onChange={(e) => setSelectedClass(prev => prev ? { ...prev, roomName: e.target.value } : null)}
+                                placeholder="VD: TA1-401"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-timeSlot" className="text-right">
+                                Thời gian học
+                            </Label>
+                            <Select
+                                value={`${selectedClass.startTime}-${selectedClass.endTime}`}
+                                onValueChange={(value) => {
+                                    const timeSlot = TIME_SLOTS.find(slot =>
+                                        `${slot.startTime}-${slot.endTime}` === value
+                                    );
+                                    if (timeSlot && selectedClass) {
+                                        setSelectedClass({
+                                            ...selectedClass,
+                                            startTime: timeSlot.startTime,
+                                            endTime: timeSlot.endTime
+                                        });
+                                    }
+                                }}
+                            >
+                                <SelectTrigger className="col-span-3 shadow-md">
+                                    <SelectValue placeholder="Chọn thời gian học" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {TIME_SLOTS.map((slot) => (
+                                        <SelectItem
+                                            key={`${slot.startTime}-${slot.endTime}`}
+                                            value={`${slot.startTime}-${slot.endTime}`}
+                                        >
+                                            {slot.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-daysOfWeek" className="text-right">
+                                Ngày học
+                            </Label>
+                            <div className="col-span-3">
+                                <div className="relative">
+                                    <div
+                                        id="editDaysTrigger"
+                                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        onClick={() => setIsDaysDropdownOpen(!isDaysDropdownOpen)}
+                                    >
+                                        <span>
+                                            {selectedClass.daysOfWeek?.length
+                                                ? `${selectedClass.daysOfWeek.length} ngày đã chọn`
+                                                : "Chọn ngày học"}
+                                        </span>
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="24"
+                                            height="24"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            className={`h-4 w-4 opacity-50 transition-transform ${isDaysDropdownOpen ? 'rotate-180' : ''}`}
+                                        >
+                                            <path d="m6 9 6 6 6-6" />
+                                        </svg>
+                                    </div>
+                                    {isDaysDropdownOpen && (
+                                        <div
+                                            id="editDaysDropdown"
+                                            className="absolute z-50 bottom-full mb-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md"
+                                        >
+                                            <div className="p-1">
+                                                {DAYS_OF_WEEK.map((day) => (
+                                                    <div
+                                                        key={day.value}
+                                                        className="flex items-center space-x-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                                                        onClick={() => {
+                                                            if (selectedClass) {
+                                                                const currentDays = selectedClass.daysOfWeek || [];
+                                                                const updatedDays = currentDays.includes(day.value)
+                                                                    ? currentDays.filter(d => d !== day.value)
+                                                                    : [...currentDays, day.value];
+                                                                setSelectedClass({
+                                                                    ...selectedClass,
+                                                                    daysOfWeek: updatedDays
+                                                                });
+                                                            }
+                                                        }}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedClass.daysOfWeek?.includes(day.value)}
+                                                            className="h-4 w-4 rounded border-gray-300"
+                                                            readOnly
+                                                        />
+                                                        <span>{day.label}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-startDate" className="text-right">
+                                Ngày bắt đầu
+                            </Label>
+                            <Input
+                                id="edit-startDate"
+                                type="date"
+                                className="col-span-3 shadow-md"
+                                value={selectedClass.startDate}
+                                onChange={(e) => setSelectedClass(prev => prev ? { ...prev, startDate: e.target.value } : null)}
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-endDate" className="text-right">
+                                Ngày kết thúc
+                            </Label>
+                            <Input
+                                id="edit-endDate"
+                                type="date"
+                                className="col-span-3 shadow-md"
+                                value={selectedClass.endDate}
+                                onChange={(e) => setSelectedClass(prev => prev ? { ...prev, endDate: e.target.value } : null)}
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-status" className="text-right">Trạng thái</Label>
+                            <Select
+                                value={selectedClass.status || "OPEN"}
+                                onValueChange={val => setSelectedClass(prev => prev ? { ...prev, status: val } : null)}
+                            >
+                                <SelectTrigger className="col-span-3 shadow-md">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="OPEN">Đang mở</SelectItem>
+                                    <SelectItem value="UPCOMING">Sắp khai giảng</SelectItem>
+                                    <SelectItem value="CLOSED">Đã đóng</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                )}
+                <div className="flex justify-end">
+                    <Button className="shadow-md" onClick={() => {
+                        if (selectedClass) {
+                            handleUpdate(selectedClass.classId, selectedClass as ClassUpdateRequest & { status: string });
+                        }
+                    }}>Lưu thay đổi</Button>
+                </div>
+            </CustomDialog>
+
+            <CustomDialog open={isAddStudentsDialogOpen} onOpenChange={setIsAddStudentsDialogOpen} title={`Thêm học sinh vào lớp ${selectedClassForStudents?.className || ''}`} maxWidth="max-w-4xl">
+                <div className="space-y-4">
+                    <div className="border rounded-md shadow-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[50px]"></TableHead>
+                                    <TableHead>Tên học sinh</TableHead>
+                                    <TableHead>Ngày sinh</TableHead>
+                                    <TableHead>Email</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {students.map((student) => (
+                                    <TableRow key={student.userId}>
+                                        <TableCell>
+                                            <Checkbox
+                                                checked={selectedStudents.includes(student.userId)}
+                                                onCheckedChange={(checked) => {
+                                                    if (checked) {
+                                                        setSelectedStudents([...selectedStudents, student.userId]);
+                                                    } else {
+                                                        setSelectedStudents(selectedStudents.filter(id => id !== student.userId));
+                                                    }
+                                                }}
+                                            />
+                                        </TableCell>
+                                        <TableCell>{student.fullName || student.username}</TableCell>
+                                        <TableCell>
+                                            {student.dob ? format(new Date(student.dob), 'dd/MM/yyyy', { locale: vi }) : '-'}
+                                        </TableCell>
+                                        <TableCell>{student.email}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <div className="text-sm text-muted-foreground">
+                            Đã chọn {selectedStudents.length} học sinh
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setStudentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={studentPage === 1}
+                            >
+                                Trước
                             </Button>
-                            <Button onClick={handleAddStudents} disabled={selectedStudents.length === 0}>
-                                Thêm học sinh
+                            <span className="text-sm">
+                                Trang {studentPage} / {studentTotalPages}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setStudentPage(prev => Math.min(prev + 1, studentTotalPages))}
+                                disabled={studentPage === studentTotalPages}
+                            >
+                                Sau
                             </Button>
                         </div>
                     </div>
-                </DialogContent>
-            </Dialog>
+                    <div className="flex justify-end space-x-2">
+                        <Button variant="outline" onClick={() => setIsAddStudentsDialogOpen(false)}>
+                            Hủy
+                        </Button>
+                        <Button onClick={handleAddStudents} disabled={selectedStudents.length === 0}>
+                            Thêm học sinh
+                        </Button>
+                    </div>
+                </div>
+            </CustomDialog>
 
             {/* View Students Dialog */}
-            <Dialog open={isViewStudentsDialogOpen} onOpenChange={setIsViewStudentsDialogOpen}>
-                <DialogContent className="max-w-4xl">
-                    <DialogHeader>
-                        <DialogTitle>Danh sách học sinh lớp {selectedClassForView?.className}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        <div className="border rounded-md">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[50px]"></TableHead>
-                                        <TableHead>Tên học sinh</TableHead>
-                                        <TableHead>Ngày sinh</TableHead>
-                                        <TableHead>Email</TableHead>
+            <CustomDialog open={isViewStudentsDialogOpen} onOpenChange={setIsViewStudentsDialogOpen} title={`Danh sách học sinh lớp ${selectedClassForView?.className || ''}`} maxWidth="max-w-4xl">
+                <div className="space-y-4 p-5">
+                    <div className="border rounded-md shadow-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[50px]"></TableHead>
+                                    <TableHead>Tên học sinh</TableHead>
+                                    <TableHead>Ngày sinh</TableHead>
+                                    <TableHead>Email</TableHead>
+                                </TableRow>
+                            </TableHeader>
+
+                            <TableBody>
+                                {getCurrentPageStudents().map((student) => (
+                                    <TableRow key={student.userId}>
+                                        <TableCell>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => {
+                                                    setStudentToRemove(student);
+                                                    setIsRemoveStudentDialogOpen(true);
+                                                }}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                        <TableCell>{student.fullName || student.username}</TableCell>
+                                        <TableCell>
+                                            {student.dob ? format(new Date(student.dob), 'dd/MM/yyyy', { locale: vi }) : '-'}
+                                        </TableCell>
+                                        <TableCell>{student.email}</TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {getCurrentPageStudents().map((student) => (
-                                        <TableRow key={student.userId}>
-                                            <TableCell>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => {
-                                                        setStudentToRemove(student);
-                                                        setIsRemoveStudentDialogOpen(true);
-                                                    }}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
-                                            <TableCell>{student.fullName || student.username}</TableCell>
-                                            <TableCell>
-                                                {student.dob ? format(new Date(student.dob), 'dd/MM/yyyy', { locale: vi }) : '-'}
-                                            </TableCell>
-                                            <TableCell>{student.email}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                        <TablePagination
-                            currentPage={currentStudentPage - 1}
-                            totalPages={totalStudentPages}
-                            totalItems={classStudents.length}
-                            onPageChange={(page) => setCurrentStudentPage(page + 1)}
-                            itemLabel="học sinh"
-                        />
-                        <div className="flex justify-end">
-                            <Button variant="outline" onClick={() => {
-                                setIsViewStudentsDialogOpen(false);
-                                setCurrentStudentPage(1);
-                            }}>
-                                Đóng
-                            </Button>
-                        </div>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </div>
-                </DialogContent>
-            </Dialog>
+                    <TablePagination
+                        currentPage={currentStudentPage - 1}
+                        totalPages={totalStudentPages}
+                        totalItems={classStudents.length}
+                        onPageChange={(page) => setCurrentStudentPage(page + 1)}
+                        itemLabel="học sinh"
+                    />
+                    <div className="flex justify-end">
+                        <Button variant="outline" onClick={() => {
+                            setIsViewStudentsDialogOpen(false);
+                            setCurrentStudentPage(1);
+                        }} className="shadow-md rounded-md">
+                            Xóa
+                        </Button>
+                    </div>
+                </div>
+            </CustomDialog>
 
             {/* Remove Student Confirmation Dialog */}
-            <Dialog open={isRemoveStudentDialogOpen} onOpenChange={setIsRemoveStudentDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Xóa học sinh khỏi lớp</DialogTitle>
-                        <DialogDescription>
-                            Bạn có chắc chắn muốn xóa học sinh {studentToRemove?.fullName || studentToRemove?.username} khỏi lớp {selectedClassForView?.className}?
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
+            <CustomDialog open={isRemoveStudentDialogOpen} onOpenChange={setIsRemoveStudentDialogOpen} title="Xóa học sinh khỏi lớp">
+                <div className="space-y-4">
+                    <p className="text-muted-foreground">
+                        Bạn có chắc chắn muốn xóa học sinh {studentToRemove?.fullName || studentToRemove?.username} khỏi lớp {selectedClassForView?.className}?
+                    </p>
+                    <div className="flex justify-end space-x-2">
                         <Button variant="outline" onClick={() => setIsRemoveStudentDialogOpen(false)}>
                             Hủy
                         </Button>
@@ -1175,20 +1207,17 @@ export default function AdminClasses() {
                         >
                             Xóa
                         </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                    </div>
+                </div>
+            </CustomDialog>
 
             {/* Delete Confirmation Dialog */}
-            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Xóa lớp học</DialogTitle>
-                        <DialogDescription>
-                            Bạn có chắc chắn muốn xóa lớp {classToDelete?.className}? Hành động này không thể hoàn tác.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
+            <CustomDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} title="Đóng lớp học">
+                <div className="space-y-4">
+                    <p className="text-muted-foreground">
+                        Bạn có chắc chắn muốn đóng lớp {classToDelete?.className}? Hành động này không thể hoàn tác.
+                    </p>
+                    <div className="flex justify-end space-x-2">
                         <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
                             Hủy
                         </Button>
@@ -1201,11 +1230,11 @@ export default function AdminClasses() {
                                 }
                             }}
                         >
-                            Xóa
+                            đóng
                         </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                    </div>
+                </div>
+            </CustomDialog>
         </div>
     );
 } 

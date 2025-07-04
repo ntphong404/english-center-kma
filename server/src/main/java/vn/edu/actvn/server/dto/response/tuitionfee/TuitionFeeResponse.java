@@ -20,5 +20,6 @@ public class TuitionFeeResponse {
     YearMonth yearMonth; // 2025-06
     BigDecimal amount; // 1.000.000
     Integer discount;
+    BigDecimal paidAmount;
     BigDecimal remainingAmount; // 500.000
 }

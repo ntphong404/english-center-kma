@@ -17,14 +17,18 @@ import vn.edu.actvn.server.dto.request.user.UpdateTeacherRequest;
 import vn.edu.actvn.server.dto.response.user.UserResponse;
 import vn.edu.actvn.server.entity.Role;
 import vn.edu.actvn.server.entity.Teacher;
+import vn.edu.actvn.server.entity.TeacherPayment;
 import vn.edu.actvn.server.exception.AppException;
 import vn.edu.actvn.server.exception.ErrorCode;
 import vn.edu.actvn.server.mapper.UserMapper;
 import vn.edu.actvn.server.repository.RoleRepository;
+import vn.edu.actvn.server.repository.TeacherPaymentRepository;
 import vn.edu.actvn.server.repository.UserRepository;
 import vn.edu.actvn.server.repository.TeacherRepository;
 import vn.edu.actvn.server.utils.RandomAvatar;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -37,6 +41,7 @@ public class TeacherService {
     PasswordEncoder passwordEncoder;
     UserMapper userMapper;
     UserRepository userRepository;
+    private final TeacherPaymentRepository teacherPaymentRepository;
 
     @PreAuthorize("hasAuthority('TEACHER_READ_ALL') || hasRole('ADMIN')")
     public Page<UserResponse> getAllTeachers(String fullName, String email, Pageable pageable) {
@@ -79,9 +84,27 @@ public class TeacherService {
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
         teacher.setRole(role);
 
-        teacher.setAvatarUrl(RandomAvatar.getRandomAvatar(teacher.getGender().equals("MALE")));
-        return userMapper.toUserResponse(userRepository.save(teacher));
+        teacher.setAvatarUrl(RandomAvatar.getRandomAvatar("MALE".equals(request.getGender())));
+        var teacherEntity = teacherRepository.save(teacher);
+
+        // Tạo bản ghi TeacherPayment cho tháng hiện tại
+        LocalDate now = LocalDate.now();
+        teacherPaymentRepository.save(
+                TeacherPayment.builder()
+                        .teacher(teacherEntity)
+                        .month(now.getMonthValue())
+                        .year(now.getYear())
+                        .amount(teacherEntity.getSalary())
+                        .paidAmount(BigDecimal.ZERO)
+                        .remainingAmount(teacherEntity.getSalary())
+                        .status(TeacherPayment.Status.UNPAID)
+                        .note("Khởi tạo lương cho giáo viên")
+                        .build()
+        );
+
+        return userMapper.toUserResponse(teacherEntity);
     }
+
 
     @PreAuthorize("hasAuthority('TEACHER_DELETE') || hasRole('ADMIN')")
     public void deleteTeacher(String id) {

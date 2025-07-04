@@ -49,7 +49,7 @@ const TeacherProfile = () => {
                 <BookOpen className="w-4 h-4 text-muted-foreground" />
                 <div>
                     <p className="text-sm font-medium">Khoa</p>
-                    <p className="text-sm text-muted-foreground">Khoa Toán</p>
+                    <p className="text-sm text-muted-foreground">Khoa Ngoại Ngữ</p>
                 </div>
             </div>
             <Separator />
@@ -76,7 +76,7 @@ const TeacherProfile = () => {
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Bằng cấp</label>
                         <input
-                            value="Thạc sĩ Toán học - Đại học Sư phạm TP.HCM"
+                            value="Thạc sĩ Ngoại ngữ - Đại học Sư phạm TP.HCM"
                             disabled
                             className="w-full px-3 py-2 border rounded-md bg-muted"
                         />
@@ -93,7 +93,7 @@ const TeacherProfile = () => {
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Môn học phụ trách</label>
                     <div className="flex flex-wrap gap-2">
-                        {['Toán 6', 'Toán 7', 'Toán 8'].map((subject, index) => (
+                        {['Tiếng Anh 1', 'Tiếng Anh 2', 'Tiếng Anh 3', 'Tiếng Anh 4', 'Tiếng Anh 5'].map((subject, index) => (
                             <Badge key={index} variant="outline">
                                 {subject}
                             </Badge>

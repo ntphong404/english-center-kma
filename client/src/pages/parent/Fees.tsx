@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Download, AlertCircle, DollarSign, Calendar, User, CreditCard } from 'lucide-react';
+import { Download, AlertCircle, DollarSign, Calendar, User, CreditCard, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -48,6 +48,12 @@ export default function ParentFees() {
     const [selectedFee, setSelectedFee] = useState<TuitionFeeResponse | null>(null);
     const [paymentAmount, setPaymentAmount] = useState('');
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+    // Payment history dialog states
+    const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+    const [historyFee, setHistoryFee] = useState<TuitionFeeResponse | null>(null);
 
     // Helper for years
     const currentYear = new Date().getFullYear();
@@ -263,6 +269,19 @@ export default function ParentFees() {
         setIsPaymentDialogOpen(false);
         setSelectedFee(null);
         setPaymentAmount('');
+    };
+
+    const handleHistoryClick = async (fee: TuitionFeeResponse) => {
+        setHistoryFee(fee);
+        setIsHistoryDialogOpen(true);
+        setHistoryLoading(true);
+        try {
+            const res = await paymentApi.getByTuitionFeeId(fee.tuitionFeeId, 0, 20);
+            setPaymentHistory(res.data.result.content || []);
+        } catch (error) {
+            setPaymentHistory([]);
+        }
+        setHistoryLoading(false);
     };
 
     if (loading) {
@@ -483,25 +502,37 @@ export default function ParentFees() {
                                                                     )}
                                                                 </TableCell>
                                                                 <TableCell className="text-center">
-                                                                    {fee.remainingAmount === 0 ? (
+                                                                    <div className="flex items-center justify-center gap-2">
                                                                         <Button
                                                                             variant="ghost"
                                                                             size="icon"
-                                                                            title="Tải biên lai"
-                                                                            className="hover:bg-green-100 hover:text-green-700"
+                                                                            title="Lịch sử thanh toán"
+                                                                            className="hover:bg-blue-100 hover:text-blue-700"
+                                                                            onClick={() => handleHistoryClick(fee)}
                                                                         >
-                                                                            <Download className="h-4 w-4" />
+                                                                            <History className="h-4 w-4" />
                                                                         </Button>
-                                                                    ) : (
-                                                                        <Button
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            className="text-red-600 border-red-300 hover:bg-red-50"
-                                                                            onClick={() => handlePaymentClick(fee)}
-                                                                        >
-                                                                            Đóng học phí
-                                                                        </Button>
-                                                                    )}
+                                                                        {fee.remainingAmount === 0 ? (
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                title="Tải biên lai"
+                                                                                className="hover:bg-green-100 hover:text-green-700"
+                                                                            >
+                                                                                <Download className="h-4 w-4" />
+                                                                            </Button>
+                                                                        ) : (
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                title="Đóng học phí"
+                                                                                className="hover:bg-red-100 hover:text-red-700"
+                                                                                onClick={() => handlePaymentClick(fee)}
+                                                                            >
+                                                                                <CreditCard className="h-4 w-4" />
+                                                                            </Button>
+                                                                        )}
+                                                                    </div>
                                                                 </TableCell>
                                                             </TableRow>
                                                         );
@@ -594,6 +625,49 @@ export default function ParentFees() {
                                     {isProcessingPayment ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
                                 </Button>
                             </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Payment History Dialog */}
+            <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center">
+                            <History className="mr-2 h-5 w-5" />
+                            Lịch sử thanh toán
+                        </DialogTitle>
+                    </DialogHeader>
+                    {historyFee && (
+                        <div className="mb-4 text-sm">
+                            <div><span className="text-gray-600">Tháng:</span> <span className="font-medium">{formatYearMonth(historyFee.yearMonth)}</span></div>
+                            <div><span className="text-gray-600">Lớp:</span> <span className="font-medium">{classes[historyFee.classId]?.className || 'Chưa cập nhật'}</span></div>
+                            <div><span className="text-gray-600">Học phí:</span> <span className="font-medium">{formatCurrency(historyFee.amount)}</span></div>
+                        </div>
+                    )}
+                    {historyLoading ? (
+                        <div className="text-center py-8 text-gray-500">Đang tải lịch sử...</div>
+                    ) : paymentHistory.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">Chưa có lịch sử thanh toán</div>
+                    ) : (
+                        <div className="max-h-64 overflow-y-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Ngày thanh toán</TableHead>
+                                        <TableHead className="text-right">Số tiền</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {paymentHistory.map((p) => (
+                                        <TableRow key={p.paymentId}>
+                                            <TableCell>{new Date(p.createdAt).toLocaleString('vi-VN')}</TableCell>
+                                            <TableCell className="text-right">{formatCurrency(p.paidAmount)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
                         </div>
                     )}
                 </DialogContent>

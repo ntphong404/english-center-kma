@@ -28,7 +28,7 @@ public class TuitionFee {
 
     @ManyToOne
     @JoinColumn(name = "student_id")
-    Student student; // duy ngu
+    Student student;
 
     @ManyToOne
     @JoinColumn(name = "class_id")
@@ -39,6 +39,9 @@ public class TuitionFee {
 
     @Column(nullable = false, precision = 10, scale = 2)
     BigDecimal amount; // 1.000.000
+
+    @Column(precision = 10, scale = 2)
+    BigDecimal paidAmount; // 10.000
 
     @Column(nullable = false, precision = 10, scale = 2)
     BigDecimal remainingAmount; // 990.000

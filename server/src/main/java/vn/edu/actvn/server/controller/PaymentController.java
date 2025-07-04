@@ -53,6 +53,19 @@ public class PaymentController {
                 .build();
     }
 
+    @GetMapping("/tuition-fee/{id}")
+    @Operation(summary = "Get a payment by tuition fee ID")
+    public ApiResponse<Page<PaymentResponse>> getPaymentByTuitionFeeId(
+            @PathVariable String id,
+            @ParameterObject Pageable pageable
+    ) {
+        var result = paymentService.getPaymentByTuitionFeeId(id, pageable);
+        return ApiResponse.<Page<PaymentResponse>>builder()
+                .result(result)
+                .message("Payment found")
+                .build();
+    }
+
     @PatchMapping("/{id}")
     @Operation(summary = "Update a payment by ID")
     public ApiResponse<PaymentResponse> updatePayment(@PathVariable String id,

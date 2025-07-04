@@ -25,19 +25,15 @@ public class Notification {
 
     @ManyToOne
     @JoinColumn(name = "recipient_id")
-    User recipient;
+    Parent recipient;
 
     @Column(nullable = false, columnDefinition = "TEXT")
-    String message;
+    String subject;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    Status status;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    String content;
 
     @CreatedDate
     LocalDateTime sentAt;
 
-    public enum Status {
-        SENT, PENDING
-    }
 }

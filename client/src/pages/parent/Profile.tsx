@@ -1,18 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, Baby, Calendar, Heart, PhoneIncoming } from 'lucide-react';
 import ProfileForm from '@/components/ProfileForm';
+import parentApi from '@/api/parentApi';
+import studentApi from '@/api/studentApi';
 
 const ParentProfile = () => {
-    // Mock data - sẽ thay bằng API sau
     const [profile, setProfile] = useState({
-        fullName: 'Nguyễn Thị Phụ Huynh',
-        email: 'parent@school.com',
-        phoneNumber: '0123456789',
-        address: '321 Đường GHI, Quận 4, TP.HCM',
-        dateOfBirth: '1980-07-10',
+        fullName: '',
+        email: '',
+        phoneNumber: '',
+        address: '',
+        dateOfBirth: '',
         avatar: '',
-        bio: 'Phụ huynh quan tâm đến việc học tập của con em.'
+        bio: '',
     });
+    const [children, setChildren] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            setLoading(true);
+            try {
+                const user = localStorage.getItem('user');
+                if (!user) return;
+                const { userId } = JSON.parse(user);
+                const parentRes = await parentApi.getById(userId);
+                const parent = parentRes.data.result;
+                setProfile({
+                    fullName: parent.fullName,
+                    email: parent.email,
+                    phoneNumber: parent.phoneNumber,
+                    address: parent.address,
+                    dateOfBirth: parent.dob,
+                    avatar: parent.avatarUrl,
+                    bio: '',
+                });
+                if (parent.studentIds && parent.studentIds.length > 0) {
+                    const stuRes = await studentApi.getByIds(parent.studentIds);
+                    setChildren(stuRes.data.result || []);
+                } else {
+                    setChildren([]);
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchProfile();
+    }, []);
 
     const handleProfileUpdate = (data: any) => {
         setProfile(data);
@@ -44,7 +78,7 @@ const ParentProfile = () => {
                 <Baby className="w-4 h-4 text-muted-foreground" />
                 <div>
                     <p className="text-sm font-medium">Số con</p>
-                    <p className="text-sm text-muted-foreground">2 con</p>
+                    <p className="text-sm text-muted-foreground">{children.length} con</p>
                 </div>
             </div>
         </>
@@ -55,20 +89,16 @@ const ParentProfile = () => {
             <div className="mb-4">
                 <h2 className="font-semibold mb-2 flex items-center gap-2"><Baby className="w-4 h-4" /> Thông tin con em</h2>
                 <div className="space-y-2">
-                    <div className="p-4 border rounded-lg flex items-center justify-between">
-                        <div>
-                            <h4 className="font-medium">Nguyễn Văn Con 1</h4>
-                            <p className="text-sm text-muted-foreground">Lớp 8A - HS2024001</p>
+                    {children.map(child => (
+                        <div key={child.userId} className="p-4 border rounded-lg flex items-center justify-between">
+                            <div>
+                                <h4 className="font-medium">{child.fullName || child.username}</h4>
+                                <p className="text-sm text-muted-foreground">Email: {child.email || '-'}</p>
+                            </div>
+                            <span className="flex items-center gap-1 text-xs"><Heart className="w-3 h-3" /> Con</span>
                         </div>
-                        <span className="flex items-center gap-1 text-xs"><Heart className="w-3 h-3" /> Con</span>
-                    </div>
-                    <div className="p-4 border rounded-lg flex items-center justify-between">
-                        <div>
-                            <h4 className="font-medium">Nguyễn Thị Con 2</h4>
-                            <p className="text-sm text-muted-foreground">Lớp 6B - HS2024002</p>
-                        </div>
-                        <span className="flex items-center gap-1 text-xs"><Heart className="w-3 h-3" /> Con</span>
-                    </div>
+                    ))}
+                    {children.length === 0 && <div className="text-muted-foreground text-sm">Chưa có thông tin học sinh</div>}
                 </div>
             </div>
         </div>

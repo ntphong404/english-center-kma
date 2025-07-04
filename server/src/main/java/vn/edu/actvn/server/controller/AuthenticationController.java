@@ -115,4 +115,15 @@ public class AuthenticationController {
                 .message("OTP verified successfully!")
                 .build();
     }
+
+    @PostMapping("/report")
+    @Operation(summary = "Send report to parent")
+    public ApiResponse<String> report() {
+        emailService.sendReportToParent();
+        return ApiResponse.<String>builder()
+                .result("Issue reported successfully!")
+                .message("Issue reported successfully!")
+                .build();
+    }
+
 }

@@ -17,5 +17,6 @@ public class UpdateTuitionFeeRequest {
     String classId;
     LocalDate yearMonth; // 2025-06
     BigDecimal amount; // 1.000.000
-    BigDecimal remainingAmount; // 500.000
+    BigDecimal paidAmount;
+
 }

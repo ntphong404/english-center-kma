@@ -35,6 +35,9 @@ import {
     SelectContent,
     SelectItem
 } from '@/components/ui/select';
+import ColoredTable from '@/components/ui/ColoredTable';
+import CustomDialog from '@/components/CustomDialog';
+import paymentApi from '@/api/paymentApi';
 
 interface Fee extends TuitionFeeResponse {
     studentName: string;
@@ -81,6 +84,11 @@ export default function AdminFees() {
     const [payAmount, setPayAmount] = useState('');
     const [payError, setPayError] = useState('');
     const [allTeacherPayments, setAllTeacherPayments] = useState<TeacherPaymentResponse[]>([]);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [feeToDelete, setFeeToDelete] = useState<Fee | null>(null);
+    const [isFeePaymentHistoryDialogOpen, setIsFeePaymentHistoryDialogOpen] = useState(false);
+    const [feePaymentHistory, setFeePaymentHistory] = useState<any[]>([]);
+    const [feePaymentHistoryLoading, setFeePaymentHistoryLoading] = useState(false);
 
     const fetchFees = async (page: number) => {
         try {
@@ -372,6 +380,19 @@ export default function AdminFees() {
         }
     };
 
+    const handleViewFeePaymentHistory = async (studentId: string, classId: string) => {
+        setFeePaymentHistoryLoading(true);
+        try {
+            const res = await paymentApi.getAll(studentId, classId, 0, 100);
+            setFeePaymentHistory(res.data.result.content);
+            setIsFeePaymentHistoryDialogOpen(true);
+        } catch (error) {
+            toast({ title: 'Lỗi', description: 'Không thể tải lịch sử thanh toán học phí', variant: 'destructive' });
+        } finally {
+            setFeePaymentHistoryLoading(false);
+        }
+    };
+
     // Listen for refresh event
     useEffect(() => {
         const handleRefresh = () => {
@@ -386,7 +407,7 @@ export default function AdminFees() {
     }, [activeTab, selectedTeacher]);
 
     return (
-        <div className="flex flex-col h-[calc(100vh-4rem)] p-6">
+        <div className="flex flex-col h-[calc(100vh-4rem)] p-6 mb-20">
             <div className="mb-4">
                 <h2 className="text-2xl font-bold">Quản lý học phí</h2>
             </div>
@@ -401,62 +422,40 @@ export default function AdminFees() {
             )}
 
             {activeTab === 'fees' && (
-                <div className="flex-1 border rounded-lg overflow-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Học viên</TableHead>
-                                <TableHead>Lớp học</TableHead>
-                                <TableHead>Số tiền</TableHead>
-                                <TableHead>Số tiền còn lại</TableHead>
-                                <TableHead>Tháng</TableHead>
-                                <TableHead>Trạng thái</TableHead>
-                                <TableHead className="text-right">Thao tác</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {isLoading ? (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-4">
-                                        Đang tải...
-                                    </TableCell>
-                                </TableRow>
-                            ) : fees.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-4">
-                                        Không có dữ liệu
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                fees.map((fee) => (
-                                    <TableRow key={fee.tuitionFeeId}>
-                                        <TableCell>{fee.studentName}</TableCell>
-                                        <TableCell>{fee.className}</TableCell>
-                                        <TableCell>{formatCurrency(fee.amount)}</TableCell>
-                                        <TableCell>{formatCurrency(fee.remainingAmount)}</TableCell>
-                                        <TableCell>{fee.yearMonth}</TableCell>
-                                        <TableCell>{getStatusBadge(fee.status, fee.remainingAmount, fee.amount)}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleEdit(fee)}
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleDelete(fee.tuitionFeeId)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                <div className="flex-1 border rounded-lg">
+                    <ColoredTable
+                        columns={[
+                            { title: 'Học viên' },
+                            { title: 'Lớp học' },
+                            { title: 'Số tiền' },
+                            { title: 'Số tiền còn lại' },
+                            { title: 'Tháng' },
+                            { title: 'Trạng thái' },
+                            { title: 'Thao tác', headerClassName: 'text-right' },
+                        ]}
+                        data={fees}
+                        renderRow={(fee) => [
+                            fee.studentName,
+                            fee.className,
+                            formatCurrency(fee.amount),
+                            formatCurrency(fee.remainingAmount),
+                            fee.yearMonth,
+                            getStatusBadge(fee.status, fee.remainingAmount, fee.amount),
+                            <div className="text-right flex gap-1 justify-end" key="actions">
+                                <Button variant="ghost" size="icon" onClick={() => handleEdit(fee)}>
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => { setFeeToDelete(fee); setIsDeleteDialogOpen(true); }}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleViewFeePaymentHistory(fee.studentId, fee.classId)} title="Xem lịch sử thanh toán">
+                                    <History className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        ]}
+                        pageSize={pageSize}
+                        emptyMessage={isLoading ? 'Đang tải...' : 'Không có dữ liệu'}
+                    />
                 </div>
             )}
 
@@ -485,78 +484,41 @@ export default function AdminFees() {
             )}
 
             {activeTab === 'teacherPayments' && (
-                <div className="border rounded-lg overflow-y-auto max-h-[500px]">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="sticky top-0 z-10 bg-white">
-                                <TableHead>Tên giáo viên</TableHead>
-                                <TableHead>Tháng</TableHead>
-                                <TableHead>Năm</TableHead>
-                                <TableHead>Tổng lương</TableHead>
-                                <TableHead>Số tiền còn lại</TableHead>
-                                <TableHead>Ghi chú</TableHead>
-                                <TableHead>Trạng thái</TableHead>
-                                <TableHead className="text-right">Thao tác</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {teacherPaymentsLoading ? (
-                                <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-4">Đang tải...</TableCell>
-                                </TableRow>
-                            ) : teacherPaymentsByMonth.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-4">Không có dữ liệu</TableCell>
-                                </TableRow>
-                            ) : (
-                                teacherPaymentsByMonth.map(tp => (
-                                    <TableRow key={tp.id}>
-                                        <TableCell>{tp.teacherName}</TableCell>
-                                        <TableCell>{tp.month}</TableCell>
-                                        <TableCell>{tp.year}</TableCell>
-                                        <TableCell>{formatCurrency(tp.amount)}</TableCell>
-                                        <TableCell>{formatCurrency(tp.remainingAmount)}</TableCell>
-                                        <TableCell>{tp.note}</TableCell>
-                                        <TableCell>
-                                            <span className={`px-2 py-1 rounded-full text-xs ${tp.status === 'PAID' ? 'bg-green-100 text-green-800' :
-                                                tp.status === 'PARTIALLY_PAID' ? 'bg-yellow-100 text-yellow-800' :
-                                                    'bg-red-100 text-red-800'
-                                                }`}>
-                                                {tp.status === 'PAID' ? 'Đã thanh toán' :
-                                                    tp.status === 'PARTIALLY_PAID' ? 'Chưa thanh toán đủ' :
-                                                        'Chưa thanh toán'}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            {(tp.status === 'UNPAID' || tp.status === 'PARTIALLY_PAID') && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => {
-                                                        setPayDialogData(tp);
-                                                        setPayAmount('');
-                                                        setPayError('');
-                                                        setIsPayDialogOpen(true);
-                                                    }}
-                                                    title="Thanh toán"
-                                                >
-                                                    <CreditCard className="h-4 w-4" />
-                                                </Button>
-                                            )}
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleViewPaymentHistory(tp.teacherId, tp.month, tp.year)}
-                                                title="Xem lịch sử thanh toán"
-                                            >
-                                                <History className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                <div className="border rounded-lg">
+                    <ColoredTable
+                        columns={[
+                            { title: 'Tên giáo viên' },
+                            { title: 'Tháng' },
+                            { title: 'Năm' },
+                            { title: 'Tổng lương' },
+                            { title: 'Số tiền còn lại' },
+                            { title: 'Ghi chú' },
+                            { title: 'Trạng thái' },
+                            { title: 'Thao tác', headerClassName: 'text-right' },
+                        ]}
+                        data={teacherPaymentsByMonth}
+                        renderRow={(tp) => [
+                            tp.teacherName,
+                            tp.month,
+                            tp.year,
+                            formatCurrency(tp.amount),
+                            formatCurrency(tp.remainingAmount),
+                            tp.note,
+                            <span className={`px-2 py-1 rounded-full text-xs ${tp.status === 'PAID' ? 'bg-green-100 text-green-800' : tp.status === 'PARTIALLY_PAID' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>{tp.status === 'PAID' ? 'Đã thanh toán' : tp.status === 'PARTIALLY_PAID' ? 'Chưa thanh toán đủ' : 'Chưa thanh toán'}</span>,
+                            <div className="text-right" key="actions">
+                                {(tp.status === 'UNPAID' || tp.status === 'PARTIALLY_PAID') && (
+                                    <Button variant="ghost" size="icon" onClick={() => { setPayDialogData(tp); setPayAmount(''); setPayError(''); setIsPayDialogOpen(true); }} title="Thanh toán">
+                                        <CreditCard className="h-4 w-4" />
+                                    </Button>
+                                )}
+                                <Button variant="ghost" size="icon" onClick={() => handleViewPaymentHistory(tp.teacherId, tp.month, tp.year)} title="Xem lịch sử thanh toán">
+                                    <History className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        ]}
+                        pageSize={teacherPaymentsPageSize}
+                        emptyMessage={teacherPaymentsLoading ? 'Đang tải...' : 'Không có dữ liệu'}
+                    />
                 </div>
             )}
 
@@ -579,210 +541,193 @@ export default function AdminFees() {
                 />
             )}
 
-            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Chỉnh sửa học phí</DialogTitle>
-                    </DialogHeader>
-                    {selectedFee && (
-                        <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-student" className="text-right">
-                                    Học viên
-                                </Label>
-                                <Input
-                                    id="edit-student"
-                                    defaultValue={selectedFee.studentName}
-                                    className="col-span-3"
-                                    disabled
-                                />
+            <CustomDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} title="Chỉnh sửa học phí">
+                {selectedFee && (
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-student" className="text-right">Học viên</Label>
+                            <Input id="edit-student" defaultValue={selectedFee.studentName} className="col-span-3" disabled />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-class" className="text-right">Lớp học</Label>
+                            <Input id="edit-class" defaultValue={selectedFee.className} className="col-span-3" disabled />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-amount" className="text-right">Số tiền</Label>
+                            <Input id="edit-amount" type="number" defaultValue={selectedFee.amount} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-remainingAmount" className="text-right">Số tiền còn lại</Label>
+                            <Input id="edit-remainingAmount" type="number" defaultValue={selectedFee.remainingAmount} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-yearMonth" className="text-right">Tháng</Label>
+                            <Input id="edit-yearMonth" type="month" defaultValue={selectedFee.yearMonth} className="col-span-3" />
+                        </div>
+                    </div>
+                )}
+                <div className="flex justify-end">
+                    <Button onClick={handleSaveEdit}>Lưu thay đổi</Button>
+                </div>
+            </CustomDialog>
+
+            <CustomDialog open={isPayDialogOpen} onOpenChange={setIsPayDialogOpen} title="Thanh toán lương giáo viên">
+                {payDialogData && (
+                    <form className="grid gap-6 py-4" onSubmit={async (e) => {
+                        e.preventDefault();
+                        setPayError('');
+                        const remain = payDialogData.remainingAmount;
+                        const paid = parseFloat(payAmount);
+                        if (isNaN(paid) || paid <= 0) {
+                            setPayError('Vui lòng nhập số tiền hợp lệ');
+                            return;
+                        }
+                        if (paid > remain) {
+                            setPayError('Số tiền thanh toán không được lớn hơn số tiền còn lại');
+                            return;
+                        }
+                        try {
+                            const req: CreateTeacherPaymentRequest = {
+                                teacherId: payDialogData.teacherId,
+                                month: payDialogData.month,
+                                year: payDialogData.year,
+                                amount: payDialogData.amount,
+                                paidAmount: paid,
+                                note: payDialogData.note || ''
+                            };
+                            await teacherPaymentApi.create(req);
+                            toast({ title: 'Thành công', description: 'Đã thanh toán lương!' });
+                            setIsPayDialogOpen(false);
+                            // Refresh data
+                            await fetchTeacherPaymentsForSelected();
+                        } catch (error) {
+                            setPayError('Có lỗi khi thanh toán!');
+                        }
+                    }}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-sm">Giáo viên</Label>
+                                <Input value={payDialogData.teacherName} disabled />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-class" className="text-right">
-                                    Lớp học
-                                </Label>
-                                <Input
-                                    id="edit-class"
-                                    defaultValue={selectedFee.className}
-                                    className="col-span-3"
-                                    disabled
-                                />
+                            <div className="space-y-2">
+                                <Label className="text-sm">Tháng</Label>
+                                <Input value={payDialogData.month} disabled />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-amount" className="text-right">
-                                    Số tiền
-                                </Label>
-                                <Input
-                                    id="edit-amount"
-                                    type="number"
-                                    defaultValue={selectedFee.amount}
-                                    className="col-span-3"
-                                />
+                            <div className="space-y-2">
+                                <Label className="text-sm">Năm</Label>
+                                <Input value={payDialogData.year} disabled />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-remainingAmount" className="text-right">
-                                    Số tiền còn lại
-                                </Label>
-                                <Input
-                                    id="edit-remainingAmount"
-                                    type="number"
-                                    defaultValue={selectedFee.remainingAmount}
-                                    className="col-span-3"
-                                />
+                            <div className="space-y-2">
+                                <Label className="text-sm">Tổng lương</Label>
+                                <Input value={formatCurrency(payDialogData.amount)} disabled />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-yearMonth" className="text-right">
-                                    Tháng
-                                </Label>
-                                <Input
-                                    id="edit-yearMonth"
-                                    type="month"
-                                    defaultValue={selectedFee.yearMonth}
-                                    className="col-span-3"
-                                />
+                            <div className="space-y-2">
+                                <Label className="text-sm">Số tiền còn lại</Label>
+                                <Input value={formatCurrency(payDialogData.remainingAmount)} disabled />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="payAmount" className="text-sm">Số tiền thanh toán</Label>
+                                <Input id="payAmount" name="payAmount" type="number" min={1} max={payDialogData.remainingAmount} value={payAmount} onChange={e => setPayAmount(e.target.value)} required />
                             </div>
                         </div>
-                    )}
-                    <div className="flex justify-end">
-                        <Button onClick={handleSaveEdit}>Lưu thay đổi</Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
+                        {payError && <div className="text-red-500 text-sm mt-2">{payError}</div>}
+                        <div className="flex justify-end gap-2 mt-4">
+                            <Button type="submit">Thanh toán</Button>
+                        </div>
+                    </form>
+                )}
+            </CustomDialog>
 
-            {/* Pay Dialog */}
-            <Dialog open={isPayDialogOpen} onOpenChange={setIsPayDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Thanh toán lương giáo viên</DialogTitle>
-                    </DialogHeader>
-                    {payDialogData && (
-                        <form
-                            className="grid gap-6 py-4"
-                            onSubmit={async (e) => {
-                                e.preventDefault();
-                                setPayError('');
-                                const remain = payDialogData.remainingAmount;
-                                const paid = parseFloat(payAmount);
-                                if (isNaN(paid) || paid <= 0) {
-                                    setPayError('Vui lòng nhập số tiền hợp lệ');
-                                    return;
-                                }
-                                if (paid > remain) {
-                                    setPayError('Số tiền thanh toán không được lớn hơn số tiền còn lại');
-                                    return;
-                                }
-                                try {
-                                    const req: CreateTeacherPaymentRequest = {
-                                        teacherId: payDialogData.teacherId,
-                                        month: payDialogData.month,
-                                        year: payDialogData.year,
-                                        amount: payDialogData.amount,
-                                        paidAmount: paid,
-                                        note: payDialogData.note || ''
-                                    };
-                                    await teacherPaymentApi.create(req);
-                                    toast({ title: 'Thành công', description: 'Đã thanh toán lương!' });
-                                    setIsPayDialogOpen(false);
-                                    // Refresh data
-                                    await fetchTeacherPaymentsForSelected();
-                                } catch (error) {
-                                    setPayError('Có lỗi khi thanh toán!');
-                                }
-                            }}
-                        >
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label className="text-sm">Giáo viên</Label>
-                                    <Input value={payDialogData.teacherName} disabled />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-sm">Tháng</Label>
-                                    <Input value={payDialogData.month} disabled />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-sm">Năm</Label>
-                                    <Input value={payDialogData.year} disabled />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-sm">Tổng lương</Label>
-                                    <Input value={formatCurrency(payDialogData.amount)} disabled />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-sm">Số tiền còn lại</Label>
-                                    <Input value={formatCurrency(payDialogData.remainingAmount)} disabled />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="payAmount" className="text-sm">Số tiền thanh toán</Label>
-                                    <Input
-                                        id="payAmount"
-                                        name="payAmount"
-                                        type="number"
-                                        min={1}
-                                        max={payDialogData.remainingAmount}
-                                        value={payAmount}
-                                        onChange={e => setPayAmount(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            {payError && <div className="text-red-500 text-sm mt-2">{payError}</div>}
-                            <div className="flex justify-end gap-2 mt-4">
-                                <Button type="submit">Thanh toán</Button>
-                            </div>
-                        </form>
-                    )}
-                </DialogContent>
-            </Dialog>
-
-            {/* Payment History Dialog */}
-            <Dialog open={isPaymentHistoryDialogOpen} onOpenChange={setIsPaymentHistoryDialogOpen}>
-                <DialogContent className="max-w-4xl">
-                    <DialogHeader>
-                        <DialogTitle>Lịch sử thanh toán</DialogTitle>
-                    </DialogHeader>
-                    <div className="max-h-96 overflow-auto">
-                        {paymentHistoryLoading ? (
-                            <div className="text-center py-4">Đang tải...</div>
-                        ) : paymentHistory.length === 0 ? (
-                            <div className="text-center py-4">Không có lịch sử thanh toán</div>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Ngày tạo</TableHead>
-                                        <TableHead>Số tiền</TableHead>
-                                        <TableHead>Đã thanh toán</TableHead>
-                                        <TableHead>Còn lại</TableHead>
-                                        <TableHead>Ghi chú</TableHead>
-                                        <TableHead>Trạng thái</TableHead>
+            <CustomDialog open={isPaymentHistoryDialogOpen} onOpenChange={setIsPaymentHistoryDialogOpen} title="Lịch sử thanh toán">
+                <div className="max-h-96 overflow-auto">
+                    {paymentHistoryLoading ? (
+                        <div className="text-center py-4">Đang tải...</div>
+                    ) : paymentHistory.length === 0 ? (
+                        <div className="text-center py-4">Không có lịch sử thanh toán</div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Ngày tạo</TableHead>
+                                    <TableHead>Số tiền</TableHead>
+                                    <TableHead>Đã thanh toán</TableHead>
+                                    <TableHead>Còn lại</TableHead>
+                                    <TableHead>Ghi chú</TableHead>
+                                    <TableHead>Trạng thái</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {paymentHistory.map((payment, idx) => (
+                                    <TableRow key={idx}>
+                                        <TableCell>{new Date(payment.createdAt).toLocaleDateString('vi-VN')}</TableCell>
+                                        <TableCell>{formatCurrency(payment.amount)}</TableCell>
+                                        <TableCell>{formatCurrency(payment.paidAmount)}</TableCell>
+                                        <TableCell>{formatCurrency(payment.remainingAmount)}</TableCell>
+                                        <TableCell>{payment.note}</TableCell>
+                                        <TableCell>
+                                            <span className={`px-2 py-1 rounded-full text-xs ${payment.status === 'PAID' ? 'bg-green-100 text-green-800' : payment.status === 'PARTIALLY_PAID' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>{payment.status === 'PAID' ? 'Đã thanh toán' : payment.status === 'PARTIALLY_PAID' ? 'Chưa thanh toán đủ' : 'Chưa thanh toán'}</span>
+                                        </TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {paymentHistory.map((payment) => (
-                                        <TableRow key={payment.id}>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </div>
+            </CustomDialog>
+
+            <CustomDialog open={isFeePaymentHistoryDialogOpen} onOpenChange={setIsFeePaymentHistoryDialogOpen} title="Lịch sử thanh toán học phí">
+                <div className="max-h-96 overflow-auto border rounded-lg">
+                    {feePaymentHistoryLoading ? (
+                        <div className="text-center py-4">Đang tải...</div>
+                    ) : feePaymentHistory.length === 0 ? (
+                        <div className="text-center py-4">Không có lịch sử thanh toán</div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Ngày tạo</TableHead>
+                                    <TableHead>Số tiền</TableHead>
+                                    <TableHead>Đã thanh toán</TableHead>
+                                    <TableHead>Trạng thái</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {feePaymentHistory.map((payment, idx) => {
+                                    const amount = payment.tuitionFee?.amount || 0;
+                                    const remaining = payment.tuitionFee?.remainingAmount || 0;
+                                    let statusLabel = 'Chưa thanh toán';
+                                    let statusClass = 'bg-red-100 text-red-800';
+                                    if (remaining === 0) {
+                                        statusLabel = 'Đã thanh toán';
+                                        statusClass = 'bg-green-100 text-green-800';
+                                    } else if (remaining < amount) {
+                                        statusLabel = 'Đã thanh toán một phần';
+                                        statusClass = 'bg-yellow-100 text-yellow-800';
+                                    }
+                                    return (
+                                        <TableRow key={idx}>
                                             <TableCell>{new Date(payment.createdAt).toLocaleDateString('vi-VN')}</TableCell>
-                                            <TableCell>{formatCurrency(payment.amount)}</TableCell>
+                                            <TableCell>{formatCurrency(amount)}</TableCell>
                                             <TableCell>{formatCurrency(payment.paidAmount)}</TableCell>
-                                            <TableCell>{formatCurrency(payment.remainingAmount)}</TableCell>
-                                            <TableCell>{payment.note}</TableCell>
                                             <TableCell>
-                                                <span className={`px-2 py-1 rounded-full text-xs ${payment.status === 'PAID' ? 'bg-green-100 text-green-800' :
-                                                    payment.status === 'PARTIALLY_PAID' ? 'bg-yellow-100 text-yellow-800' :
-                                                        'bg-red-100 text-red-800'
-                                                    }`}>
-                                                    {payment.status === 'PAID' ? 'Đã thanh toán' :
-                                                        payment.status === 'PARTIALLY_PAID' ? 'Chưa thanh toán đủ' :
-                                                            'Chưa thanh toán'}
-                                                </span>
+                                                <span className={`px-2 py-1 rounded-full text-xs ${statusClass}`}>{statusLabel}</span>
                                             </TableCell>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </div>
-                </DialogContent>
-            </Dialog>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    )}
+                </div>
+            </CustomDialog>
+
+            <CustomDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} title="Xác nhận xóa học phí">
+                <div>Bạn có chắc muốn xóa học phí của <b>{feeToDelete?.studentName}</b> lớp <b>{feeToDelete?.className}</b> tháng <b>{feeToDelete?.yearMonth}</b> không?</div>
+                <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Hủy</Button>
+                    <Button variant="destructive" onClick={() => { if (feeToDelete) { handleDelete(feeToDelete.tuitionFeeId); setIsDeleteDialogOpen(false); setFeeToDelete(null); } }}>Xóa</Button>
+                </div>
+            </CustomDialog>
         </div>
     );
 } 
