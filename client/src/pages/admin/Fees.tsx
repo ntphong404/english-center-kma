@@ -82,6 +82,7 @@ export default function AdminFees() {
     const [isPayDialogOpen, setIsPayDialogOpen] = useState(false);
     const [payDialogData, setPayDialogData] = useState<TeacherPaymentResponse | null>(null);
     const [payAmount, setPayAmount] = useState('');
+    const [payContent, setPayContent] = useState('Trả lương giáo viên');
     const [payError, setPayError] = useState('');
     const [allTeacherPayments, setAllTeacherPayments] = useState<TeacherPaymentResponse[]>([]);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -507,7 +508,7 @@ export default function AdminFees() {
                             <span className={`px-2 py-1 rounded-full text-xs ${tp.status === 'PAID' ? 'bg-green-100 text-green-800' : tp.status === 'PARTIALLY_PAID' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>{tp.status === 'PAID' ? 'Đã thanh toán' : tp.status === 'PARTIALLY_PAID' ? 'Chưa thanh toán đủ' : 'Chưa thanh toán'}</span>,
                             <div className="text-right" key="actions">
                                 {(tp.status === 'UNPAID' || tp.status === 'PARTIALLY_PAID') && (
-                                    <Button variant="ghost" size="icon" onClick={() => { setPayDialogData(tp); setPayAmount(''); setPayError(''); setIsPayDialogOpen(true); }} title="Thanh toán">
+                                    <Button variant="ghost" size="icon" onClick={() => { setPayDialogData(tp); setPayAmount(''); setPayContent('Trả lương giáo viên'); setPayError(''); setIsPayDialogOpen(true); }} title="Thanh toán">
                                         <CreditCard className="h-4 w-4" />
                                     </Button>
                                 )}
@@ -593,7 +594,7 @@ export default function AdminFees() {
                                 year: payDialogData.year,
                                 amount: payDialogData.amount,
                                 paidAmount: paid,
-                                note: payDialogData.note || ''
+                                note: payContent
                             };
                             await teacherPaymentApi.create(req);
                             toast({ title: 'Thành công', description: 'Đã thanh toán lương!' });
@@ -628,6 +629,10 @@ export default function AdminFees() {
                             <div className="space-y-2">
                                 <Label htmlFor="payAmount" className="text-sm">Số tiền thanh toán</Label>
                                 <Input id="payAmount" name="payAmount" type="number" min={1} max={payDialogData.remainingAmount} value={payAmount} onChange={e => setPayAmount(e.target.value)} required />
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <Label htmlFor="payContent" className="text-sm">Nội dung</Label>
+                                <Input id="payContent" name="payContent" value={payContent} onChange={e => setPayContent(e.target.value)} placeholder="Nhập nội dung thanh toán" />
                             </div>
                         </div>
                         {payError && <div className="text-red-500 text-sm mt-2">{payError}</div>}

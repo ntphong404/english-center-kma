@@ -6,14 +6,14 @@ server:
 
 spring:
   datasource:
-#    url: ${DB_URL:jdbc:postgresql://dpg-d196evjuibrs73bshobg-a.singapore-postgres.render.com:5432/english_center_db}
-#    username: ${DB_USERNAME:phong}
-#    password: ${DB_PASSWORD:t2NkwYCMZMGfkVdxbA1rSdsB83h6bpbY}
-#    driver-class-name: org.postgresql.Driver
-    url: jdbc:mysql://localhost:3306/english-center-db
-    username: root
-    password:
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:postgresql://ep-icy-rain-a1g2wy54-pooler.ap-southeast-1.aws.neon.tech:5432/neondb?sslmode=require&channelBinding=require
+    username: neondb_owner
+    password: npg_xboBup2r3Eil
+    driver-class-name: org.postgresql.Driver
+#    url: jdbc:mysql://yamabiko.proxy.rlwy.net:40815/railway #localhost:3306/english-center-db
+#    username: root #user
+#    password: FVmDRMMAlsOcZRZBKSNAFDMtSdMRLovt #pass
+#    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update

@@ -118,6 +118,12 @@ public class AttendanceService {
 
     @PreAuthorize("hasAuthority('ATTENDANCE_READ') || hasRole('ADMIN')")
     public Page<AttendanceResponse> getAll(String studentId,String classId, LocalDate date,Pageable pageable) {
+        if(studentId == null) {
+            studentId = "";
+        }
+        if(classId == null) {
+            classId = "";
+        }
         return attendanceRepository.search(studentId,classId,date, pageable)
                 .map(attendanceMapper::toAttendanceResponse);
     }
